@@ -1,59 +1,92 @@
-const path = require('path');
-const sqlite3 = require('sqlite3').verbose();
-const dbPath = path.join(__dirname, 'data.sqlite');
+const mysql = require('mysql2/promise');
 
-const db = new sqlite3.Database(dbPath);
+const pool = mysql.createPool({
+  host: process.env.MYSQL_HOST || '127.0.0.1',
+  user: process.env.MYSQL_USER || 'root',
+  password: process.env.MYSQL_PASSWORD || '',
+  database: process.env.MYSQL_DATABASE || 'loan_management',
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
+});
 
-function init() {
-  db.serialize(() => {
-    db.run(`CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT,
-      email TEXT UNIQUE,
-      password TEXT,
-      role TEXT
-    )`);
+async function init() {
+  // create tables if they do not exist (MySQL syntax)
+  await pool.execute(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      name VARCHAR(255),
+      email VARCHAR(255) UNIQUE,
+      password VARCHAR(255),
+      role VARCHAR(50)
+    ) ENGINE=InnoDB;
+  `);
 
-    db.run(`CREATE TABLE IF NOT EXISTS clients (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT,
-      phone TEXT,
-      email TEXT,
-      identifier TEXT
-    )`);
+  await pool.execute(`
+    CREATE TABLE IF NOT EXISTS clients (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      name VARCHAR(255),
+      phone VARCHAR(50),
+      email VARCHAR(255),
+      identifier VARCHAR(255)
+    ) ENGINE=InnoDB;
+  `);
 
-    db.run(`CREATE TABLE IF NOT EXISTS loans (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      clientId INTEGER,
-      amount REAL,
-      interestRate REAL,
-      termMonths INTEGER,
-      status TEXT,
-      appliedAt TEXT,
-      approvedBy INTEGER,
-      approvedAt TEXT,
-      disbursedAt TEXT,
-      balance REAL,
-      FOREIGN KEY(clientId) REFERENCES clients(id)
-    )`);
+  await pool.execute(`
+    CREATE TABLE IF NOT EXISTS loans (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      clientId INT,
+      amount DOUBLE,
+      interestRate DOUBLE,
+      termMonths INT,
+      status VARCHAR(50),
+      appliedAt DATETIME,
+      approvedBy INT,
+      approvedAt DATETIME,
+      disbursedAt DATETIME,
+      balance DOUBLE,
+      FOREIGN KEY (clientId) REFERENCES clients(id)
+    ) ENGINE=InnoDB;
+  `);
 
-    db.run(`CREATE TABLE IF NOT EXISTS repayments (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      loanId INTEGER,
-      amount REAL,
-      date TEXT,
-      FOREIGN KEY(loanId) REFERENCES loans(id)
-    )`);
+  await pool.execute(`
+    CREATE TABLE IF NOT EXISTS repayments (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      loanId INT,
+      amount DOUBLE,
+      date DATETIME,
+      FOREIGN KEY (loanId) REFERENCES loans(id)
+    ) ENGINE=InnoDB;
+  `);
 
-    // seed an admin user if none
-    db.get('SELECT COUNT(*) as cnt FROM users', (err, row) => {
-      if (!err && row && row.cnt === 0) {
-        db.run('INSERT INTO users (name,email,password,role) VALUES (?,?,?,?)', [
-          'Admin', 'admin@example.com', 'admin', 'admin'
-        ]);
-      }
-    });
-  });
+  // seed admin user if none
+  const [rows] = await pool.query('SELECT COUNT(*) as cnt FROM users');
+  const cnt = rows && rows[0] ? rows[0].cnt : 0;
+  if (cnt === 0) {
+    await pool.execute('INSERT INTO users (name,email,password,role) VALUES (?,?,?,?)', ['Admin','admin@example.com','admin','admin']);
+  }
 }
+
+// Adapter to mimic the sqlite3 API used in the codebase
+const db = {
+  get: (sql, params, cb) => {
+    pool.query(sql, params)
+      .then(([rows]) => cb(null, rows && rows[0] ? rows[0] : null))
+      .catch(err => cb(err));
+  },
+  all: (sql, params, cb) => {
+    pool.query(sql, params)
+      .then(([rows]) => cb(null, rows))
+      .catch(err => cb(err));
+  },
+  run: (sql, params, cb) => {
+    pool.execute(sql, params)
+      .then(([result]) => {
+        const info = { lastID: result.insertId || null, changes: result.affectedRows || 0 };
+        if (cb) cb.call(info, null);
+      })
+      .catch(err => { if (cb) cb(err); });
+  }
+};
 
 module.exports = { db, init };
