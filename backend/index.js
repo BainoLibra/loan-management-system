@@ -48,12 +48,27 @@ app.post('/api/loans', (req, res) => {
     });
 });
 
-app.get('/api/loans', (req, res) => {
-  db.all('SELECT l.*, c.name as clientName FROM loans l LEFT JOIN clients c ON c.id = l.clientId', (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
+app.get('/api/loans', async (req, res) =>{
+  try {
+    const [rows] = await pool.execute(`
+      SELECT 
+        l.*, 
+        c.name AS clientName
+      FROM loans l
+      LEFT JOIN clients c ON c.id = l.clientId
+    `);
+
     res.json(rows);
-  });
-});
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}); 
+//   {
+//   pool.query('SELECT l.*, c.name as clientName FROM loans l LEFT JOIN clients c ON c.id = l.clientId', (err, rows) => {
+//     if (err) return res.status(500).json({ error: err.message });
+//     res.json(rows);
+//   });
+// });
 
 // Approve
 app.post('/api/loans/:id/approve', (req, res) => {
