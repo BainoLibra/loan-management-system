@@ -1,52 +1,118 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
-const { db, init } = require('./db');
+// const { db, init } = require('./db');
+const pool = require('./db');
 const app = express();
 const port = process.env.PORT || 4000;
 
-init();
+// init();
 
 app.use(cors());
 app.use(bodyParser.json());
 
 // Simple auth (prototype only)
-app.post('/api/auth/login', (req, res) => {
-  const { email, password } = req.body;
-  db.get('SELECT id,name,email,role FROM users WHERE email = ? AND password = ?', [email, password], (err, row) => {
-    if (err) return res.status(500).json({ error: err.message });
-    if (!row) return res.status(401).json({ error: 'Invalid credentials' });
-    res.json({ user: row });
-  });
+// app.post('/api/auth/login', (req, res) => {
+//   const { email, password } = req.body;
+//   db.get('SELECT id,name,email,role FROM users WHERE email = ? AND password = ?', [email, password], (err, row) => {
+//     if (err) return res.status(500).json({ error: err.message });
+//     if (!row) return res.status(401).json({ error: 'Invalid credentials' });
+//     res.json({ user: row });
+//   });
+// });
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    const [rows] = await pool.execute(
+      'SELECT id,name,email,role FROM users WHERE email = ? AND password = ?',
+      [email, password]
+    );
+
+    if (rows.length === 0) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    res.json({ user: rows[0] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
+
 
 // Clients
-app.post('/api/clients', (req, res) => {
-  const { name, phone, email, identifier } = req.body;
-  db.run('INSERT INTO clients (name,phone,email,identifier) VALUES (?,?,?,?)', [name, phone, email, identifier], function(err) {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json({ id: this.lastID });
-  });
+// app.post('/api/clients', (req, res) => {
+//   const { name, phone, email, identifier } = req.body;
+//   db.run('INSERT INTO clients (name,phone,email,identifier) VALUES (?,?,?,?)', [name, phone, email, identifier], function(err) {
+//     if (err) return res.status(500).json({ error: err.message });
+//     res.json({ id: this.lastID });
+//   });
+// });
+
+// app.get('/api/clients', (req, res) => {
+//   db.all('SELECT * FROM clients', (err, rows) => {
+//     if (err) return res.status(500).json({ error: err.message });
+//     res.json(rows);
+//   });
+// });
+// create client
+app.post('/api/clients', async (req, res) => {
+  try {
+    const { name, phone, email, identifier } = req.body;
+
+    const [result] = await pool.execute(
+      'INSERT INTO clients (name, phone, email, identifier) VALUES (?, ?, ?, ?)',
+      [name, phone, email, identifier]
+    );
+
+    res.json({ id: result.insertId });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+// Get clients
+app.get('/api/clients', async (req, res) => {
+  try {
+    const [rows] = await pool.execute('SELECT * FROM clients');
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.get('/api/clients', (req, res) => {
-  db.all('SELECT * FROM clients', (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json(rows);
-  });
-});
 
 // Loans: apply
-app.post('/api/loans', (req, res) => {
-  console.log(req.body);
-  const { clientId, amount, interestRate, termMonths } = req.body;
-  const appliedAt = new Date().toISOString();
-  db.run('INSERT INTO loans (clientId,amount,interestRate,termMonths,status,appliedAt,balance) VALUES (?,?,?,?,?,?,?)',
-    [clientId, amount, interestRate, termMonths, 'applied', appliedAt, amount], function(err) {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json({ id: this.lastID });
-    });
+// app.post('/api/loans', (req, res) => {
+//   console.log(req.body);
+//   const { clientId, amount, interestRate, termMonths } = req.body;
+//   const appliedAt = new Date().toISOString();
+//   db.run('INSERT INTO loans (clientId,amount,interestRate,termMonths,status,appliedAt,balance) VALUES (?,?,?,?,?,?,?)',
+//     [clientId, amount, interestRate, termMonths, 'applied', appliedAt, amount], function(err) {
+//       if (err) return res.status(500).json({ error: err.message });
+//       res.json({ id: this.lastID });
+//     });
+// });
+app.post('/api/loans', async (req, res) => {
+  try {
+    const { clientId, amount, interestRate, termMonths } = req.body;
+
+    const appliedAt = new Date();
+    const status = 'applied';
+    const balance = amount;
+
+    const [result] = await pool.execute(
+      `INSERT INTO loans 
+      (clientId, amount, interestRate, termMonths, status, appliedAt, balance)
+      VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [clientId, amount, interestRate, termMonths, status, appliedAt, balance]
+    );
+
+    res.json({ id: result.insertId });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
+
 
 app.get('/api/loans', async (req, res) =>{
   try {
