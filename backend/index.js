@@ -38,6 +38,7 @@ app.get('/api/clients', (req, res) => {
 
 // Loans: apply
 app.post('/api/loans', (req, res) => {
+  console.log(req.body);
   const { clientId, amount, interestRate, termMonths } = req.body;
   const appliedAt = new Date().toISOString();
   db.run('INSERT INTO loans (clientId,amount,interestRate,termMonths,status,appliedAt,balance) VALUES (?,?,?,?,?,?,?)',
