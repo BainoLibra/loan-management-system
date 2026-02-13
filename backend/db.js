@@ -89,4 +89,4 @@ const db = {
   }
 };
 
-module.exports = { db, init };
+module.exports = pool;

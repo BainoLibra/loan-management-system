@@ -92,6 +92,7 @@ app.get('/api/clients', async (req, res) => {
 //       res.json({ id: this.lastID });
 //     });
 // });
+
 app.post('/api/loans', async (req, res) => {
   try {
     const { clientId, amount, interestRate, termMonths } = req.body;
