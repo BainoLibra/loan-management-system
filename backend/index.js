@@ -11,6 +11,14 @@ const port = process.env.PORT || 4000;
 app.use(cors());
 app.use(bodyParser.json());
 
+async function getLoanById(id) {
+  const [rows] = await pool.execute(
+    'SELECT * FROM loans WHERE id = ?',
+    [id]
+  );
+  return rows[0];
+}
+
 // Simple auth (prototype only)
 // app.post('/api/auth/login', (req, res) => {
 //   const { email, password } = req.body;
@@ -153,6 +161,15 @@ app.post('/api/loans/:id/approve', async (req, res) => {
   try {
     const id = req.params.id;
     const { approvedBy } = req.body;
+
+    const loan = await getLoanById(id);
+
+    if (!loan)
+      return res.status(404).json({ error: 'Loan not found' });
+
+    if (loan.status !== 'applied')
+      return res.status(400).json({ error: 'Only applied loans can be approved' });
+
     const approvedAt = new Date();
 
     const [result] = await pool.execute(
@@ -183,6 +200,15 @@ app.post('/api/loans/:id/approve', async (req, res) => {
 app.post('/api/loans/:id/disburse', async (req, res) => {
   try {
     const id = req.params.id;
+
+    const loan = await getLoanById(id);
+
+    if (!loan)
+      return res.status(404).json({ error: 'Loan not found' });
+
+    if (loan.status !== 'approved')
+      return res.status(400).json({ error: 'Loan must be approved before disbursement' });
+
     const disbursedAt = new Date();
 
     const [result] = await pool.execute(
@@ -219,6 +245,21 @@ app.post('/api/loans/:id/repay', async (req, res) => {
   try {
     const loanId = req.params.id;
     const { amount } = req.body;
+
+    const loan = await getLoanById(loanId);
+
+    if (!loan)
+      return res.status(404).json({ error: 'Loan not found' });
+
+    if (loan.status !== 'disbursed')
+      return res.status(400).json({ error: 'Loan must be disbursed before repayment' });
+
+    if (amount <= 0)
+      return res.status(400).json({ error: 'Invalid repayment amount' });
+
+    if (amount > loan.balance)
+      return res.status(400).json({ error: 'Repayment exceeds remaining balance' });
+
     const date = new Date();
 
     // Insert repayment
@@ -227,10 +268,16 @@ app.post('/api/loans/:id/repay', async (req, res) => {
       [loanId, amount, date]
     );
 
-    // Reduce loan balance
+    // Update balance
     await pool.execute(
       'UPDATE loans SET balance = balance - ? WHERE id = ?',
       [amount, loanId]
+    );
+
+    // Close loan if fully paid
+    await pool.execute(
+      'UPDATE loans SET status = ? WHERE id = ? AND balance - ? <= 0',
+      ['closed', loanId, amount]
     );
 
     res.json({ repaymentId: repaymentResult.insertId });
@@ -268,6 +315,31 @@ app.get('/api/loans/:id/repayments', async (req, res) => {
   }
 });
 
+// Delete loan
+app.delete('/api/loans/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+
+    const loan = await getLoanById(id);
+
+    if (!loan)
+      return res.status(404).json({ error: 'Loan not found' });
+
+    if (loan.status === 'disbursed')
+      return res.status(400).json({ error: 'Cannot delete disbursed loan' });
+
+    const [result] = await pool.execute(
+      'DELETE FROM loans WHERE id = ?',
+      [id]
+    );
+
+    res.json({ deleted: result.affectedRows });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Simple aging report
 // app.get('/api/reports/aging', (req, res) => {
 //   const sql = `SELECT l.id, c.name as clientName, l.amount, l.balance, l.disbursedAt
@@ -288,7 +360,14 @@ app.get('/api/loans/:id/repayments', async (req, res) => {
 app.get('/api/reports/aging', async (req, res) => {
   try {
     const [rows] = await pool.execute(`
-      SELECT l.id, c.name AS clientName, l.amount, l.balance, l.disbursedAt
+      SELECT 
+        l.id,
+        c.name AS clientName,
+        l.amount,
+        l.balance,
+        l.termMonths,
+        l.disbursedAt,
+        l.status
       FROM loans l
       LEFT JOIN clients c ON c.id = l.clientId
       WHERE l.status = 'disbursed'
@@ -296,16 +375,30 @@ app.get('/api/reports/aging', async (req, res) => {
 
     const now = new Date();
 
-    const result = rows.map(r => {
-      const disb = r.disbursedAt ? new Date(r.disbursedAt) : null;
-      const days = disb
-        ? Math.floor((now - disb) / (1000 * 60 * 60 * 24))
-        : null;
+    const result = rows.map(loan => {
+      if (!loan.disbursedAt) return null;
+
+      const disbursedDate = new Date(loan.disbursedAt);
+
+      // Expected end date
+      const dueDate = new Date(disbursedDate);
+      dueDate.setMonth(dueDate.getMonth() + loan.termMonths);
+
+      // Days overdue
+      const daysOverdue = Math.floor((now - dueDate) / (1000 * 60 * 60 * 24));
+
+      let bucket = 'CURRENT';
+
+      if (daysOverdue > 30 && daysOverdue <= 60) bucket = 'PAR 30';
+      else if (daysOverdue > 60 && daysOverdue <= 90) bucket = 'PAR 60';
+      else if (daysOverdue > 90) bucket = 'PAR 90';
 
       return {
-        ...r,
-        daysOutstanding: days,
-        isArrears: r.balance > 0 && days > 30
+        ...loan,
+        dueDate,
+        daysOverdue: daysOverdue > 0 ? daysOverdue : 0,
+        bucket,
+        inArrears: daysOverdue > 0 && loan.balance > 0
       };
     });
 
