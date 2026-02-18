@@ -3,6 +3,9 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 // const { db, init } = require('./db');
 const pool = require('./db');
+const jwt = require('jsonwebtoken');
+const SECRET = 'mysecretkey';
+const { authenticateToken, authorizeRole } = require('./middleware/auth');
 const app = express();
 const port = process.env.PORT || 4000;
 
@@ -40,8 +43,11 @@ app.post('/api/auth/login', async (req, res) => {
     if (rows.length === 0) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
+    const user = rows[0];
+    // Create Token
+    const token = jwt.sign(user, SECRET, { expiresIn: '1d' })
 
-    res.json({ user: rows[0] });
+    res.json({ token, user });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -157,7 +163,7 @@ app.get('/api/loans', async (req, res) =>{
 // });
 
 // Approve Loan
-app.post('/api/loans/:id/approve', async (req, res) => {
+app.post('/api/loans/:id/approve', authenticateToken, authorizeRole('admin'), async (req, res) => {
   try {
     const id = req.params.id;
     const { approvedBy } = req.body;
@@ -197,7 +203,7 @@ app.post('/api/loans/:id/approve', async (req, res) => {
 // });
 
 // Disburse Loan
-app.post('/api/loans/:id/disburse', async (req, res) => {
+app.post('/api/loans/:id/disburse', authenticateToken, authorizeRole('staff'), async (req, res) => {
   try {
     const id = req.params.id;
 
