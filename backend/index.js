@@ -165,8 +165,11 @@ app.get('/api/loans', async (req, res) =>{
 // Approve Loan
 app.post('/api/loans/:id/approve', authenticateToken, authorizeRole('admin'), async (req, res) => {
   try {
+    console.log("USER:", req.user);
+    console.log("PARAM ID:", req.params.id);
     const id = req.params.id;
-    const { approvedBy } = req.body;
+    // const { approvedBy } = req.body;
+    const approvedBy = req.user.id;
 
     const loan = await getLoanById(id);
 
@@ -176,7 +179,12 @@ app.post('/api/loans/:id/approve', authenticateToken, authorizeRole('admin'), as
     if (loan.status !== 'applied')
       return res.status(400).json({ error: 'Only applied loans can be approved' });
 
-    const approvedAt = new Date();
+      const approvedAt = new Date();
+      console.log("DEBUG VALUES:", {
+      id,
+      approvedBy,
+      approvedAt: approvedAt
+      });
 
     const [result] = await pool.execute(
       'UPDATE loans SET status = ?, approvedBy = ?, approvedAt = ? WHERE id = ?',
