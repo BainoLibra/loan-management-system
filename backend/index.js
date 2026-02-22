@@ -70,7 +70,7 @@ app.post('/api/auth/login', async (req, res) => {
 //   });
 // });
 // create client
-app.post('/api/clients', async (req, res) => {
+app.post('/api/clients', authenticateToken, authorizeRole('admin', 'loan_officer'), async (req, res) => {
   try {
     const { name, phone, email, identifier } = req.body;
 
@@ -107,7 +107,7 @@ app.get('/api/clients', async (req, res) => {
 //     });
 // });
 
-app.post('/api/loans', async (req, res) => {
+app.post('/api/loans', authenticateToken, authorizeRole('admin', 'loan_officer'), async (req, res) => {
   try {
     const { clientId, amount, interestRate, termMonths } = req.body;
 
@@ -129,7 +129,7 @@ app.post('/api/loans', async (req, res) => {
 });
 
 
-app.get('/api/loans', async (req, res) =>{
+app.get('/api/loans', authenticateToken, authorizeRole('admin', 'loan_officer'), async (req, res) =>{
   try {
     const [rows] = await pool.execute(`
       SELECT 
@@ -211,7 +211,7 @@ app.post('/api/loans/:id/approve', authenticateToken, authorizeRole('admin'), as
 // });
 
 // Disburse Loan
-app.post('/api/loans/:id/disburse', authenticateToken, authorizeRole('staff'), async (req, res) => {
+app.post('/api/loans/:id/disburse', authenticateToken, authorizeRole('admin'), async (req, res) => {
   try {
     const id = req.params.id;
 
@@ -255,7 +255,7 @@ app.post('/api/loans/:id/disburse', authenticateToken, authorizeRole('staff'), a
 // });
 
 // Record repayment
-app.post('/api/loans/:id/repay', async (req, res) => {
+app.post('/api/loans/:id/repay', authenticateToken, authorizeRole('admin', 'loan_officer'), async (req, res) => {
   try {
     const loanId = req.params.id;
     const { amount } = req.body;
@@ -312,7 +312,7 @@ app.post('/api/loans/:id/repay', async (req, res) => {
 // });
 
 // Repayments list for loan
-app.get('/api/loans/:id/repayments', async (req, res) => {
+app.get('/api/loans/:id/repayments', authenticateToken, authorizeRole('admin', 'loan_officer'), async (req, res) => {
   try {
     const loanId = req.params.id;
 
@@ -330,7 +330,7 @@ app.get('/api/loans/:id/repayments', async (req, res) => {
 });
 
 // Delete loan
-app.delete('/api/loans/:id', async (req, res) => {
+app.delete('/api/loans/:id', authenticateToken, authorizeRole('admin'), async (req, res) => {
   try {
     const id = req.params.id;
 
