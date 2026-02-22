@@ -31,6 +31,7 @@ async function getLoanById(id) {
 //     res.json({ user: row });
 //   });
 // });
+const bcrypt = require('bcrypt');
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -44,10 +45,31 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
     const user = rows[0];
+    // Compare password
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
     // Create Token
-    const token = jwt.sign(user, SECRET, { expiresIn: '1d' })
+    const token = jwt.sign(
+      {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      },
+      SECRET,
+      { expiresIn: '1d' }
+    );
 
-    res.json({ token, user });
+    res.json({ 
+      token, 
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }});
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -85,7 +107,7 @@ app.post('/api/clients', authenticateToken, authorizeRole('admin', 'loan_officer
   }
 });
 // Get clients
-app.get('/api/clients', async (req, res) => {
+app.get('/api/clients', authenticateToken, authorizeRole('admin', 'loan_officer'), async (req, res) => {
   try {
     const [rows] = await pool.execute('SELECT * FROM clients');
     res.json(rows);
@@ -131,13 +153,21 @@ app.post('/api/loans', authenticateToken, authorizeRole('admin', 'loan_officer')
 
 app.get('/api/loans', authenticateToken, authorizeRole('admin', 'loan_officer'), async (req, res) =>{
   try {
-    const [rows] = await pool.execute(`
+    let query = (`
       SELECT 
         l.*, 
         c.name AS clientName
       FROM loans l
       LEFT JOIN clients c ON c.id = l.clientId
     `);
+    let params =[];
+    // Client sees only their loans
+    if (req.user.role === 'client') {
+      query += ' WHERE l.clientId = ?';
+      params.push(req.user.id);
+    }
+
+    const [rows] = await pool.execute(query, params);
 
     res.json(rows);
   } catch (err) {
@@ -371,7 +401,7 @@ app.delete('/api/loans/:id', authenticateToken, authorizeRole('admin'), async (r
 // });
 
 // Simple aging report
-app.get('/api/reports/aging', async (req, res) => {
+app.get('/api/reports/aging', authenticateToken, authorizeRole('admin'), async (req, res) => {
   try {
     const [rows] = await pool.execute(`
       SELECT 
