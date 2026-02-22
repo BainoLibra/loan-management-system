@@ -32,13 +32,32 @@ async function getLoanById(id) {
 //   });
 // });
 const bcrypt = require('bcrypt');
+
+app.post('/api/register', async (req, res) => {
+  try {
+    const { name, email, password, role } = req.body;
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    await pool.execute(
+      'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
+      [name, email, hashedPassword, role]
+    );
+
+    res.json({ message: 'User registered successfully' });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
     const [rows] = await pool.execute(
-      'SELECT id,name,email,role FROM users WHERE email = ? AND password = ?',
-      [email, password]
+      'SELECT * FROM users WHERE email = ?',
+      [email]
     );
 
     if (rows.length === 0) {
