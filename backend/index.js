@@ -152,6 +152,8 @@ app.post('/api/loans', authenticateToken, authorizeRole('admin', 'loan_officer')
   try {
     const { clientId, amount, interestRate, termMonths } = req.body;
 
+    const createdBy = req.user.id;
+
     const appliedAt = new Date();
     const status = 'applied';
     const balance = amount;
@@ -260,7 +262,7 @@ app.post('/api/loans/:id/approve', authenticateToken, authorizeRole('admin'), as
 // });
 
 // Disburse Loan
-app.post('/api/loans/:id/disburse', authenticateToken, authorizeRole('admin'), async (req, res) => {
+app.post('/api/loans/:id/disburse', authenticateToken, authorizeRole('admin', 'cashier'), async (req, res) => {
   try {
     const id = req.params.id;
 
@@ -304,10 +306,12 @@ app.post('/api/loans/:id/disburse', authenticateToken, authorizeRole('admin'), a
 // });
 
 // Record repayment
-app.post('/api/loans/:id/repay', authenticateToken, authorizeRole('admin', 'loan_officer'), async (req, res) => {
+app.post('/api/loans/:id/repay', authenticateToken, authorizeRole('admin', 'cashier'), async (req, res) => {
   try {
     const loanId = req.params.id;
     const { amount } = req.body;
+
+    const paidBy = req.user.id;
 
     const loan = await getLoanById(loanId);
 
@@ -420,7 +424,7 @@ app.delete('/api/loans/:id', authenticateToken, authorizeRole('admin'), async (r
 // });
 
 // Simple aging report
-app.get('/api/reports/aging', authenticateToken, authorizeRole('admin'), async (req, res) => {
+app.get('/api/reports/aging', authenticateToken, authorizeRole('admin', 'cashier', 'loan_officer'), async (req, res) => {
   try {
     const [rows] = await pool.execute(`
       SELECT 
