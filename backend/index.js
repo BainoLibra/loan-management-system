@@ -160,9 +160,9 @@ app.post('/api/loans', authenticateToken, authorizeRole('admin', 'loan_officer')
 
     const [result] = await pool.execute(
       `INSERT INTO loans 
-      (clientId, amount, interestRate, termMonths, status, appliedAt, balance)
-      VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [clientId, amount, interestRate, termMonths, status, appliedAt, balance]
+      (clientId, amount, interestRate, termMonths, status, appliedAt, balance, createdBy)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [clientId, amount, interestRate, termMonths, status, appliedAt, balance, createdBy]
     );
 
     res.json({ id: result.insertId });
@@ -331,8 +331,8 @@ app.post('/api/loans/:id/repay', authenticateToken, authorizeRole('admin', 'cash
 
     // Insert repayment
     const [repaymentResult] = await pool.execute(
-      'INSERT INTO repayments (loanId, amount, date) VALUES (?, ?, ?)',
-      [loanId, amount, date]
+      'INSERT INTO repayments (loanId, amount, date, paidBy) VALUES (?, ?, ?)',
+      [loanId, amount, date, paidBy]
     );
 
     // Update balance
