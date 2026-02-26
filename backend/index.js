@@ -242,6 +242,11 @@ app.post('/api/loans/:id/approve', authenticateToken, authorizeRole('admin'), as
       ['approved', approvedBy, approvedAt, id]
     );
 
+    await pool.execute(
+     'INSERT INTO audit_logs (userId, action, entity, entityId) VALUES (?, ?, ?, ?)',
+     [req.user.id, 'APPROVE_LOAN', 'loan', id]
+    );
+
     res.json({ updated: result.affectedRows });
 
   } catch (err) {
@@ -280,6 +285,11 @@ app.post('/api/loans/:id/disburse', authenticateToken, authorizeRole('admin', 'c
       'UPDATE loans SET status = ?, disbursedAt = ? WHERE id = ?',
       ['disbursed', disbursedAt, id]
     );
+
+    await pool.execute(
+     'INSERT INTO audit_logs (userId, action, entity, entityId) VALUES (?, ?, ?, ?)',
+     [req.user.id, 'DISBURSE_LOAN', 'loan', id]
+  );
 
     res.json({ updated: result.affectedRows });
 
@@ -334,6 +344,11 @@ app.post('/api/loans/:id/repay', authenticateToken, authorizeRole('admin', 'cash
       'INSERT INTO repayments (loanId, amount, date, paidBy) VALUES (?, ?, ?)',
       [loanId, amount, date, paidBy]
     );
+
+    await pool.execute(
+     'INSERT INTO audit_logs (userId, action, entity, entityId) VALUES (?, ?, ?, ?)',
+     [req.user.id, 'REPAY_LOAN', 'loan', loanId]
+   );
 
     // Update balance
     await pool.execute(
