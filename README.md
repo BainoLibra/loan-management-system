@@ -26,7 +26,8 @@ This system provides full functionality for:
 ```
 loan-management-system/
 ├── backend/
-│   ├── index.js              # Express server and API endpoints
+│   ├── index.js              # Main Express server and API endpoints (legacy)
+│   ├── server.js             # lightweight entrypoint / test server
 │   ├── db.js                 # MySQL connection pool initialization
 │   ├── package.json          # Backend dependencies and scripts
 │   ├── middleware/
@@ -87,17 +88,25 @@ JWT_SECRET=mysecretkey
 
 ### Running the Server
 
+The project currently contains two entry points:
+- `index.js` – the full-featured API implementation
+- `server.js` – a lightweight server with a simple test route (`GET /`) useful for smoke testing or when refactoring
+
 **Development mode** (with hot-reload):
 ```bash
 npm run dev
 ```
+
+This will run `nodemon` against the main entry (configured in `package.json`).
 
 **Production mode**:
 ```bash
 npm start
 ```
 
-The server will start on `http://localhost:4000`
+The server will start on `http://localhost:4000` by default, or whatever is defined in the `PORT` environment variable.
+
+> ⚠️ If you change the entrypoint filename, update `package.json` scripts accordingly.
 
 ## API Endpoints
 
@@ -115,6 +124,7 @@ Authorization: Bearer <your_jwt_token>
 ### Clients
 - `GET /api/clients` - Get all clients (Protected)
 - `POST /api/clients` - Create a new client (Admin/Staff)
+(Note: endpoints for approving, disbursing and rejecting loans are planned but not yet implemented in the current codebase.)
 - `GET /api/clients/:id` - Get specific client details (Protected)
 - `PUT /api/clients/:id` - Update client information (Admin/Staff)
 
