@@ -165,6 +165,11 @@ app.post('/api/loans', authenticateToken, authorizeRole('admin', 'loan_officer')
       [clientId, amount, interestRate, termMonths, status, appliedAt, balance, createdBy]
     );
 
+    await pool.execute(
+     'INSERT INTO audit_logs (userId, action, entity, entityId) VALUES (?, ?, ?, ?)',
+     [req.user.id, 'CREATE_LOAN', 'loan', result.insertId]
+    );
+
     res.json({ id: result.insertId });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -380,7 +385,7 @@ app.post('/api/loans/:id/repay', authenticateToken, authorizeRole('admin', 'cash
 // });
 
 // Repayments list for loan
-app.get('/api/loans/:id/repayments', authenticateToken, authorizeRole('admin', 'loan_officer'), async (req, res) => {
+app.get('/api/loans/:id/repayments', authenticateToken, authorizeRole('admin', 'loan_officer','cashier'), async (req, res) => {
   try {
     const loanId = req.params.id;
 
