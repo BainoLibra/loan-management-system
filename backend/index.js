@@ -14,6 +14,19 @@ const port = process.env.PORT || 4000;
 app.use(cors());
 app.use(bodyParser.json());
 
+app.get('/', (req, res) => {
+  res.send('Server working');
+});
+
+app.get('/test-db', async (req, res) => {
+  try {
+    const [rows] = await pool.execute('SELECT 1');
+    res.json({ message: 'DB connected', rows });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 async function getLoanById(id) {
   const [rows] = await pool.execute(
     'SELECT * FROM loans WHERE id = ?',
