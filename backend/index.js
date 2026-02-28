@@ -359,7 +359,7 @@ app.post('/api/loans/:id/repay', authenticateToken, authorizeRole('admin', 'cash
 
     // Insert repayment
     const [repaymentResult] = await pool.execute(
-      'INSERT INTO repayments (loanId, amount, date, paidBy) VALUES (?, ?, ?)',
+      'INSERT INTO repayments (loanId, amount, date, paidBy) VALUES (?, ?, ?, ?)',
       [loanId, amount, date, paidBy]
     );
 
