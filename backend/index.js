@@ -133,6 +133,11 @@ app.post('/api/clients', authenticateToken, authorizeRole('admin', 'loan_officer
       [name, phone, email, identifier]
     );
 
+    await pool.execute(
+     'INSERT INTO audit_logs (userId, action, entity, entityId) VALUES (?, ?, ?, ?)',
+     [req.user.id, 'CREATE_CLIENT', 'client', result.insertId]
+    );
+
     res.json({ id: result.insertId });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -237,6 +242,13 @@ app.post('/api/loans/:id/approve', authenticateToken, authorizeRole('admin'), as
     console.log("USER:", req.user);
     console.log("PARAM ID:", req.params.id);
     const id = req.params.id;
+
+    console.log("AUDIT DEBUG:", {
+     userId: req.user?.id,
+     action: 'APPROVE_LOAN',
+     entity: 'loan',
+     entityId: id
+    });
     // const { approvedBy } = req.body;
     const approvedBy = req.user.id;
 
