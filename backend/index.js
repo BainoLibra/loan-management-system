@@ -452,6 +452,27 @@ app.delete('/api/loans/:id', authenticateToken, authorizeRole('admin'), async (r
   }
 });
 
+// Get audit logs
+app.get('/api/audit-logs', authenticateToken, authorizeRole('admin'), async (req, res) => {
+  try {
+
+    const [rows] = await pool.execute(`
+      SELECT 
+        a.*,
+        u.name AS userName
+      FROM audit_logs a
+      LEFT JOIN users u ON u.id = a.userId
+      ORDER BY a.createdAt DESC
+    `);
+
+    res.json(rows);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Simple aging report
 // app.get('/api/reports/aging', (req, res) => {
 //   const sql = `SELECT l.id, c.name as clientName, l.amount, l.balance, l.disbursedAt
