@@ -180,7 +180,7 @@ app.post('/api/loans', authenticateToken, authorizeRole('admin', 'loan_officer')
       `INSERT INTO loans 
       (clientId, amount, interestRate, termMonths, status, appliedAt, balance, createdBy)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [clientId, amount, interestRate, termMonths, status, appliedAt, balance, createdBy, req.user.id]
+      [clientId, amount, interestRate, termMonths, status, appliedAt, balance, createdBy]
     );
 
     await pool.execute(
