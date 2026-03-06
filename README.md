@@ -5,11 +5,13 @@ A comprehensive role-based loan management system built with Node.js and Express
 ## Overview
 
 This system provides full functionality for:
-- **User Authentication**: JWT-based token authentication with role-based access control (Admin, Staff, Client)
+- **User Authentication**: JWT-based token authentication with role-based access control (Admin, Loan Officer, Cashier, Client)
 - **Client Management**: Create and manage loan clients with detailed information
 - **Loan Management**: Apply for loans, approve/reject applications, disburse funds, and track loan status
 - **Repayment Tracking**: Record, track, and manage loan repayments
-- **Loan Status Tracking**: Monitor loans through multiple statuses (Applied → Approved/Rejected → Disbursed → Repaid)
+- **Loan Status Tracking**: Monitor loans through multiple statuses (Applied → Approved → Disbursed → Closed)
+- **Audit Logging**: Track all user actions for compliance and auditing
+- **Reporting**: Generate aging reports for loan portfolio analysis
 - **Role-Based Access Control**: Granular permission management based on user roles
 
 ## Tech Stack
@@ -25,15 +27,19 @@ This system provides full functionality for:
 
 ```
 loan-management-system/
+├── README.md
 ├── backend/
-│   ├── index.js              # Main Express server and API endpoints (legacy)
-│   ├── server.js             # lightweight entrypoint / test server
-│   ├── db.js                 # MySQL connection pool initialization
-│   ├── package.json          # Backend dependencies and scripts
+│   ├── index.js                 # Main Express server with all API endpoints
+│   ├── db.js                    # MySQL database connection and table initialization
+│   ├── package.json             # Backend dependencies and scripts
+│   ├── controllers/
+│   │   └── authController.js    # Authentication controller (alternative implementation)
 │   ├── middleware/
-│   │   └── auth.js           # JWT authentication and role authorization
-│   └── .env                  # Environment variables (optional)
-└── README.md
+│   │   └── auth.js              # JWT authentication and role authorization middleware
+│   ├── routes/
+│   │   └── authRoutes.js        # Authentication routes (alternative implementation)
+│   └── utils/
+│       └── hash.js              # Password hashing utilities
 ```
 
 ## Backend Setup
@@ -61,6 +67,7 @@ This will install:
 - `cors` - Cross-Origin Resource Sharing support
 - `mysql2` - MySQL database driver
 - `jsonwebtoken` - JWT token generation and verification
+- `bcrypt` - Password hashing
 - `nodemon` - Development auto-reload (dev dependency)
 
 3. **Configure your database connection** in `db.js`:
@@ -88,16 +95,12 @@ JWT_SECRET=mysecretkey
 
 ### Running the Server
 
-The project currently contains two entry points:
-- `index.js` – the full-featured API implementation
-- `server.js` – a lightweight server with a simple test route (`GET /`) useful for smoke testing or when refactoring
-
 **Development mode** (with hot-reload):
 ```bash
 npm run dev
 ```
 
-This will run `nodemon` against the main entry (configured in `package.json`).
+This will run `nodemon` against the main entry point `index.js`.
 
 **Production mode**:
 ```bash
@@ -106,11 +109,12 @@ npm start
 
 The server will start on `http://localhost:4000` by default, or whatever is defined in the `PORT` environment variable.
 
-> ⚠️ If you change the entrypoint filename, update `package.json` scripts accordingly.
-
 ## API Endpoints
 
 ### Authentication
+- `POST /api/register` - Register a new user (Admin only)
+  - Request: `{ "name": "John Doe", "email": "john@example.com", "password": "password", "role": "client" }`
+  - Response: `{ "message": "User registered successfully" }`
 - `POST /api/auth/login` - Login with email and password, receive JWT token
   - Request: `{ "email": "user@example.com", "password": "password" }`
   - Response: `{ "token": "eyJhbGc...", "user": { "id": 1, "name": "John", "email": "user@example.com", "role": "client" } }`
@@ -122,81 +126,102 @@ Authorization: Bearer <your_jwt_token>
 ```
 
 ### Clients
-- `GET /api/clients` - Get all clients (Protected)
-- `POST /api/clients` - Create a new client (Admin/Staff)
-(Note: endpoints for approving, disbursing and rejecting loans are planned but not yet implemented in the current codebase.)
-- `GET /api/clients/:id` - Get specific client details (Protected)
-- `PUT /api/clients/:id` - Update client information (Admin/Staff)
+- `GET /api/clients` - Get all clients (Admin, Loan Officer)
+- `POST /api/clients` - Create a new client (Admin, Loan Officer)
+  - Request: `{ "name": "John Doe", "phone": "123-456-7890", "email": "john@example.com", "identifier": "ID123" }`
 
 ### Loans
-- `GET /api/loans` - Get all loans (Protected)
-- `POST /api/loans` - Apply for a new loan (Client)
-- `GET /api/loans/:id` - Get loan details and history (Protected)
-- `PUT /api/loans/:id/approve` - Approve loan application (Admin/Staff)
-- `PUT /api/loans/:id/disburse` - Disburse approved loan funds (Admin/Staff)
-- `PUT /api/loans/:id/reject` - Reject a loan application (Admin/Staff)
+- `GET /api/loans` - Get all loans (Admin, Loan Officer) or client's own loans (Client)
+- `POST /api/loans` - Apply for a new loan (Admin, Loan Officer)
+  - Request: `{ "clientId": 1, "amount": 10000, "interestRate": 5.5, "termMonths": 12 }`
+- `POST /api/loans/:id/approve` - Approve loan application (Admin)
+- `POST /api/loans/:id/disburse` - Disburse approved loan funds (Admin, Cashier)
+- `POST /api/loans/:id/repay` - Record a loan repayment (Admin, Cashier)
+  - Request: `{ "amount": 1000 }`
+- `GET /api/loans/:id/repayments` - Get repayments for a specific loan (Admin, Loan Officer, Cashier)
+- `DELETE /api/loans/:id` - Delete a loan (Admin) - only if not disbursed
 
 ### Repayments
-- `GET /api/repayments/loan/:loanId` - Get repayments for a specific loan (Protected)
-- `POST /api/repayments` - Record a new repayment (Staff/Client)
-- `GET /api/repayments` - Get all repayments (Admin/Staff)
+- `GET /api/loans/:id/repayments` - Get repayments for a specific loan (Admin, Loan Officer, Cashier)
+
+### Audit Logs
+- `GET /api/audit-logs` - Get all audit logs (Admin)
+
+### Reports
+- `GET /api/reports/aging` - Get loan aging report with PAR buckets (Admin, Cashier, Loan Officer)
 
 ## Database Schema
 
 The system uses the following tables:
 
 **users** - User accounts with authentication
-- `id` (INT, Primary Key)
-- `name` (VARCHAR)
-- `email` (VARCHAR, Unique)
-- `password` (VARCHAR) - Hashed in production
-- `role` (ENUM: admin, staff, client)
-- `created_at` (TIMESTAMP)
+- `id` (INT, Primary Key, Auto Increment)
+- `name` (VARCHAR(255))
+- `email` (VARCHAR(255), Unique)
+- `password` (VARCHAR(255)) - Bcrypt hashed
+- `role` (ENUM: admin, loan_officer, cashier, client)
 
 **clients** - Client information
-- `id` (INT, Primary Key)
-- `name` (VARCHAR)
-- `email` (VARCHAR)
-- `phone` (VARCHAR)
-- `address` (TEXT)
-- `created_at` (TIMESTAMP)
+- `id` (INT, Primary Key, Auto Increment)
+- `name` (VARCHAR(255))
+- `phone` (VARCHAR(50))
+- `email` (VARCHAR(255))
+- `identifier` (VARCHAR(255))
 
 **loans** - Loan applications and records
-- `id` (INT, Primary Key)
-- `client_id` (INT, Foreign Key)
-- `amount` (DECIMAL)
-- `interest_rate` (DECIMAL)
-- `duration_months` (INT)
-- `status` (ENUM: applied, approved, rejected, disbursed, repaid)
-- `application_date` (TIMESTAMP)
-- `approval_date` (TIMESTAMP, Nullable)
-- `created_at` (TIMESTAMP)
+- `id` (INT, Primary Key, Auto Increment)
+- `clientId` (INT, Foreign Key to clients.id)
+- `amount` (DOUBLE)
+- `interestRate` (DOUBLE)
+- `termMonths` (INT)
+- `status` (VARCHAR(50): applied, approved, disbursed, closed)
+- `appliedAt` (DATETIME)
+- `approvedBy` (INT, Foreign Key to users.id, Nullable)
+- `approvedAt` (DATETIME, Nullable)
+- `disbursedAt` (DATETIME, Nullable)
+- `balance` (DOUBLE)
+- `createdBy` (INT, Foreign Key to users.id)
 
 **repayments** - Repayment records
-- `id` (INT, Primary Key)
-- `loan_id` (INT, Foreign Key)
-- `amount` (DECIMAL)
-- `repayment_date` (TIMESTAMP)
-- `created_at` (TIMESTAMP)
+- `id` (INT, Primary Key, Auto Increment)
+- `loanId` (INT, Foreign Key to loans.id)
+- `amount` (DOUBLE)
+- `date` (DATETIME)
+- `paidBy` (INT, Foreign Key to users.id)
+
+**audit_logs** - Audit trail for user actions
+- `id` (INT, Primary Key, Auto Increment)
+- `userId` (INT, Foreign Key to users.id)
+- `action` (VARCHAR(255))
+- `entity` (VARCHAR(255))
+- `entityId` (INT)
+- `createdAt` (TIMESTAMP)
 
 ## Development Notes
 
 - **Authentication**: JWT tokens expire after 24 hours. Clients must include the token in the `Authorization` header for all protected endpoints
-- **Role-Based Access**: 
-  - `admin` - Full system access
-  - `staff` - Can approve/reject loans and record repayments
-  - `client` - Can apply for loans and view own loan records
+- **Role-Based Access**:
+  - `admin` - Full system access including user registration, loan approval, audit logs
+  - `loan_officer` - Can create clients and loans, view reports
+  - `cashier` - Can disburse loans and record repayments
+  - `client` - Can view own loan information (not implemented in current API)
 - **Seed Data**: Initialize with default admin user (email: `admin@example.com`, password: `admin`) on first database setup
 - **Error Handling**: All endpoints return appropriate HTTP status codes with detailed error messages in JSON format
 - **CORS Support**: API is configured with CORS enabled for cross-origin requests
-- **Environment**: Uses `NODE_ENV` to determine development vs. production behavior
+- **Audit Logging**: All major actions are logged to audit_logs table for compliance
+- **Reports**: Aging report categorizes loans into PAR buckets (Current, PAR 30, PAR 60, PAR 90)
 
 ## Future Enhancements
 
-- [ ] Password hashing and security improvements
+- [ ] Password hashing improvements (currently using bcrypt)
 - [ ] Email notifications for loan status updates
 - [ ] PDF report generation for loan documents
 - [ ] Frontend application (React/Vue)
 - [ ] Advanced analytics and reporting dashboard
+- [ ] Loan rejection functionality
+- [ ] Client-specific loan viewing for client role
+- [ ] Database migration scripts
+- [ ] API documentation (Swagger/OpenAPI)
+- [ ] Input validation and sanitization middleware
 - [ ] SMS notifications for repayment reminders
 - [ ] Integration with payment gateways
