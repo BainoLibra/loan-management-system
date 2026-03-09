@@ -45,6 +45,7 @@ async function init() {
       approvedAt DATETIME,
       disbursedAt DATETIME,
       balance DOUBLE,
+      createdBy INT,
       FOREIGN KEY (clientId) REFERENCES clients(id)
     ) ENGINE=InnoDB;
   `);
@@ -55,7 +56,20 @@ async function init() {
       loanId INT,
       amount DOUBLE,
       date DATETIME,
+      paidBy INT,
       FOREIGN KEY (loanId) REFERENCES loans(id)
+    ) ENGINE=InnoDB;
+  `);
+
+  await pool.execute(`
+    CREATE TABLE IF NOT EXISTS audit_logs (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      userId INT,
+      action VARCHAR(255),
+      entity VARCHAR(255),
+      entityId INT,
+      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (userId) REFERENCES users(id)
     ) ENGINE=InnoDB;
   `);
 

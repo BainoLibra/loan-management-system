@@ -1,5 +1,8 @@
-const db = require('../config/db'); // your DB connection
+const pool = require('../db'); // your DB connection
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+
+const SECRET = 'mysecretkey'; // Move to env later
 
 // REGISTER USER
 const register = async (req, res) => {
@@ -10,7 +13,7 @@ const register = async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
 
         // save user
-        await db.query(
+        await pool.execute(
             'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
             [name, email, hashedPassword, role]
         );
@@ -29,7 +32,7 @@ const login = async (req, res) => {
         const { email, password } = req.body;
 
         // find user
-        const [rows] = await db.query(
+        const [rows] = await pool.execute(
             'SELECT * FROM users WHERE email = ?',
             [email]
         );
@@ -47,10 +50,25 @@ const login = async (req, res) => {
             return res.status(401).json({ message: 'Invalid credentials' });
         }
 
+        // Create Token
+        const token = jwt.sign(
+            {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                role: user.role
+            },
+            SECRET,
+            { expiresIn: '1d' }
+        );
+
         res.json({
             message: 'Login successful',
+            token,
             user: {
                 id: user.id,
+                name: user.name,
+                email: user.email,
                 role: user.role
             }
         });
