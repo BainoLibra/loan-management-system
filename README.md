@@ -29,15 +29,25 @@ This system provides full functionality for:
 loan-management-system/
 ├── README.md
 ├── backend/
-│   ├── index.js                 # Main Express server with all API endpoints
+│   ├── index.js                 # Main Express server entry point
 │   ├── db.js                    # MySQL database connection and table initialization
 │   ├── package.json             # Backend dependencies and scripts
 │   ├── controllers/
-│   │   └── authController.js    # Authentication controller (alternative implementation)
+│   │   ├── auditController.js   # Audit log management
+│   │   ├── authController.js    # Authentication and user management
+│   │   ├── clientController.js  # Client management operations
+│   │   ├── loanController.js    # Loan application and management
+│   │   ├── repaymentController.js # Repayment tracking
+│   │   └── reportController.js  # Reporting functionality
 │   ├── middleware/
 │   │   └── auth.js              # JWT authentication and role authorization middleware
 │   ├── routes/
-│   │   └── authRoutes.js        # Authentication routes (alternative implementation)
+│   │   ├── auditRoutes.js       # Audit log API routes
+│   │   ├── authRoutes.js        # Authentication API routes
+│   │   ├── clientRoutes.js      # Client management API routes
+│   │   ├── loanRoutes.js        # Loan management API routes
+│   │   ├── repaymentRoutes.js   # Repayment API routes
+│   │   └── reportRoutes.js      # Report API routes
 │   └── utils/
 │       └── hash.js              # Password hashing utilities
 ```
@@ -92,6 +102,13 @@ MYSQL_DATABASE=loan_management
 PORT=4000
 JWT_SECRET=mysecretkey
 ```
+
+### Database Setup
+
+1. Create a MySQL database named `loan_management` (or update the database name in your configuration).
+
+2. The application will automatically create the required tables and seed an admin user on first run:
+   - **Admin User**: email: `admin@example.com`, password: `admin`
 
 ### Running the Server
 
