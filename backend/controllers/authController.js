@@ -22,6 +22,12 @@ const register = async (req, res) => {
 
     } catch (error) {
         console.log(error);
+
+        if (error.code === 'ER_DUP_ENTRY') {
+            return res.status(400).json({
+                error: 'Email already exists'
+            });
+        }
         res.status(500).json({ error: 'Error registering user' });
     }
 };
