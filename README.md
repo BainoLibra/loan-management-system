@@ -1,6 +1,6 @@
 # Loan Management System
 
-A comprehensive role-based loan management system built with Node.js and Express on the backend, designed to manage loan applications, approvals, disbursements, and repayments with JWT-based authentication.
+A comprehensive role-based loan management system built with Node.js and Express on the backend and React on the frontend, designed to manage loan applications, approvals, disbursements, and repayments with JWT-based authentication.
 
 ## Overview
 
@@ -17,10 +17,11 @@ This system provides full functionality for:
 ## Tech Stack
 
 - **Backend**: Node.js with Express.js framework
+- **Frontend**: React with React Router for navigation
 - **Database**: MySQL with mysql2 driver
 - **Authentication**: JWT (JSON Web Tokens) for secure API access
 - **API**: RESTful API with full CORS support
-- **Development**: Nodemon for hot-reloading during development
+- **Development**: Nodemon for backend hot-reloading, React Scripts for frontend
 - **Middleware**: Body-Parser for JSON request handling and custom authentication middleware
 
 ## Project Structure
@@ -50,6 +51,37 @@ loan-management-system/
 │   │   └── reportRoutes.js      # Report API routes
 │   └── utils/
 │       └── hash.js              # Password hashing utilities
+└── frontend/
+    ├── package.json             # Frontend dependencies and scripts
+    ├── public/
+    │   ├── index.html           # Main HTML template
+    │   ├── manifest.json        # PWA manifest
+    │   └── robots.txt           # Search engine crawling rules
+    └── src/
+        ├── index.js             # React application entry point
+        ├── App.js               # Main App component with routing
+        ├── index.css            # Global styles
+        ├── components/
+        │   ├── ClientTable.js   # Client data table component
+        │   ├── LoanForm.js      # Loan application form
+        │   ├── LoanTable.js     # Loan data table component
+        │   ├── Navbar.js        # Navigation bar
+        │   └── Sidebar.js       # Sidebar navigation
+        ├── context/             # React context for state management
+        ├── pages/
+        │   ├── AuditLogs.js     # Audit logs page
+        │   ├── Clients.js       # Client management page
+        │   ├── Dashboard.js     # Main dashboard
+        │   ├── Loans.js         # Loan management page
+        │   ├── Login.js         # User login page
+        │   ├── Repayments.js    # Repayment tracking page
+        │   └── Reports.js       # Reports and analytics page
+        ├── services/
+        │   ├── authService.js   # Authentication API calls
+        │   ├── clientService.js # Client API calls
+        │   ├── loanService.js   # Loan API calls
+        │   └── reportService.js # Report API calls
+        └── utils/               # Utility functions
 ```
 
 ## Backend Setup
@@ -125,6 +157,52 @@ npm start
 ```
 
 The server will start on `http://localhost:4000` by default, or whatever is defined in the `PORT` environment variable.
+
+## Frontend Setup
+
+### Prerequisites
+- Node.js v14 or higher
+- npm or yarn package manager
+
+### Installation
+
+1. Navigate to the frontend directory:
+```bash
+cd frontend
+```
+
+2. Install all dependencies:
+```bash
+npm install
+```
+
+This will install:
+- `react` - React library
+- `react-dom` - React DOM rendering
+- `react-router-dom` - Client-side routing
+- `react-scripts` - Build and development scripts
+- Testing libraries (`@testing-library/react`, etc.)
+
+### Running the Frontend
+
+**Development mode** (with hot-reload):
+```bash
+npm start
+```
+
+This will start the React development server on `http://localhost:3000` by default.
+
+**Build for production**:
+```bash
+npm run build
+```
+
+This creates an optimized production build in the `build` folder.
+
+**Run tests**:
+```bash
+npm test
+```
 
 ## API Endpoints
 
@@ -230,10 +308,10 @@ The system uses the following tables:
 
 ## Future Enhancements
 
+- [x] Frontend application (React)
 - [ ] Password hashing improvements (currently using bcrypt)
 - [ ] Email notifications for loan status updates
 - [ ] PDF report generation for loan documents
-- [ ] Frontend application (React/Vue)
 - [ ] Advanced analytics and reporting dashboard
 - [ ] Loan rejection functionality
 - [ ] Client-specific loan viewing for client role
