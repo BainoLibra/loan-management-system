@@ -1,5 +1,6 @@
 .main-content {
-  margin-left: 220px;   /* same as sidebar */
+  margin-left: 260px;   /* sidebar width 220px + padding 40px */
   margin-top: 60px;     /* same as navbar */
   padding: 20px;
+  overflow-x: auto;
 }

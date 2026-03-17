@@ -1,13 +1,12 @@
 .navbar {
   height: 60px;
   background: #ecf0f1;
-  margin-left: 220px;   /* SAME as sidebar width */
   display: flex;
   align-items: center;
   padding: 0 20px;
   position: fixed;
   top: 0;
+  left: 260px;
   right: 0;
-  left: 220px;
   z-index: 1000;
 }
