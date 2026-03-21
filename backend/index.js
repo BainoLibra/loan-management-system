@@ -3,7 +3,7 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const pool = require('./db');
 const jwt = require('jsonwebtoken');
-const SECRET = 'mysecretkey';
+const SECRET = process.env.JWT_SECRET || 'mysecretkey';
 const { authenticateToken, authorizeRole } = require('./middleware/auth');
 
 // Routes
@@ -17,7 +17,10 @@ const reportRoutes = require('./routes/reportRoutes');
 const app = express();
 const port = process.env.PORT || 4000;
 
-app.use(cors());
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'https://libra1.healthlinks.ug',
+  credentials: true,
+}));
 app.use(bodyParser.json());
 
 // Routes
@@ -41,4 +44,4 @@ app.get('/test-db', async (req, res) => {
   }
 });
 
-app.listen(port, () => console.log(`Backend listening on http://localhost:${port}`));
+app.listen(port, '0.0.0.0', () => console.log(`Backend listening on port ${port}`));

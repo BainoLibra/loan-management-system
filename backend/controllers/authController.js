@@ -2,7 +2,7 @@ const pool = require('../db'); // your DB connection
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
-const SECRET = 'mysecretkey'; // Move to env later
+const SECRET = process.env.JWT_SECRET || 'mysecretkey';
 
 // REGISTER USER
 const register = async (req, res) => {
