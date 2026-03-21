@@ -1,39 +1,28 @@
--- phpMyAdmin SQL Dump
--- version 5.2.1
--- https://www.phpmyadmin.net/
---
--- Host: 127.0.0.1
--- Generation Time: Mar 21, 2026 at 04:00 PM
--- Server version: 10.4.32-MariaDB
--- PHP Version: 8.2.12
+-- Loan Management System Database Schema
+-- Compatible with MySQL 5.7+ / MySQL 8.x
 
-SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
-START TRANSACTION;
-SET time_zone = "+00:00";
+SET NAMES utf8mb4;
+SET time_zone = '+00:00';
 
+CREATE DATABASE IF NOT EXISTS `loan_management`
+  DEFAULT CHARACTER SET utf8mb4
+  COLLATE utf8mb4_general_ci;
 
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
-/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!40101 SET NAMES utf8mb4 */;
-
---
--- Database: `loan_management`
---
+USE `loan_management`;
 
 -- --------------------------------------------------------
+-- Table: audit_logs
+-- --------------------------------------------------------
 
---
--- Table structure for table `audit_logs`
---
-
-CREATE TABLE `audit_logs` (
-  `id` int(11) NOT NULL,
-  `userId` int(11) DEFAULT NULL,
-  `action` varchar(255) DEFAULT NULL,
-  `entity` varchar(50) DEFAULT NULL,
-  `entityId` int(11) DEFAULT NULL,
-  `createdAt` datetime DEFAULT current_timestamp()
+CREATE TABLE IF NOT EXISTS `audit_logs` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `userId` INT DEFAULT NULL,
+  `action` VARCHAR(255) DEFAULT NULL,
+  `entity` VARCHAR(50) DEFAULT NULL,
+  `entityId` INT DEFAULT NULL,
+  `createdAt` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `userId` (`userId`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
