@@ -1,4 +1,4 @@
-import API_BASE, { getAuthHeaders } from "./api";
+import API_BASE from "./api";
 
 const API_URL = `${API_BASE}/api/auth`;
 
