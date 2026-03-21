@@ -3,10 +3,38 @@
   background: #ecf0f1;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: 0 20px;
   position: fixed;
   top: 0;
   left: 260px;
   right: 0;
   z-index: 1000;
+}
+
+.navbar-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.navbar-user {
+  font-size: 14px;
+  color: #555;
+}
+
+.logout-btn {
+  background: #e74c3c;
+  color: #fff;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.logout-btn:hover {
+  background: #c0392b;
 }
