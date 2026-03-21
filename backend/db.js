@@ -12,66 +12,78 @@ const pool = mysql.createPool({
 });
 
 async function init() {
-  // create tables if they do not exist (MySQL syntax)
+  // create tables if they do not exist
   await pool.execute(`
     CREATE TABLE IF NOT EXISTS users (
       id INT AUTO_INCREMENT PRIMARY KEY,
-      name VARCHAR(255),
-      email VARCHAR(255) UNIQUE,
-      password VARCHAR(255),
-      role VARCHAR(50)
-    ) ENGINE=InnoDB;
+      name VARCHAR(100) NOT NULL,
+      email VARCHAR(100) NOT NULL UNIQUE,
+      password VARCHAR(255) NOT NULL,
+      role ENUM('admin','loan_officer','cashier') NOT NULL,
+      status ENUM('active','inactive') DEFAULT 'active',
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
   `);
 
   await pool.execute(`
     CREATE TABLE IF NOT EXISTS clients (
       id INT AUTO_INCREMENT PRIMARY KEY,
-      name VARCHAR(255),
-      phone VARCHAR(50),
-      email VARCHAR(255),
-      identifier VARCHAR(255)
-    ) ENGINE=InnoDB;
+      name VARCHAR(100) NOT NULL,
+      phone VARCHAR(20) DEFAULT NULL,
+      email VARCHAR(100) DEFAULT NULL,
+      identifier VARCHAR(50) DEFAULT NULL,
+      status ENUM('active','inactive') DEFAULT 'active',
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
   `);
 
   await pool.execute(`
     CREATE TABLE IF NOT EXISTS loans (
       id INT AUTO_INCREMENT PRIMARY KEY,
-      clientId INT,
-      amount DOUBLE,
-      interestRate DOUBLE,
-      termMonths INT,
-      status VARCHAR(50),
-      appliedAt DATETIME,
-      approvedBy INT,
-      approvedAt DATETIME,
-      disbursedAt DATETIME,
-      balance DOUBLE,
-      createdBy INT,
-      FOREIGN KEY (clientId) REFERENCES clients(id)
-    ) ENGINE=InnoDB;
+      clientId INT NOT NULL,
+      amount DECIMAL(15,2) NOT NULL,
+      interestRate DECIMAL(5,2) NOT NULL,
+      termMonths INT NOT NULL,
+      status ENUM('applied','approved','disbursed','closed') DEFAULT 'applied',
+      appliedAt DATETIME DEFAULT NULL,
+      approvedBy INT DEFAULT NULL,
+      approvedAt DATETIME DEFAULT NULL,
+      disbursedAt DATETIME DEFAULT NULL,
+      balance DECIMAL(15,2) NOT NULL,
+      createdBy INT NOT NULL,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (clientId) REFERENCES clients(id),
+      FOREIGN KEY (approvedBy) REFERENCES users(id),
+      FOREIGN KEY (createdBy) REFERENCES users(id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
   `);
 
   await pool.execute(`
     CREATE TABLE IF NOT EXISTS repayments (
       id INT AUTO_INCREMENT PRIMARY KEY,
-      loanId INT,
-      amount DOUBLE,
-      date DATETIME,
-      paidBy INT,
-      FOREIGN KEY (loanId) REFERENCES loans(id)
-    ) ENGINE=InnoDB;
+      loanId INT NOT NULL,
+      amount DECIMAL(15,2) NOT NULL,
+      paidBy INT NOT NULL,
+      date DATETIME NOT NULL,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (loanId) REFERENCES loans(id),
+      FOREIGN KEY (paidBy) REFERENCES users(id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
   `);
 
   await pool.execute(`
     CREATE TABLE IF NOT EXISTS audit_logs (
       id INT AUTO_INCREMENT PRIMARY KEY,
-      userId INT,
-      action VARCHAR(255),
-      entity VARCHAR(255),
-      entityId INT,
-      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      userId INT DEFAULT NULL,
+      action VARCHAR(255) DEFAULT NULL,
+      entity VARCHAR(50) DEFAULT NULL,
+      entityId INT DEFAULT NULL,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (userId) REFERENCES users(id)
-    ) ENGINE=InnoDB;
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
   `);
 
   // seed admin user if none

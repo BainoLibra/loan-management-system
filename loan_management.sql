@@ -1,14 +1,9 @@
 -- Loan Management System Database Schema
 -- Compatible with MySQL 5.7+ / MySQL 8.x
+-- Run against Railway MySQL database: railway
 
 SET NAMES utf8mb4;
 SET time_zone = '+00:00';
-
-CREATE DATABASE IF NOT EXISTS `loan_management`
-  DEFAULT CHARACTER SET utf8mb4
-  COLLATE utf8mb4_general_ci;
-
-USE `loan_management`;
 
 -- --------------------------------------------------------
 -- Table: audit_logs
@@ -25,10 +20,7 @@ CREATE TABLE IF NOT EXISTS `audit_logs` (
   KEY `userId` (`userId`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `audit_logs`
---
-
+-- Seed data: audit_logs
 INSERT INTO `audit_logs` (`id`, `userId`, `action`, `entity`, `entityId`, `createdAt`) VALUES
 (1, 4, 'CREATE_LOAN', 'loan', 1, '2026-02-28 05:12:11'),
 (2, 4, 'CREATE_LOAN', 'loan', 2, '2026-02-28 05:13:13'),
@@ -55,26 +47,22 @@ INSERT INTO `audit_logs` (`id`, `userId`, `action`, `entity`, `entityId`, `creat
 (23, 4, 'REPAY_LOAN', 'loan', 1, '2026-03-11 06:13:10');
 
 -- --------------------------------------------------------
+-- Table: clients
+-- --------------------------------------------------------
 
---
--- Table structure for table `clients`
---
-
-CREATE TABLE `clients` (
-  `id` int(11) NOT NULL,
-  `name` varchar(100) NOT NULL,
-  `phone` varchar(20) DEFAULT NULL,
-  `email` varchar(100) DEFAULT NULL,
-  `identifier` varchar(50) DEFAULT NULL,
-  `status` enum('active','inactive') DEFAULT 'active',
-  `createdAt` datetime DEFAULT current_timestamp(),
-  `updatedAt` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp()
+CREATE TABLE IF NOT EXISTS `clients` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(100) NOT NULL,
+  `phone` VARCHAR(20) DEFAULT NULL,
+  `email` VARCHAR(100) DEFAULT NULL,
+  `identifier` VARCHAR(50) DEFAULT NULL,
+  `status` ENUM('active','inactive') DEFAULT 'active',
+  `createdAt` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `updatedAt` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `clients`
---
-
+-- Seed data: clients
 INSERT INTO `clients` (`id`, `name`, `phone`, `email`, `identifier`, `status`, `createdAt`, `updatedAt`) VALUES
 (1, 'Baino Libra', '0778764631', 'bainolibra213@gmail.com', 'NIN123', 'active', '2026-02-28 04:47:40', '2026-02-28 04:47:40'),
 (2, 'Amon Muhwezi', '0775193423', 'amonmuhwezi@gmail.com', 'NIN124', 'active', '2026-02-28 04:51:38', '2026-02-28 04:51:38'),
@@ -85,32 +73,31 @@ INSERT INTO `clients` (`id`, `name`, `phone`, `email`, `identifier`, `status`, `
 (7, 'Baino Libra', '0778764631', 'baino@gmail.com', 'NIN123', 'active', '2026-03-11 05:56:20', '2026-03-11 05:56:20');
 
 -- --------------------------------------------------------
+-- Table: loans
+-- --------------------------------------------------------
 
---
--- Table structure for table `loans`
---
-
-CREATE TABLE `loans` (
-  `id` int(11) NOT NULL,
-  `clientId` int(11) NOT NULL,
-  `amount` decimal(15,2) NOT NULL,
-  `interestRate` decimal(5,2) NOT NULL,
-  `termMonths` int(11) NOT NULL,
-  `status` enum('applied','approved','disbursed','closed') DEFAULT 'applied',
-  `appliedAt` datetime DEFAULT NULL,
-  `approvedBy` int(11) DEFAULT NULL,
-  `approvedAt` datetime DEFAULT NULL,
-  `disbursedAt` datetime DEFAULT NULL,
-  `balance` decimal(15,2) NOT NULL,
-  `createdBy` int(11) NOT NULL,
-  `createdAt` datetime DEFAULT current_timestamp(),
-  `updatedAt` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp()
+CREATE TABLE IF NOT EXISTS `loans` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `clientId` INT NOT NULL,
+  `amount` DECIMAL(15,2) NOT NULL,
+  `interestRate` DECIMAL(5,2) NOT NULL,
+  `termMonths` INT NOT NULL,
+  `status` ENUM('applied','approved','disbursed','closed') DEFAULT 'applied',
+  `appliedAt` DATETIME DEFAULT NULL,
+  `approvedBy` INT DEFAULT NULL,
+  `approvedAt` DATETIME DEFAULT NULL,
+  `disbursedAt` DATETIME DEFAULT NULL,
+  `balance` DECIMAL(15,2) NOT NULL,
+  `createdBy` INT NOT NULL,
+  `createdAt` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `updatedAt` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `clientId` (`clientId`),
+  KEY `approvedBy` (`approvedBy`),
+  KEY `createdBy` (`createdBy`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `loans`
---
-
+-- Seed data: loans
 INSERT INTO `loans` (`id`, `clientId`, `amount`, `interestRate`, `termMonths`, `status`, `appliedAt`, `approvedBy`, `approvedAt`, `disbursedAt`, `balance`, `createdBy`, `createdAt`, `updatedAt`) VALUES
 (1, 1, 500000.00, 10.00, 6, 'disbursed', '2026-02-28 05:12:11', 4, '2026-02-28 05:33:32', '2026-02-28 05:34:33', 200000.00, 4, '2026-02-28 05:12:11', '2026-03-11 06:13:10'),
 (2, 2, 600000.00, 10.00, 6, 'approved', '2026-02-28 05:13:13', 4, '2026-02-28 05:33:51', NULL, 600000.00, 4, '2026-02-28 05:13:13', '2026-02-28 05:33:51'),
@@ -122,24 +109,22 @@ INSERT INTO `loans` (`id`, `clientId`, `amount`, `interestRate`, `termMonths`, `
 (8, 7, 600000.00, 10.00, 6, 'applied', '2026-03-11 06:08:46', NULL, NULL, NULL, 600000.00, 4, '2026-03-11 06:08:46', '2026-03-11 06:08:46');
 
 -- --------------------------------------------------------
+-- Table: repayments
+-- --------------------------------------------------------
 
---
--- Table structure for table `repayments`
---
-
-CREATE TABLE `repayments` (
-  `id` int(11) NOT NULL,
-  `loanId` int(11) NOT NULL,
-  `amount` decimal(15,2) NOT NULL,
-  `paidBy` int(11) NOT NULL,
-  `date` datetime NOT NULL,
-  `createdAt` datetime DEFAULT current_timestamp()
+CREATE TABLE IF NOT EXISTS `repayments` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `loanId` INT NOT NULL,
+  `amount` DECIMAL(15,2) NOT NULL,
+  `paidBy` INT NOT NULL,
+  `date` DATETIME NOT NULL,
+  `createdAt` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `loanId` (`loanId`),
+  KEY `paidBy` (`paidBy`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `repayments`
---
-
+-- Seed data: repayments
 INSERT INTO `repayments` (`id`, `loanId`, `amount`, `paidBy`, `date`, `createdAt`) VALUES
 (1, 1, 100000.00, 4, '2026-02-28 05:56:26', '2026-02-28 05:56:26'),
 (2, 4, 200000.00, 4, '2026-03-05 05:55:00', '2026-03-05 05:55:00'),
@@ -147,131 +132,39 @@ INSERT INTO `repayments` (`id`, `loanId`, `amount`, `paidBy`, `date`, `createdAt
 (4, 1, 200000.00, 4, '2026-03-11 06:13:10', '2026-03-11 06:13:10');
 
 -- --------------------------------------------------------
+-- Table: users
+-- --------------------------------------------------------
 
---
--- Table structure for table `users`
---
-
-CREATE TABLE `users` (
-  `id` int(11) NOT NULL,
-  `name` varchar(100) NOT NULL,
-  `email` varchar(100) NOT NULL,
-  `password` varchar(255) NOT NULL,
-  `role` enum('admin','loan_officer','cashier') NOT NULL,
-  `status` enum('active','inactive') DEFAULT 'active',
-  `createdAt` datetime DEFAULT current_timestamp(),
-  `updatedAt` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp()
+CREATE TABLE IF NOT EXISTS `users` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(100) NOT NULL,
+  `email` VARCHAR(100) NOT NULL,
+  `password` VARCHAR(255) NOT NULL,
+  `role` ENUM('admin','loan_officer','cashier') NOT NULL,
+  `status` ENUM('active','inactive') DEFAULT 'active',
+  `createdAt` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `updatedAt` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `email` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `users`
---
-
+-- Seed data: users
 INSERT INTO `users` (`id`, `name`, `email`, `password`, `role`, `status`, `createdAt`, `updatedAt`) VALUES
 (4, 'Admin', 'admin@test.com', '$2b$10$SZ4w.d/M3cX58uXp8H1gxuRR6hRYYZZfbPiRi631XY0xrwJ2YbYD2', 'admin', 'active', '2026-02-27 06:09:47', '2026-02-27 06:09:47'),
 (6, 'Loan Officer', 'officer@test.com', '$2b$10$MF2ZuamyQ3Ham.1CdfgODugE/jvDII.YEd6LB.VpfeEWWhYD2v7BS', 'loan_officer', 'active', '2026-03-10 06:01:01', '2026-03-10 06:01:01');
 
---
--- Indexes for dumped tables
---
+-- --------------------------------------------------------
+-- Foreign Key Constraints
+-- --------------------------------------------------------
 
---
--- Indexes for table `audit_logs`
---
-ALTER TABLE `audit_logs`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `userId` (`userId`);
-
---
--- Indexes for table `clients`
---
-ALTER TABLE `clients`
-  ADD PRIMARY KEY (`id`);
-
---
--- Indexes for table `loans`
---
-ALTER TABLE `loans`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `clientId` (`clientId`),
-  ADD KEY `approvedBy` (`approvedBy`),
-  ADD KEY `createdBy` (`createdBy`);
-
---
--- Indexes for table `repayments`
---
-ALTER TABLE `repayments`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `loanId` (`loanId`),
-  ADD KEY `paidBy` (`paidBy`);
-
---
--- Indexes for table `users`
---
-ALTER TABLE `users`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `email` (`email`);
-
---
--- AUTO_INCREMENT for dumped tables
---
-
---
--- AUTO_INCREMENT for table `audit_logs`
---
-ALTER TABLE `audit_logs`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
-
---
--- AUTO_INCREMENT for table `clients`
---
-ALTER TABLE `clients`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
-
---
--- AUTO_INCREMENT for table `loans`
---
-ALTER TABLE `loans`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
-
---
--- AUTO_INCREMENT for table `repayments`
---
-ALTER TABLE `repayments`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
-
---
--- AUTO_INCREMENT for table `users`
---
-ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
-
---
--- Constraints for dumped tables
---
-
---
--- Constraints for table `audit_logs`
---
 ALTER TABLE `audit_logs`
   ADD CONSTRAINT `audit_logs_ibfk_1` FOREIGN KEY (`userId`) REFERENCES `users` (`id`);
 
---
--- Constraints for table `loans`
---
 ALTER TABLE `loans`
   ADD CONSTRAINT `loans_ibfk_1` FOREIGN KEY (`clientId`) REFERENCES `clients` (`id`),
   ADD CONSTRAINT `loans_ibfk_2` FOREIGN KEY (`approvedBy`) REFERENCES `users` (`id`),
   ADD CONSTRAINT `loans_ibfk_3` FOREIGN KEY (`createdBy`) REFERENCES `users` (`id`);
 
---
--- Constraints for table `repayments`
---
 ALTER TABLE `repayments`
   ADD CONSTRAINT `repayments_ibfk_1` FOREIGN KEY (`loanId`) REFERENCES `loans` (`id`),
   ADD CONSTRAINT `repayments_ibfk_2` FOREIGN KEY (`paidBy`) REFERENCES `users` (`id`);
-COMMIT;
-
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
