@@ -13,6 +13,7 @@ const loanRoutes = require('./routes/loanRoutes');
 const repaymentRoutes = require('./routes/repaymentRoutes');
 const auditRoutes = require('./routes/auditRoutes');
 const reportRoutes = require('./routes/reportRoutes');
+const userRoutes = require('./routes/userRoutes');
 
 const app = express();
 const port = process.env.PORT || 4000;
@@ -30,6 +31,7 @@ app.use('/api/loans', loanRoutes);
 app.use('/api/loans', repaymentRoutes);
 app.use('/api/audit-logs', auditRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/users', userRoutes);
 
 app.get('/', (req, res) => {
   res.send('Server working');
@@ -44,4 +46,7 @@ app.get('/test-db', async (req, res) => {
   }
 });
 
-app.listen(port, '0.0.0.0', () => console.log(`Backend listening on port ${port}`));
+app.listen(port, '0.0.0.0', async () => {
+  console.log(`Backend listening on port ${port}`);
+  try { await pool.init(); console.log('DB init OK'); } catch (e) { console.error('DB init error:', e.message); }
+});

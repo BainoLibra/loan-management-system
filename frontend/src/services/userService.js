@@ -1,36 +1,40 @@
 import API_BASE, { getAuthHeaders } from "./api";
 
-const API_URL = `${API_BASE}/api/clients`;
+const API_URL = `${API_BASE}/api/users`;
 
-export const getClients = async () => {
+export const getUsers = async () => {
   const response = await fetch(API_URL, { headers: getAuthHeaders() });
   return response.json();
 };
 
-export const getClientById = async (id) => {
-  const response = await fetch(`${API_URL}/${id}`, { headers: getAuthHeaders() });
-  return response.json();
-};
-
-export const createClient = async (client) => {
+export const createUser = async (user) => {
   const response = await fetch(API_URL, {
     method: "POST",
     headers: getAuthHeaders(),
-    body: JSON.stringify(client),
+    body: JSON.stringify(user),
   });
   return response.json();
 };
 
-export const updateClient = async (id, client) => {
+export const updateUser = async (id, user) => {
   const response = await fetch(`${API_URL}/${id}`, {
     method: "PUT",
     headers: getAuthHeaders(),
-    body: JSON.stringify(client),
+    body: JSON.stringify(user),
   });
   return response.json();
 };
 
-export const deleteClient = async (id) => {
+export const resetUserPassword = async (id, password) => {
+  const response = await fetch(`${API_URL}/${id}/reset-password`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ password }),
+  });
+  return response.json();
+};
+
+export const deleteUser = async (id) => {
   const response = await fetch(`${API_URL}/${id}`, {
     method: "DELETE",
     headers: getAuthHeaders(),

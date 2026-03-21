@@ -1,6 +1,15 @@
 .main-content {
-  margin-left: 260px;   /* sidebar width 220px + padding 40px */
-  margin-top: 60px;     /* same as navbar */
-  padding: 20px;
+  margin-left: 260px;
+  margin-top: 60px;
+  padding: 24px;
   overflow-x: auto;
+  min-height: calc(100vh - 60px);
+  background: #fafbfc;
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    margin-left: 60px;
+    padding: 16px;
+  }
 }

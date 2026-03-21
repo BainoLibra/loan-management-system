@@ -46,7 +46,7 @@ async function init() {
       amount DECIMAL(15,2) NOT NULL,
       interestRate DECIMAL(5,2) NOT NULL,
       termMonths INT NOT NULL,
-      status ENUM('applied','approved','disbursed','closed') DEFAULT 'applied',
+      status ENUM('applied','approved','disbursed','closed','rejected') DEFAULT 'applied',
       appliedAt DATETIME DEFAULT NULL,
       approvedBy INT DEFAULT NULL,
       approvedAt DATETIME DEFAULT NULL,
@@ -92,6 +92,12 @@ async function init() {
   if (cnt === 0) {
     await pool.execute('INSERT INTO users (name,email,password,role) VALUES (?,?,?,?)', ['Admin','admin@example.com','admin','admin']);
   }
+
+  // ensure 'rejected' status exists in loans ENUM (safe to re-run)
+  await pool.execute(`
+    ALTER TABLE loans MODIFY COLUMN status
+    ENUM('applied','approved','disbursed','closed','rejected') DEFAULT 'applied'
+  `).catch(() => { /* ignore if already correct */ });
 }
 
 // Adapter to mimic the sqlite3 API used in the codebase
@@ -116,4 +122,5 @@ const db = {
   }
 };
 
+pool.init = init;
 module.exports = pool;

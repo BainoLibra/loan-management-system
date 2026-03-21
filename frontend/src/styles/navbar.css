@@ -1,10 +1,11 @@
 .navbar {
   height: 60px;
-  background: #ecf0f1;
+  background: #fff;
+  border-bottom: 1px solid #e0e0e0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px;
+  padding: 0 24px;
   position: fixed;
   top: 0;
   left: 260px;
@@ -37,4 +38,11 @@
 
 .logout-btn:hover {
   background: #c0392b;
+}
+
+@media (max-width: 768px) {
+  .navbar {
+    left: 60px;
+    padding: 0 12px;
+  }
 }

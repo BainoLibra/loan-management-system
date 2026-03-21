@@ -24,9 +24,24 @@ export const approveLoan = async (id) => {
   return response.json();
 };
 
+export const rejectLoan = async (id) => {
+  const response = await fetch(`${API_URL}/${id}/reject`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+  });
+  return response.json();
+};
+
 export const disburseLoan = async (id) => {
   const response = await fetch(`${API_URL}/${id}/disburse`, {
     method: "POST",
+    headers: getAuthHeaders(),
+  });
+  return response.json();
+};
+
+export const getLoanSchedule = async (id) => {
+  const response = await fetch(`${API_URL}/${id}/schedule`, {
     headers: getAuthHeaders(),
   });
   return response.json();

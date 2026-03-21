@@ -3,9 +3,21 @@ import Layout from "../components/Layout";
 import { getLoans } from "../services/loanService";
 import { getClients } from "../services/clientService";
 import { getUser } from "../services/authService";
+import { PieChart, Pie, Cell, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
+import "../styles/table.css";
+
+const STATUS_COLORS = {
+  applied: "#3498db",
+  approved: "#f39c12",
+  disbursed: "#27ae60",
+  closed: "#95a5a6",
+  rejected: "#e74c3c",
+};
 
 function Dashboard() {
   const [stats, setStats] = useState({ loans: 0, clients: 0, disbursed: 0, totalBalance: 0 });
+  const [statusData, setStatusData] = useState([]);
+  const [monthlyData, setMonthlyData] = useState([]);
   const user = getUser();
 
   useEffect(() => {
@@ -14,12 +26,43 @@ function Dashboard() {
         const [loans, clients] = await Promise.all([getLoans(), getClients()]);
         const loansArr = Array.isArray(loans) ? loans : [];
         const clientsArr = Array.isArray(clients) ? clients : [];
+
         setStats({
           loans: loansArr.length,
           clients: clientsArr.length,
           disbursed: loansArr.filter((l) => l.status === "disbursed").length,
-          totalBalance: loansArr.reduce((sum, l) => sum + (l.balance || 0), 0),
+          totalBalance: loansArr.reduce((sum, l) => sum + Number(l.balance || 0), 0),
         });
+
+        // Loan status breakdown for pie chart
+        const counts = {};
+        loansArr.forEach((l) => {
+          counts[l.status] = (counts[l.status] || 0) + 1;
+        });
+        setStatusData(
+          Object.entries(counts).map(([name, value]) => ({ name, value }))
+        );
+
+        // Monthly disbursement amounts (last 6 months)
+        const monthly = {};
+        const now = new Date();
+        for (let i = 5; i >= 0; i--) {
+          const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+          const key = d.toLocaleString("default", { month: "short", year: "2-digit" });
+          monthly[key] = 0;
+        }
+        loansArr
+          .filter((l) => l.status === "disbursed" || l.status === "closed")
+          .forEach((l) => {
+            const d = new Date(l.disbursedAt || l.createdAt);
+            const key = d.toLocaleString("default", { month: "short", year: "2-digit" });
+            if (key in monthly) {
+              monthly[key] += Number(l.amount || 0);
+            }
+          });
+        setMonthlyData(
+          Object.entries(monthly).map(([month, amount]) => ({ month, amount }))
+        );
       } catch {
         /* dashboard is best-effort */
       }
@@ -31,22 +74,53 @@ function Dashboard() {
     <Layout>
       <h2>Dashboard</h2>
       <p>Welcome, {user ? user.name : "User"}!</p>
-      <div style={{ display: "flex", gap: 20, flexWrap: "wrap", marginTop: 20 }}>
-        <div style={cardStyle}><h3>{stats.clients}</h3><p>Clients</p></div>
-        <div style={cardStyle}><h3>{stats.loans}</h3><p>Total Loans</p></div>
-        <div style={cardStyle}><h3>{stats.disbursed}</h3><p>Active (Disbursed)</p></div>
-        <div style={cardStyle}><h3>{stats.totalBalance.toLocaleString()}</h3><p>Outstanding Balance</p></div>
+
+      <div className="stat-cards">
+        <div className="stat-card"><h3>{stats.clients}</h3><p>Clients</p></div>
+        <div className="stat-card"><h3>{stats.loans}</h3><p>Total Loans</p></div>
+        <div className="stat-card"><h3>{stats.disbursed}</h3><p>Active (Disbursed)</p></div>
+        <div className="stat-card"><h3>{stats.totalBalance.toLocaleString()}</h3><p>Outstanding Balance</p></div>
+      </div>
+
+      <div className="chart-row">
+        <div className="chart-box">
+          <h4>Loan Status Breakdown</h4>
+          {statusData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={280}>
+              <PieChart>
+                <Pie data={statusData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
+                  {statusData.map((entry) => (
+                    <Cell key={entry.name} fill={STATUS_COLORS[entry.name] || "#999"} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <p style={{ color: "#999" }}>No loan data yet</p>
+          )}
+        </div>
+
+        <div className="chart-box">
+          <h4>Monthly Disbursements (Last 6 Months)</h4>
+          {monthlyData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={monthlyData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip formatter={(v) => Number(v).toLocaleString()} />
+                <Bar dataKey="amount" fill="#3498db" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <p style={{ color: "#999" }}>No disbursement data yet</p>
+          )}
+        </div>
       </div>
     </Layout>
   );
 }
-
-const cardStyle = {
-  background: "#f5f5f5",
-  padding: "20px 30px",
-  borderRadius: 8,
-  minWidth: 150,
-  textAlign: "center",
-};
 
 export default Dashboard;
