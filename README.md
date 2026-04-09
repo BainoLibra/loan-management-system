@@ -6,6 +6,7 @@ A comprehensive role-based loan management system built with Node.js and Express
 
 This system provides full functionality for:
 - **User Authentication**: JWT-based token authentication with role-based access control (Admin, Loan Officer, Cashier, Client)
+- **User Signup**: Self-service onboarding with signup form for new users
 - **Client Management**: Create and manage loan clients with detailed information
 - **Loan Management**: Apply for loans, approve/reject applications, disburse funds, and track loan status
 - **Repayment Tracking**: Record, track, and manage loan repayments
@@ -192,6 +193,8 @@ npm start
 
 This will start the React development server on `http://localhost:3000` by default.
 
+Open the app at `http://localhost:3000/` to sign in, or go to `http://localhost:3000/signup` to create a new account.
+
 **Build for production**:
 ```bash
 npm run build
@@ -207,12 +210,12 @@ npm test
 ## API Endpoints
 
 ### Authentication
-- `POST /api/register` - Register a new user (Admin only)
-  - Request: `{ "name": "John Doe", "email": "john@example.com", "password": "password", "role": "client" }`
+- `POST /api/auth/register` - Register a new user via signup
+  - Request: `{ "name": "John Doe", "email": "john@example.com", "password": "password", "role": "loan_officer" }`
   - Response: `{ "message": "User registered successfully" }`
 - `POST /api/auth/login` - Login with email and password, receive JWT token
   - Request: `{ "email": "user@example.com", "password": "password" }`
-  - Response: `{ "token": "eyJhbGc...", "user": { "id": 1, "name": "John", "email": "user@example.com", "role": "client" } }`
+  - Response: `{ "token": "eyJhbGc...", "user": { "id": 1, "name": "John", "email": "user@example.com", "role": "loan_officer" } }`
 
 ### Protected Endpoints
 All endpoints below require JWT token in the Authorization header:
