@@ -3,11 +3,17 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
 const SECRET = process.env.JWT_SECRET || 'mysecretkey';
+const allowedRoles = ['admin', 'loan_officer', 'cashier'];
 
 // REGISTER USER
 const register = async (req, res) => {
     try {
         const { name, email, password, role } = req.body;
+        if (!name || !email || !password) {
+            return res.status(400).json({ error: 'Name, email and password are required' });
+        }
+
+        const selectedRole = allowedRoles.includes(role) ? role : 'loan_officer';
 
         // hash password
         const hashedPassword = await bcrypt.hash(password, 10);
@@ -15,7 +21,7 @@ const register = async (req, res) => {
         // save user
         await pool.execute(
             'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
-            [name, email, hashedPassword, role]
+            [name, email, hashedPassword, selectedRole]
         );
 
         res.json({ message: 'User registered successfully' });

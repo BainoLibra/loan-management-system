@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { loginUser } from "../services/authService";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import "../styles/login.css";
 
 function Login() {
@@ -69,6 +69,11 @@ function Login() {
             {loading ? "Signing in..." : "Sign In"}
           </button>
         </form>
+
+        <div className="auth-switch">
+          <span>Don’t have an account?</span>
+          <Link to="/signup">Sign up</Link>
+        </div>
 
         <p className="login-footer">Powered by Libra &copy; 2026</p>
       </div>

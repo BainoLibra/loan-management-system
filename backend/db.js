@@ -90,7 +90,8 @@ async function init() {
   const [rows] = await pool.query('SELECT COUNT(*) as cnt FROM users');
   const cnt = rows && rows[0] ? rows[0].cnt : 0;
   if (cnt === 0) {
-    await pool.execute('INSERT INTO users (name,email,password,role) VALUES (?,?,?,?)', ['Admin','admin@example.com','admin','admin']);
+    const hashedAdminPassword = await bcrypt.hash('admin', 10);
+    await pool.execute('INSERT INTO users (name,email,password,role) VALUES (?,?,?,?)', ['Admin','admin@example.com',hashedAdminPassword,'admin']);
   }
 
   // ensure 'rejected' status exists in loans ENUM (safe to re-run)
