@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { getUser } from "../services/authService";
 import "../styles/sidebar.css";
 
-function Sidebar({ isOpen }) {
+function Sidebar({ isOpen, onChangePassword }) {
   const location = useLocation();
   const user = getUser();
   const isActive = (path) => location.pathname === path ? "active" : "";
@@ -21,6 +21,7 @@ function Sidebar({ isOpen }) {
         {user && user.role === "admin" && (
           <li className={isActive("/users")}><Link to="/users">Users</Link></li>
         )}
+        <li><a href="#" onClick={(e) => { e.preventDefault(); onChangePassword(); }}>Change Password</a></li>
       </ul>
     </div>
   );

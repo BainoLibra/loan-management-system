@@ -32,7 +32,15 @@ export const getUser = () => {
 
 export const getToken = () => localStorage.getItem("token");
 
-export const logout = () => {
-  localStorage.removeItem("token");
-  localStorage.removeItem("user");
+export const changePassword = async (currentPassword, newPassword) => {
+  const token = getToken();
+  const response = await fetch(`${API_URL}/change-password`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+  return response.json();
 };
