@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { logout, getUser } from "../services/authService";
 import "../styles/navbar.css";
 
-function Navbar() {
+function Navbar({ toggleSidebar }) {
   const navigate = useNavigate();
   const user = getUser();
 
@@ -14,6 +14,9 @@ function Navbar() {
 
   return (
     <div className="navbar">
+      <button className="hamburger" onClick={toggleSidebar}>
+        ☰
+      </button>
       <h3>Loan Management System</h3>
       <div className="navbar-right">
         {user && <span className="navbar-user">{user.name}</span>}

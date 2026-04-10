@@ -50,30 +50,32 @@ function AuditLogs() {
         />
         <button className="btn-secondary" onClick={exportCSV}>Export CSV</button>
       </div>
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>User</th>
-            <th>Action</th>
-            <th>Entity</th>
-            <th>Entity ID</th>
-            <th>Date</th>
-          </tr>
-        </thead>
-        <tbody>
-          {paginated.map((log) => (
-            <tr key={log.id}>
-              <td>{log.id}</td>
-              <td>{log.userName}</td>
-              <td>{log.action}</td>
-              <td>{log.entity}</td>
-              <td>{log.entityId}</td>
-              <td>{new Date(log.createdAt).toLocaleString()}</td>
+      <div className="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>User</th>
+              <th>Action</th>
+              <th>Entity</th>
+              <th>Entity ID</th>
+              <th>Date</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {paginated.map((log) => (
+              <tr key={log.id}>
+                <td>{log.id}</td>
+                <td>{log.userName}</td>
+                <td>{log.action}</td>
+                <td>{log.entity}</td>
+                <td>{log.entityId}</td>
+                <td>{new Date(log.createdAt).toLocaleString()}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       {totalPages > 1 && (
         <div className="pagination">
           <button disabled={page <= 1} onClick={() => setPage(page - 1)}>Prev</button>

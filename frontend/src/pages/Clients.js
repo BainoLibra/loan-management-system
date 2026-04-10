@@ -94,35 +94,37 @@ function Clients() {
         </form>
       )}
 
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Name</th>
-            <th>Phone</th>
-            <th>Email</th>
-            <th>Identifier</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {paginated.map((c) => (
-            <tr key={c.id}>
-              <td>{c.id}</td>
-              <td><Link to={`/clients/${c.id}`}>{c.name}</Link></td>
-              <td>{c.phone}</td>
-              <td>{c.email}</td>
-              <td>{c.identifier}</td>
-              <td>
-                <button className="btn-sm" onClick={() => handleEdit(c)}>Edit</button>{" "}
-                {user && user.role === "admin" && (
-                  <button className="btn-sm btn-danger" onClick={() => handleDelete(c.id)}>Delete</button>
-                )}
-              </td>
+      <div className="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Phone</th>
+              <th>Email</th>
+              <th>Identifier</th>
+              <th>Actions</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {paginated.map((c) => (
+              <tr key={c.id}>
+                <td>{c.id}</td>
+                <td><Link to={`/clients/${c.id}`}>{c.name}</Link></td>
+                <td>{c.phone}</td>
+                <td>{c.email}</td>
+                <td>{c.identifier}</td>
+                <td>
+                  <button className="btn-sm" onClick={() => handleEdit(c)}>Edit</button>{" "}
+                  {user && user.role === "admin" && (
+                    <button className="btn-sm btn-danger" onClick={() => handleDelete(c.id)}>Delete</button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       {totalPages > 1 && (
         <div className="pagination">

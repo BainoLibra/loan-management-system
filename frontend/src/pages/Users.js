@@ -102,36 +102,38 @@ function Users() {
         </form>
       )}
 
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Name</th>
-            <th>Email</th>
-            <th>Role</th>
-            <th>Status</th>
-            <th>Created</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filtered.map((u) => (
-            <tr key={u.id}>
-              <td>{u.id}</td>
-              <td>{u.name}</td>
-              <td>{u.email}</td>
-              <td><span className={`badge badge-${u.role}`}>{u.role}</span></td>
-              <td><span className={`badge badge-${u.status}`}>{u.status}</span></td>
-              <td>{new Date(u.createdAt).toLocaleDateString()}</td>
-              <td>
-                <button className="btn-sm" onClick={() => handleEdit(u)}>Edit</button>{" "}
-                <button className="btn-sm btn-warn" onClick={() => setResetPw({ id: u.id, password: "" })}>Reset Pwd</button>{" "}
-                <button className="btn-sm btn-danger" onClick={() => handleDelete(u.id)}>Delete</button>
-              </td>
+      <div className="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Created</th>
+              <th>Actions</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {filtered.map((u) => (
+              <tr key={u.id}>
+                <td>{u.id}</td>
+                <td>{u.name}</td>
+                <td>{u.email}</td>
+                <td><span className={`badge badge-${u.role}`}>{u.role}</span></td>
+                <td><span className={`badge badge-${u.status}`}>{u.status}</span></td>
+                <td>{new Date(u.createdAt).toLocaleDateString()}</td>
+                <td>
+                  <button className="btn-sm" onClick={() => handleEdit(u)}>Edit</button>{" "}
+                  <button className="btn-sm btn-warn" onClick={() => setResetPw({ id: u.id, password: "" })}>Reset Pwd</button>{" "}
+                  <button className="btn-sm btn-danger" onClick={() => handleDelete(u.id)}>Delete</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </Layout>
   );
 }

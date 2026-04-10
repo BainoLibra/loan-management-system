@@ -73,40 +73,42 @@ function ClientDetail() {
       </div>
 
       <h3 style={{ marginTop: 20 }}>Loan History</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Amount</th>
-            <th>Interest</th>
-            <th>Term</th>
-            <th>Balance</th>
-            <th>Status</th>
-            <th>Applied</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {loans.map((l) => (
-            <tr key={l.id}>
-              <td>{l.id}</td>
-              <td>{Number(l.amount).toLocaleString()}</td>
-              <td>{l.interestRate}%</td>
-              <td>{l.termMonths}m</td>
-              <td>{Number(l.balance).toLocaleString()}</td>
-              <td>{l.status}</td>
-              <td>{l.appliedAt ? new Date(l.appliedAt).toLocaleDateString() : "-"}</td>
-              <td>
-                {(l.status === "disbursed" || l.status === "closed") && (
-                  <button className="btn-sm" onClick={() => viewRepayments(l)}>
-                    {selectedLoan && selectedLoan.id === l.id ? "Hide" : "Payments"}
-                  </button>
-                )}
-              </td>
+      <div className="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Amount</th>
+              <th>Interest</th>
+              <th>Term</th>
+              <th>Balance</th>
+              <th>Status</th>
+              <th>Applied</th>
+              <th></th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {loans.map((l) => (
+              <tr key={l.id}>
+                <td>{l.id}</td>
+                <td>{Number(l.amount).toLocaleString()}</td>
+                <td>{l.interestRate}%</td>
+                <td>{l.termMonths}m</td>
+                <td>{Number(l.balance).toLocaleString()}</td>
+                <td>{l.status}</td>
+                <td>{l.appliedAt ? new Date(l.appliedAt).toLocaleDateString() : "-"}</td>
+                <td>
+                  {(l.status === "disbursed" || l.status === "closed") && (
+                    <button className="btn-sm" onClick={() => viewRepayments(l)}>
+                      {selectedLoan && selectedLoan.id === l.id ? "Hide" : "Payments"}
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       {selectedLoan && (
         <div style={{ marginTop: 20 }}>
@@ -114,20 +116,22 @@ function ClientDetail() {
           {repayments.length === 0 ? (
             <p>No payments recorded yet.</p>
           ) : (
-            <table>
-              <thead>
-                <tr><th>ID</th><th>Amount</th><th>Date</th></tr>
-              </thead>
-              <tbody>
-                {repayments.map((r) => (
-                  <tr key={r.id}>
-                    <td>{r.id}</td>
-                    <td>{Number(r.amount).toLocaleString()}</td>
-                    <td>{new Date(r.date).toLocaleDateString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div className="table-container">
+              <table>
+                <thead>
+                  <tr><th>ID</th><th>Amount</th><th>Date</th></tr>
+                </thead>
+                <tbody>
+                  {repayments.map((r) => (
+                    <tr key={r.id}>
+                      <td>{r.id}</td>
+                      <td>{Number(r.amount).toLocaleString()}</td>
+                      <td>{new Date(r.date).toLocaleDateString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       )}

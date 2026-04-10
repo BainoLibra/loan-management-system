@@ -119,47 +119,49 @@ function Loans() {
         </form>
       )}
 
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Client</th>
-            <th>Amount</th>
-            <th>Interest</th>
-            <th>Term</th>
-            <th>Balance</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {paginated.map((l) => (
-            <tr key={l.id}>
-              <td>{l.id}</td>
-              <td>{l.clientName}</td>
-              <td>{Number(l.amount).toLocaleString()}</td>
-              <td>{l.interestRate}%</td>
-              <td>{l.termMonths}m</td>
-              <td>{Number(l.balance).toLocaleString()}</td>
-              <td><span className="badge" style={{ background: statusColors[l.status] || "#999" }}>{l.status}</span></td>
-              <td>
-                {l.status === "applied" && user && user.role === "admin" && (
-                  <>
-                    <button className="btn-sm btn-success" onClick={() => handleApprove(l.id)}>Approve</button>{" "}
-                    <button className="btn-sm btn-danger" onClick={() => handleReject(l.id)}>Reject</button>{" "}
-                  </>
-                )}
-                {l.status === "approved" && user && (user.role === "admin" || user.role === "cashier") && (
-                  <button className="btn-sm btn-success" onClick={() => handleDisburse(l.id)}>Disburse</button>
-                )}{" "}
-                <button className="btn-sm" onClick={() => viewSchedule(l.id)}>
-                  {scheduleLoanId === l.id ? "Hide" : "Schedule"}
-                </button>
-              </td>
+      <div className="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Client</th>
+              <th>Amount</th>
+              <th>Interest</th>
+              <th>Term</th>
+              <th>Balance</th>
+              <th>Status</th>
+              <th>Actions</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {paginated.map((l) => (
+              <tr key={l.id}>
+                <td>{l.id}</td>
+                <td>{l.clientName}</td>
+                <td>{Number(l.amount).toLocaleString()}</td>
+                <td>{l.interestRate}%</td>
+                <td>{l.termMonths}m</td>
+                <td>{Number(l.balance).toLocaleString()}</td>
+                <td><span className="badge" style={{ background: statusColors[l.status] || "#999" }}>{l.status}</span></td>
+                <td>
+                  {l.status === "applied" && user && user.role === "admin" && (
+                    <>
+                      <button className="btn-sm btn-success" onClick={() => handleApprove(l.id)}>Approve</button>{" "}
+                      <button className="btn-sm btn-danger" onClick={() => handleReject(l.id)}>Reject</button>{" "}
+                    </>
+                  )}
+                  {l.status === "approved" && user && (user.role === "admin" || user.role === "cashier") && (
+                    <button className="btn-sm btn-success" onClick={() => handleDisburse(l.id)}>Disburse</button>
+                  )}{" "}
+                  <button className="btn-sm" onClick={() => viewSchedule(l.id)}>
+                    {scheduleLoanId === l.id ? "Hide" : "Schedule"}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       {totalPages > 1 && (
         <div className="pagination">
@@ -172,30 +174,32 @@ function Loans() {
       {schedule && (
         <div style={{ marginTop: 20 }}>
           <h3>Repayment Schedule - Loan #{scheduleLoanId}</h3>
-          <table>
-            <thead>
-              <tr>
-                <th>Month</th>
-                <th>Due Date</th>
-                <th>Payment</th>
-                <th>Principal</th>
-                <th>Interest</th>
-                <th>Balance</th>
-              </tr>
-            </thead>
-            <tbody>
-              {schedule.map((s) => (
-                <tr key={s.month}>
-                  <td>{s.month}</td>
-                  <td>{new Date(s.dueDate).toLocaleDateString()}</td>
-                  <td>{s.payment.toLocaleString()}</td>
-                  <td>{s.principal.toLocaleString()}</td>
-                  <td>{s.interest.toLocaleString()}</td>
-                  <td>{s.balance.toLocaleString()}</td>
+          <div className="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Month</th>
+                  <th>Due Date</th>
+                  <th>Payment</th>
+                  <th>Principal</th>
+                  <th>Interest</th>
+                  <th>Balance</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {schedule.map((s) => (
+                  <tr key={s.month}>
+                    <td>{s.month}</td>
+                    <td>{new Date(s.dueDate).toLocaleDateString()}</td>
+                    <td>{s.payment.toLocaleString()}</td>
+                    <td>{s.principal.toLocaleString()}</td>
+                    <td>{s.interest.toLocaleString()}</td>
+                    <td>{s.balance.toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </Layout>

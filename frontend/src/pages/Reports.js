@@ -61,34 +61,36 @@ function Reports() {
         </select>
         <button className="btn-secondary" onClick={exportCSV}>Export CSV</button>
       </div>
-      <table>
-        <thead>
-          <tr>
-            <th>Loan ID</th>
-            <th>Client</th>
-            <th>Amount</th>
-            <th>Balance</th>
-            <th>Due Date</th>
-            <th>Days Overdue</th>
-            <th>Bucket</th>
-            <th>In Arrears</th>
-          </tr>
-        </thead>
-        <tbody>
-          {paginated.map((r) => (
-            <tr key={r.id}>
-              <td>{r.id}</td>
-              <td>{r.clientName}</td>
-              <td>{Number(r.amount).toLocaleString()}</td>
-              <td>{Number(r.balance).toLocaleString()}</td>
-              <td>{r.dueDate ? new Date(r.dueDate).toLocaleDateString() : "-"}</td>
-              <td>{r.daysOverdue}</td>
-              <td><span className="badge" style={{ background: bucketColors[r.bucket] || "#999" }}>{r.bucket}</span></td>
-              <td>{r.inArrears ? "Yes" : "No"}</td>
+      <div className="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Loan ID</th>
+              <th>Client</th>
+              <th>Amount</th>
+              <th>Balance</th>
+              <th>Due Date</th>
+              <th>Days Overdue</th>
+              <th>Bucket</th>
+              <th>In Arrears</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {paginated.map((r) => (
+              <tr key={r.id}>
+                <td>{r.id}</td>
+                <td>{r.clientName}</td>
+                <td>{Number(r.amount).toLocaleString()}</td>
+                <td>{Number(r.balance).toLocaleString()}</td>
+                <td>{r.dueDate ? new Date(r.dueDate).toLocaleDateString() : "-"}</td>
+                <td>{r.daysOverdue}</td>
+                <td><span className="badge" style={{ background: bucketColors[r.bucket] || "#999" }}>{r.bucket}</span></td>
+                <td>{r.inArrears ? "Yes" : "No"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       {totalPages > 1 && (
         <div className="pagination">
           <button disabled={page <= 1} onClick={() => setPage(page - 1)}>Prev</button>

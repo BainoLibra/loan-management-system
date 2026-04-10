@@ -24,6 +24,21 @@ tbody tr:hover {
   background: #f9f9f9;
 }
 
+@media (max-width: 768px) {
+  table {
+    font-size: 12px;
+  }
+
+  td, th {
+    padding: 8px 6px;
+  }
+
+  .table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
 /* ── Toolbar (search + filter + export row) ── */
 .toolbar {
   display: flex;

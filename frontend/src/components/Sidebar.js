@@ -3,13 +3,13 @@ import { Link, useLocation } from "react-router-dom";
 import { getUser } from "../services/authService";
 import "../styles/sidebar.css";
 
-function Sidebar() {
+function Sidebar({ isOpen }) {
   const location = useLocation();
   const user = getUser();
   const isActive = (path) => location.pathname === path ? "active" : "";
 
   return (
-    <div className="sidebar">
+    <div className={`sidebar ${isOpen ? 'open' : ''}`}>
       <h3>Loan System</h3>
       <ul>
         <li className={isActive("/dashboard")}><Link to="/dashboard">Dashboard</Link></li>

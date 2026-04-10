@@ -70,28 +70,30 @@ function Repayments() {
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
         />
       </div>
-      <table>
-        <thead>
-          <tr>
-            <th>Loan ID</th>
-            <th>Client</th>
-            <th>Amount</th>
-            <th>Balance</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {paginated.map((l) => (
-            <tr key={l.id} style={selectedLoan && selectedLoan.id === l.id ? { background: "#e0f0ff" } : {}}>
-              <td>{l.id}</td>
-              <td>{l.clientName}</td>
-              <td>{Number(l.amount).toLocaleString()}</td>
-              <td>{Number(l.balance).toLocaleString()}</td>
-              <td><button className="btn-sm" onClick={() => selectLoan(l)}>Select</button></td>
+      <div className="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Loan ID</th>
+              <th>Client</th>
+              <th>Amount</th>
+              <th>Balance</th>
+              <th></th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {paginated.map((l) => (
+              <tr key={l.id} style={selectedLoan && selectedLoan.id === l.id ? { background: "#e0f0ff" } : {}}>
+                <td>{l.id}</td>
+                <td>{l.clientName}</td>
+                <td>{Number(l.amount).toLocaleString()}</td>
+                <td>{Number(l.balance).toLocaleString()}</td>
+                <td><button className="btn-sm" onClick={() => selectLoan(l)}>Select</button></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       {totalPages > 1 && (
         <div className="pagination">
@@ -115,22 +117,24 @@ function Repayments() {
               <button className="btn-secondary" onClick={exportCSV}>Export CSV</button>
             )}
           </div>
-          <table>
-            <thead>
-              <tr><th>ID</th><th>Amount</th><th>Date</th></tr>
-            </thead>
-            <tbody>
-              {repayments.length === 0 ? (
-                <tr><td colSpan="3" style={{ textAlign: "center", color: "#999" }}>No payments recorded yet</td></tr>
-              ) : repayments.map((r) => (
-                <tr key={r.id}>
-                  <td>{r.id}</td>
-                  <td>{Number(r.amount).toLocaleString()}</td>
-                  <td>{new Date(r.date).toLocaleDateString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="table-container">
+            <table>
+              <thead>
+                <tr><th>ID</th><th>Amount</th><th>Date</th></tr>
+              </thead>
+              <tbody>
+                {repayments.length === 0 ? (
+                  <tr><td colSpan="3" style={{ textAlign: "center", color: "#999" }}>No payments recorded yet</td></tr>
+                ) : repayments.map((r) => (
+                  <tr key={r.id}>
+                    <td>{r.id}</td>
+                    <td>{Number(r.amount).toLocaleString()}</td>
+                    <td>{new Date(r.date).toLocaleDateString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </>
       )}
     </Layout>
