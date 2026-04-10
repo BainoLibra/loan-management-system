@@ -18,8 +18,7 @@ const userRoutes = require('./routes/userRoutes');
 
 const app = express();
 const port = process.env.PORT || 4000;
-
-app.use(cors());
+// Remote frontend URL for deployment: https://libra1.healthlinks.ugapp.use(cors());
 app.use(bodyParser.json());
 
 // Routes
