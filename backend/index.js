@@ -19,22 +19,7 @@ const userRoutes = require('./routes/userRoutes');
 const app = express();
 const port = process.env.PORT || 4000;
 
-const allowedOrigins = [
-  process.env.FRONTEND_URL,
-  'http://localhost:3000',
-  'http://127.0.0.1:3000',
-].filter(Boolean);
-
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('CORS policy: origin not allowed'));
-    }
-  },
-  credentials: true,
-}));
+app.use(cors());
 app.use(bodyParser.json());
 
 // Routes
