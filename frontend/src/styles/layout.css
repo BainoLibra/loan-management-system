@@ -31,5 +31,7 @@
 @media (min-width: 769px) {
   .main-content {
     margin-left: 220px;
+    padding-left: 24px;
+    padding-right: 24px;
   }
 }
