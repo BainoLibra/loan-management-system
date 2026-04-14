@@ -10,7 +10,7 @@
   top: 0;
   left: 0;
   right: 0;
-  z-index: 1000;
+  z-index: 1001;
 }
 
 .hamburger {
@@ -55,6 +55,13 @@
 
 .logout-btn:hover {
   background: #c0392b;
+}
+
+@media (min-width: 769px) {
+  .navbar {
+    left: 220px;
+    width: calc(100% - 220px);
+  }
 }
 
 @media (max-width: 768px) {

@@ -5,6 +5,8 @@
   overflow-x: auto;
   min-height: calc(100vh - 60px);
   background: #fafbfc;
+  position: relative;
+  z-index: 1;
 }
 
 .sidebar-overlay {
