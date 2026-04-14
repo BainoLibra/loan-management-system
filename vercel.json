@@ -5,6 +5,10 @@
   "outputDirectory": "frontend/build",
   "rewrites": [
     {
+      "source": "/api/(.*)",
+      "destination": "/api/[...all]"
+    },
+    {
       "source": "/health",
       "destination": "/api/health"
     },
