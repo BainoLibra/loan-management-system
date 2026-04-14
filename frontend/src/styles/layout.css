@@ -3,6 +3,9 @@
   margin-top: 60px;
   padding: 24px;
   overflow-x: auto;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
   min-height: calc(100vh - 60px);
   background: #fafbfc;
   position: relative;
@@ -30,10 +33,17 @@
   }
 }
 
+@media (max-width: 480px) {
+  .main-content {
+    padding: 12px;
+  }
+}
+
 @media (min-width: 769px) {
   .main-content {
     margin-left: 220px;
     width: calc(100% - 220px);
+    max-width: calc(100% - 220px);
     padding-left: 24px;
     padding-right: 24px;
   }
