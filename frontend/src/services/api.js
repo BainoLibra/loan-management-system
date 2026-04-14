@@ -9,5 +9,3 @@ export const getAuthHeaders = () => {
 };
 
 export default API_BASE;
-
-export default API_BASE;

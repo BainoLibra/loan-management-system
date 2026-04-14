@@ -44,3 +44,8 @@ export const changePassword = async (currentPassword, newPassword) => {
   });
   return response.json();
 };
+
+export const logout = () => {
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+};
