@@ -1,37 +1,20 @@
 {
   "version": 2,
-  "builds": [
+  "installCommand": "npm install --prefix backend && npm install --prefix frontend",
+  "buildCommand": "npm run build --prefix frontend",
+  "outputDirectory": "frontend/build",
+  "rewrites": [
     {
-      "src": "backend/api/[...all].js",
-      "use": "@vercel/node"
+      "source": "/health",
+      "destination": "/api/health"
     },
     {
-      "src": "frontend/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "build"
-      }
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/backend/api/[...all].js"
+      "source": "/test-db",
+      "destination": "/api/test-db"
     },
     {
-      "src": "/health",
-      "dest": "/backend/api/[...all].js"
-    },
-    {
-      "src": "/test-db",
-      "dest": "/backend/api/[...all].js"
-    },
-    {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }

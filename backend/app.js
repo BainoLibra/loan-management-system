@@ -55,7 +55,20 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', message: 'Server is healthy' });
 });
 
+app.get('/api/health', (_req, res) => {
+  res.json({ status: 'ok', message: 'Server is healthy' });
+});
+
 app.get('/test-db', async (_req, res) => {
+  try {
+    const rows = await prisma.$queryRaw`SELECT 1 AS ok`;
+    res.json({ message: 'DB connected', rows });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/test-db', async (_req, res) => {
   try {
     const rows = await prisma.$queryRaw`SELECT 1 AS ok`;
     res.json({ message: 'DB connected', rows });
