@@ -1,5 +1,5 @@
 const bcrypt = require('bcrypt');
-const pool = require('../db');
+const { prisma } = require('../db');
 
 const hashPassword = async (password) => {
     return await bcrypt.hash(password, 10);
@@ -7,10 +7,14 @@ const hashPassword = async (password) => {
 
 const logAudit = async (userId, action, entity, entityId) => {
     try {
-        await pool.execute(
-            'INSERT INTO audit_logs (userId, action, entity, entityId) VALUES (?, ?, ?, ?)',
-            [userId, action, entity, entityId]
-        );
+        await prisma.auditLog.create({
+            data: {
+                userId: userId == null ? null : Number(userId),
+                action,
+                entity,
+                entityId: entityId == null ? null : Number(entityId),
+            },
+        });
     } catch (err) {
         console.error('Audit log error:', err);
     }

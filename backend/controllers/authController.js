@@ -1,4 +1,4 @@
-const pool = require('../db'); // your DB connection
+const { prisma } = require('../db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
@@ -18,18 +18,21 @@ const register = async (req, res) => {
         // hash password
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // save user
-        await pool.execute(
-            'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
-            [name, email, hashedPassword, selectedRole]
-        );
+        await prisma.user.create({
+            data: {
+                name,
+                email,
+                password: hashedPassword,
+                role: selectedRole,
+            },
+        });
 
         res.json({ message: 'User registered successfully' });
 
     } catch (error) {
         console.log(error);
 
-        if (error.code === 'ER_DUP_ENTRY') {
+        if (error.code === 'P2002') {
             return res.status(400).json({
                 error: 'Email already exists'
             });
@@ -43,17 +46,13 @@ const login = async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        // find user
-        const [rows] = await pool.execute(
-            'SELECT * FROM users WHERE email = ?',
-            [email]
-        );
+        const user = await prisma.user.findUnique({
+            where: { email },
+        });
 
-        if (rows.length === 0) {
+        if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
-
-        const user = rows[0];
 
         // compare password
         const isMatch = await bcrypt.compare(password, user.password);
@@ -101,17 +100,14 @@ const changePassword = async (req, res) => {
             return res.status(400).json({ error: 'Current and new password are required' });
         }
 
-        // find user
-        const [rows] = await pool.execute(
-            'SELECT password FROM users WHERE id = ?',
-            [userId]
-        );
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { password: true },
+        });
 
-        if (rows.length === 0) {
+        if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
-
-        const user = rows[0];
 
         // verify current password
         const isMatch = await bcrypt.compare(currentPassword, user.password);
@@ -122,11 +118,10 @@ const changePassword = async (req, res) => {
         // hash new password
         const hashedNewPassword = await bcrypt.hash(newPassword, 10);
 
-        // update password
-        await pool.execute(
-            'UPDATE users SET password = ? WHERE id = ?',
-            [hashedNewPassword, userId]
-        );
+        await prisma.user.update({
+            where: { id: userId },
+            data: { password: hashedNewPassword },
+        });
 
         res.json({ message: 'Password changed successfully' });
 

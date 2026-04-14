@@ -13,8 +13,7 @@ CREATE TABLE IF NOT EXISTS `audit_logs` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `userId` INT DEFAULT NULL,
   `action` VARCHAR(255) DEFAULT NULL,
-  `entity` VARCHAR(50) DEFAULT NULL,
-  `entityId` INT DEFAULT NULL,
+  `entity` VARCHAR(50) DEFAULT
   `createdAt` DATETIME DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `userId` (`userId`)
@@ -27,7 +26,8 @@ INSERT INTO `audit_logs` (`id`, `userId`, `action`, `entity`, `entityId`, `creat
 (3, 4, 'CREATE_LOAN', 'loan', 3, '2026-02-28 05:13:42'),
 (4, 4, 'CREATE_LOAN', 'loan', 4, '2026-02-28 05:15:25'),
 (5, 4, 'CREATE_LOAN', 'loan', 5, '2026-02-28 05:15:47'),
-(6, 4, 'APPROVE_LOAN', 'loan', 1, '2026-02-28 05:33:32'),
+(6, 4, 'APPROVE_LOAN', 'loan',  NULL,
+  `entityId` INT DEFAULT NULL,1, '2026-02-28 05:33:32'),
 (7, 4, 'APPROVE_LOAN', 'loan', 2, '2026-02-28 05:33:51'),
 (8, 4, 'DISBURSE_LOAN', 'loan', 1, '2026-02-28 05:34:33'),
 (9, 4, 'REPAY_LOAN', 'loan', 1, '2026-02-28 05:56:26'),

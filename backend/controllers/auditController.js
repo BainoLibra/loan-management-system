@@ -1,17 +1,18 @@
-const pool = require('../db');
+const { prisma } = require('../db');
 
 const getAuditLogs = async (req, res) => {
   try {
-    const [rows] = await pool.execute(`
-      SELECT
-        a.*,
-        u.name AS userName
-      FROM audit_logs a
-      LEFT JOIN users u ON u.id = a.userId
-      ORDER BY a.createdAt DESC
-    `);
+    const rows = await prisma.auditLog.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user: { select: { name: true } },
+      },
+    });
 
-    res.json(rows);
+    res.json(rows.map((log) => ({
+      ...log,
+      userName: log.user?.name || null,
+    })));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

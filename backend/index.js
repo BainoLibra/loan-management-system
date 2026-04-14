@@ -1,51 +1,8 @@
 require('dotenv').config();
-const express = require('express');
-const bodyParser = require('body-parser');
-const cors = require('cors');
-const pool = require('./db');
-const jwt = require('jsonwebtoken');
-const SECRET = process.env.JWT_SECRET || 'mysecretkey';
-const { authenticateToken, authorizeRole } = require('./middleware/auth');
+const { app } = require('./app');
 
-// Routes
-const authRoutes = require('./routes/authRoutes');
-const clientRoutes = require('./routes/clientRoutes');
-const loanRoutes = require('./routes/loanRoutes');
-const repaymentRoutes = require('./routes/repaymentRoutes');
-const auditRoutes = require('./routes/auditRoutes');
-const reportRoutes = require('./routes/reportRoutes');
-const userRoutes = require('./routes/userRoutes');
-
-const app = express();
 const port = process.env.PORT || 4000;
 
-// Remote frontend URL for deployment: https://libra1.healthlinks.ug
-app.use(cors());
-app.use(bodyParser.json());
-
-// Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/clients', clientRoutes);
-app.use('/api/loans', loanRoutes);
-app.use('/api/loans', repaymentRoutes);
-app.use('/api/audit-logs', auditRoutes);
-app.use('/api/reports', reportRoutes);
-app.use('/api/users', userRoutes);
-
-app.get('/', (req, res) => {
-  res.send('Server working');
-});
-
-app.get('/test-db', async (req, res) => {
-  try {
-    const [rows] = await pool.execute('SELECT 1');
-    res.json({ message: 'DB connected', rows });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.listen(port, '0.0.0.0', async () => {
+app.listen(port, '0.0.0.0', () => {
   console.log(`Backend listening on port ${port}`);
-  try { await pool.init(); console.log('DB init OK'); } catch (e) { console.error('DB init error:', e.message); }
 });

@@ -19,7 +19,7 @@ This system provides full functionality for:
 
 - **Backend**: Node.js with Express.js framework
 - **Frontend**: React with React Router for navigation
-- **Database**: MySQL with mysql2 driver
+- **Database**: PostgreSQL on Supabase with Prisma ORM
 - **Authentication**: JWT (JSON Web Tokens) for secure API access
 - **API**: RESTful API with full CORS support
 - **Development**: Nodemon for backend hot-reloading, React Scripts for frontend
@@ -89,7 +89,7 @@ loan-management-system/
 
 ### Prerequisites
 - Node.js v14 or higher
-- MySQL Server (local or remote)
+- A Supabase project with Postgres enabled
 - npm or yarn package manager
 
 ### Installation
@@ -108,40 +108,37 @@ This will install:
 - `express` - Web framework
 - `body-parser` - JSON request parsing
 - `cors` - Cross-Origin Resource Sharing support
-- `mysql2` - MySQL database driver
+- `@prisma/client` - Prisma runtime client
+- `prisma` - ORM tooling and migrations
+- `pg` - PostgreSQL driver
 - `jsonwebtoken` - JWT token generation and verification
 - `bcrypt` - Password hashing
 - `nodemon` - Development auto-reload (dev dependency)
 
-3. **Configure your database connection** in `db.js`:
-```javascript
-const pool = mysql.createPool({
-  host: 'localhost',      // Your MySQL host
-  user: 'root',           // Your MySQL user
-  password: '',           // Your MySQL password
-  database: 'loan_management',  // Your database name
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
-});
+3. **Configure your database connection** using Supabase direct connection strings.
+Use the values from your Supabase project settings:
+```bash
+DATABASE_URL="postgresql://postgres.<project-ref>:[YOUR-PASSWORD]@db.<project-ref>.supabase.co:5432/postgres"
+DIRECT_URL="postgresql://postgres.<project-ref>:[YOUR-PASSWORD]@db.<project-ref>.supabase.co:5432/postgres"
 ```
 
-4. (Optional) Create a `.env` file for environment variables:
+4. Create a `.env` file for local development:
 ```bash
-MYSQL_HOST=127.0.0.1
-MYSQL_USER=root
-MYSQL_PASSWORD=
-MYSQL_DATABASE=loan_management
+DATABASE_URL=your_supabase_direct_connection_string
+DIRECT_URL=your_supabase_direct_connection_string
 PORT=4000
 JWT_SECRET=mysecretkey
+FRONTEND_URL=http://localhost:3000
 ```
 
 ### Database Setup
 
-1. Create a MySQL database named `loan_management` (or update the database name in your configuration).
+1. Create a Supabase project and copy the Postgres connection string from the Supabase dashboard.
 
-2. The application will automatically create the required tables and seed an admin user on first run:
-   - **Admin User**: email: `admin@example.com`, password: `admin`
+2. Run Prisma migrations or push the schema to Supabase.
+
+3. The application seeds an admin user on first run if the users table is empty:
+  - **Admin User**: email: `admin@example.com`, password: `admin`
 
 ### Running the Server
 
@@ -158,6 +155,15 @@ npm start
 ```
 
 The server will start on `http://localhost:4000` by default, or whatever is defined in the `PORT` environment variable.
+
+### Vercel Deployment
+
+The backend is structured to run on Vercel through the `backend/api/[...all].js` serverless entrypoint.
+
+- Deploy the `backend/` folder as a separate Vercel project.
+- Set `DATABASE_URL` and `DIRECT_URL` in the Vercel environment variables to the Supabase direct connection string.
+- Set `JWT_SECRET` and `FRONTEND_URL` in Vercel as well.
+- Deploy the `frontend/` folder as a separate Vercel project and set `REACT_APP_API_URL` to the backend Vercel URL.
 
 ## Frontend Setup
 

@@ -1,12 +1,10 @@
-const pool = require('../db');
+const { prisma } = require('../db');
 const { logAudit } = require('../utils/hash');
 
 const getLoanById = async (id) => {
-  const [rows] = await pool.execute(
-    'SELECT * FROM loans WHERE id = ?',
-    [id]
-  );
-  return rows[0];
+  return prisma.loan.findUnique({
+    where: { id: Number(id) },
+  });
 };
 
 const createLoan = async (req, res) => {
@@ -19,16 +17,22 @@ const createLoan = async (req, res) => {
     const status = 'applied';
     const balance = amount;
 
-    const [result] = await pool.execute(
-      `INSERT INTO loans
-      (clientId, amount, interestRate, termMonths, status, appliedAt, balance, createdBy)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [clientId, amount, interestRate, termMonths, status, appliedAt, balance, createdBy]
-    );
+    const loan = await prisma.loan.create({
+      data: {
+        clientId: Number(clientId),
+        amount,
+        interestRate,
+        termMonths: Number(termMonths),
+        status,
+        appliedAt,
+        balance,
+        createdBy,
+      },
+    });
 
-    await logAudit(req.user.id, 'CREATE_LOAN', 'loan', result.insertId);
+    await logAudit(req.user.id, 'CREATE_LOAN', 'loan', loan.id);
 
-    res.json({ id: result.insertId });
+    res.json({ id: loan.id });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -36,23 +40,20 @@ const createLoan = async (req, res) => {
 
 const getLoans = async (req, res) => {
   try {
-    let query = `
-      SELECT
-        l.*,
-        c.name AS clientName
-      FROM loans l
-      LEFT JOIN clients c ON c.id = l.clientId
-    `;
-    let params = [];
-    if (req.user.role === 'client') {
-      query += ' WHERE l.clientId = ?';
-      params.push(req.user.id);
-    }
-    query += ' ORDER BY l.createdAt DESC';
+    const where = req.user.role === 'client' ? { clientId: req.user.id } : {};
 
-    const [rows] = await pool.execute(query, params);
+    const rows = await prisma.loan.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        client: { select: { name: true } },
+      },
+    });
 
-    res.json(rows);
+    res.json(rows.map((loan) => ({
+      ...loan,
+      clientName: loan.client?.name || null,
+    })));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -71,14 +72,18 @@ const approveLoan = async (req, res) => {
 
     const approvedAt = new Date();
 
-    const [result] = await pool.execute(
-      'UPDATE loans SET status = ?, approvedBy = ?, approvedAt = ? WHERE id = ?',
-      ['approved', approvedBy, approvedAt, id]
-    );
+    await prisma.loan.update({
+      where: { id: Number(id) },
+      data: {
+        status: 'approved',
+        approvedBy,
+        approvedAt,
+      },
+    });
 
     await logAudit(req.user.id, 'APPROVE_LOAN', 'loan', id);
 
-    res.json({ updated: result.affectedRows });
+    res.json({ updated: 1 });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -92,14 +97,14 @@ const rejectLoan = async (req, res) => {
     if (!loan) return res.status(404).json({ error: 'Loan not found' });
     if (loan.status !== 'applied') return res.status(400).json({ error: 'Only applied loans can be rejected' });
 
-    const [result] = await pool.execute(
-      'UPDATE loans SET status = ? WHERE id = ?',
-      ['rejected', id]
-    );
+    await prisma.loan.update({
+      where: { id: Number(id) },
+      data: { status: 'rejected' },
+    });
 
     await logAudit(req.user.id, 'REJECT_LOAN', 'loan', id);
 
-    res.json({ updated: result.affectedRows });
+    res.json({ updated: 1 });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -123,14 +128,18 @@ const disburseLoan = async (req, res) => {
     const totalWithInterest = principal + (principal * rate * loan.termMonths / 12);
     const balance = Math.round(totalWithInterest * 100) / 100;
 
-    const [result] = await pool.execute(
-      'UPDATE loans SET status = ?, disbursedAt = ?, balance = ? WHERE id = ?',
-      ['disbursed', disbursedAt, balance, id]
-    );
+    await prisma.loan.update({
+      where: { id: Number(id) },
+      data: {
+        status: 'disbursed',
+        disbursedAt,
+        balance,
+      },
+    });
 
     await logAudit(req.user.id, 'DISBURSE_LOAN', 'loan', id);
 
-    res.json({ updated: result.affectedRows });
+    res.json({ updated: 1 });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

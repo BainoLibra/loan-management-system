@@ -1,20 +1,12 @@
-const pool = require('../db');
+const { prisma } = require('../db');
 
 const getAgingReport = async (req, res) => {
   try {
-    const [rows] = await pool.execute(`
-      SELECT
-        l.id,
-        c.name AS clientName,
-        l.amount,
-        l.balance,
-        l.termMonths,
-        l.disbursedAt,
-        l.status
-      FROM loans l
-      LEFT JOIN clients c ON c.id = l.clientId
-      WHERE l.status = 'disbursed'
-    `);
+    const rows = await prisma.loan.findMany({
+      where: { status: 'disbursed' },
+      include: { client: { select: { name: true } } },
+      orderBy: { disbursedAt: 'desc' },
+    });
 
     const now = new Date();
 
@@ -37,11 +29,17 @@ const getAgingReport = async (req, res) => {
       else if (daysOverdue > 90) bucket = 'PAR 90';
 
       return {
-        ...loan,
+        id: loan.id,
+        clientName: loan.client?.name || null,
+        amount: loan.amount,
+        balance: loan.balance,
+        termMonths: loan.termMonths,
+        disbursedAt: loan.disbursedAt,
+        status: loan.status,
         dueDate,
         daysOverdue: daysOverdue > 0 ? daysOverdue : 0,
         bucket,
-        inArrears: daysOverdue > 0 && loan.balance > 0
+        inArrears: daysOverdue > 0 && Number(loan.balance) > 0
       };
     });
 

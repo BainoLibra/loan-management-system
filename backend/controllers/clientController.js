@@ -1,18 +1,17 @@
-const pool = require('../db');
+const { prisma } = require('../db');
 const { logAudit } = require('../utils/hash');
 
 const createClient = async (req, res) => {
   try {
     const { name, phone, email, identifier } = req.body;
 
-    const [result] = await pool.execute(
-      'INSERT INTO clients (name, phone, email, identifier) VALUES (?, ?, ?, ?)',
-      [name, phone, email, identifier]
-    );
+    const client = await prisma.client.create({
+      data: { name, phone, email, identifier },
+    });
 
-    await logAudit(req.user.id, 'CREATE_CLIENT', 'client', result.insertId);
+    await logAudit(req.user.id, 'CREATE_CLIENT', 'client', client.id);
 
-    res.json({ id: result.insertId });
+    res.json({ id: client.id });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -20,7 +19,9 @@ const createClient = async (req, res) => {
 
 const getClients = async (req, res) => {
   try {
-    const [rows] = await pool.execute('SELECT * FROM clients ORDER BY createdAt DESC');
+    const rows = await prisma.client.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -30,16 +31,18 @@ const getClients = async (req, res) => {
 const getClientById = async (req, res) => {
   try {
     const { id } = req.params;
-    const [rows] = await pool.execute('SELECT * FROM clients WHERE id = ?', [id]);
-    if (!rows[0]) return res.status(404).json({ error: 'Client not found' });
+    const client = await prisma.client.findUnique({
+      where: { id: Number(id) },
+      include: {
+        loans: {
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+    });
 
-    // Get client's loans
-    const [loans] = await pool.execute(
-      'SELECT * FROM loans WHERE clientId = ? ORDER BY createdAt DESC',
-      [id]
-    );
+    if (!client) return res.status(404).json({ error: 'Client not found' });
 
-    res.json({ ...rows[0], loans });
+    res.json(client);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -50,13 +53,13 @@ const updateClient = async (req, res) => {
     const { id } = req.params;
     const { name, phone, email, identifier } = req.body;
 
-    const [result] = await pool.execute(
-      'UPDATE clients SET name = ?, phone = ?, email = ?, identifier = ? WHERE id = ?',
-      [name, phone, email, identifier, id]
-    );
+    await prisma.client.update({
+      where: { id: Number(id) },
+      data: { name, phone, email, identifier },
+    });
 
     await logAudit(req.user.id, 'UPDATE_CLIENT', 'client', id);
-    res.json({ updated: result.affectedRows });
+    res.json({ updated: 1 });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -67,14 +70,14 @@ const deleteClient = async (req, res) => {
     const { id } = req.params;
 
     // Check if client has loans
-    const [loans] = await pool.execute('SELECT COUNT(*) as cnt FROM loans WHERE clientId = ?', [id]);
-    if (loans[0].cnt > 0) {
+    const loans = await prisma.loan.count({ where: { clientId: Number(id) } });
+    if (loans > 0) {
       return res.status(400).json({ error: 'Cannot delete client with existing loans' });
     }
 
-    const [result] = await pool.execute('DELETE FROM clients WHERE id = ?', [id]);
+    await prisma.client.delete({ where: { id: Number(id) } });
     await logAudit(req.user.id, 'DELETE_CLIENT', 'client', id);
-    res.json({ deleted: result.affectedRows });
+    res.json({ deleted: 1 });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
