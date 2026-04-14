@@ -5,7 +5,10 @@ const API_URL = `${API_BASE}/api/auth`;
 export const loginUser = async (email, password) => {
   const response = await fetch(`${API_URL}/login`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { 
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
     body: JSON.stringify({ email, password }),
   });
   const data = await response.json();
@@ -20,6 +23,7 @@ export const registerUser = async (name, email, password, role) => {
   const response = await fetch(`${API_URL}/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
     body: JSON.stringify({ name, email, password, role }),
   });
   return response.json();
@@ -40,6 +44,7 @@ export const changePassword = async (currentPassword, newPassword) => {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
+    credentials: "include",
     body: JSON.stringify({ currentPassword, newPassword }),
   });
   return response.json();
