@@ -106,55 +106,34 @@ npx serve -s build
 - [ ] Note DIRECT_URL (direct, port 5432)
 - [ ] Ensure password is URL-encoded if it contains special characters
 
-### 2. Deploy Backend to Vercel
+### 2. Deploy Single Project to Vercel
 
 ```bash
-# From Vercel dashboard or CLI:
+# From Vercel dashboard or CLI (run from repository root):
 vercel --prod
 
 # When prompted:
-# - Root directory: backend
+# - Root directory: ./
 # - Framework: Other
 # - Add environment variables:
 #   - DATABASE_URL=<from Supabase>
 #   - DIRECT_URL=<from Supabase>
 #   - JWT_SECRET=<generate secure random>
-#   - FRONTEND_URL=<will update later>
+#   - FRONTEND_URL=https://<your-project>.vercel.app
 #   - NODE_ENV=production
 ```
 
-Note the deployed URL: `https://your-backend-xxxxx.vercel.app`
+Note the deployed URL: `https://your-project.vercel.app`
 
-### 3. Deploy Frontend to Vercel
-
-```bash
-# From Vercel dashboard or CLI:
-vercel --prod
-
-# When prompted:
-# - Root directory: frontend
-# - Framework: Create React App
-# - Add environment variables:
-#   - REACT_APP_API_URL=https://your-backend-xxxxx.vercel.app
-```
-
-Note the deployed URL: `https://your-frontend-xxxxx.vercel.app`
-
-### 4. Update Backend FRONTEND_URL
-
-- Go to Vercel dashboard → Backend project → Settings → Environment Variables
-- Update `FRONTEND_URL` to your frontend URL
-- Redeploy backend
-
-### 5. Verify Deployment
+### 3. Verify Deployment
 
 ```bash
-# Test backend
-curl https://your-backend-xxxxx.vercel.app/health
-curl https://your-backend-xxxxx.vercel.app/test-db
+# Test backend endpoints on same domain
+curl https://your-project.vercel.app/health
+curl https://your-project.vercel.app/test-db
 
-# Test frontend
-Open https://your-frontend-xxxxx.vercel.app in browser
+# Test frontend on same domain
+Open https://your-project.vercel.app in browser
 Login and test basic operations
 ```
 
@@ -165,7 +144,7 @@ Login and test basic operations
 | Backend | Node.js + Express + Prisma | ✅ Ready |
 | Database | Supabase PostgreSQL | ✅ Configured |
 | Frontend | React 19 + React Router | ✅ Ready |
-| Hosting | Vercel (serverless) | ✅ Ready |
+| Hosting | Vercel (single project) | ✅ Ready |
 | Auth | JWT + bcrypt | ✅ Implemented |
 | ORM | Prisma 7.7.0 | ✅ Configured |
 
@@ -183,7 +162,7 @@ loan-management-system/
 │   ├── app.js                    ← Express app
 │   ├── db.js                     ← Prisma setup
 │   ├── index.js                  ← Dev entry
-│   ├── vercel.json               ← Vercel config
+│   ├── vercel.json               ← Backend-only Vercel config (optional)
 │   ├── README.md                 ← Backend docs
 │   ├── .env.example              ← Env template
 │   ├── package.json
@@ -193,8 +172,9 @@ loan-management-system/
 │   ├── controllers/              ← Route handlers
 │   ├── routes/                   ← API routes
 │   └── middleware/               ← Auth middleware
+├── vercel.json                   ← Root Vercel config (single-project deploy)
 └── frontend/
-    ├── vercel.json               ← Vercel config
+  ├── vercel.json               ← Frontend-only Vercel config (optional)
     ├── README.md                 ← Frontend docs
     ├── .env.example              ← Env template
     ├── package.json
@@ -245,10 +225,9 @@ After deployment, verify:
 
 ## 📝 Notes
 
-- Both backend and frontend are deployed as separate Vercel projects
-- Database migrations happen automatically during backend build
-- Frontend auto-redeployswith each GitHub push to main branch
-- Backend redeployswith each GitHub push to main branch
+- Backend and frontend run from a single Vercel project using the root `vercel.json`
+- Backend routes are available under `/api/*`, plus `/health` and `/test-db`
+- Vercel redeploys automatically on each push to `main`
 - Changes are live within minutes of push
 
 ---

@@ -17,7 +17,7 @@ Role-based loan management platform with a Node.js/Express backend and React fro
 - Frontend: React (Create React App)
 - Database: Supabase PostgreSQL
 - Auth: JWT
-- Deployment: Vercel (backend and frontend as separate projects)
+- Deployment: Vercel (single project serving frontend and backend)
 
 ## Repository Structure
 
@@ -97,22 +97,19 @@ Open `http://localhost:3000`.
 
 ## Vercel Deployment (Current Recommended Setup)
 
-Deploy as **two Vercel projects**:
+Deploy as **one Vercel project from repository root**:
 
-1. Backend project
-- Root Directory: `backend`
-- Uses serverless entrypoint: `api/[...all].js`
-- Required env vars:
+1. Create a Vercel project from this repository.
+2. Set Root Directory to `./`.
+3. Use the root `vercel.json` in this repository.
+4. Add required environment variables:
   - `DATABASE_URL`
   - `DIRECT_URL`
   - `JWT_SECRET`
-  - `FRONTEND_URL`
+  - `FRONTEND_URL` (set to your project URL, e.g. `https://your-project.vercel.app`)
   - `NODE_ENV=production`
 
-2. Frontend project
-- Root Directory: `frontend`
-- Required env vars:
-  - `REACT_APP_API_URL` (set to your backend Vercel URL, without trailing `/api`)
+Frontend will call backend APIs on the same domain using `/api/*` in production by default.
 
 Detailed steps: see `VERCEL_DEPLOYMENT.md`.
 
