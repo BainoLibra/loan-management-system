@@ -1,33 +1,102 @@
-# Getting Started with Create React App
+# Frontend - Loan Management System
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+React-based web interface for the Loan Management System. Provides user-friendly dashboards for loan officers, clients, and administrators.
+
+## Quick Start
+
+### Prerequisites
+- Node.js v18+
+- npm or yarn
+- Backend API running at `http://localhost:4000`
+
+### Installation
+
+```bash
+npm install
+```
+
+### Development
+
+```bash
+npm start
+```
+
+Opens at `http://localhost:3000` with auto-reload.
+
+### Production Build
+
+```bash
+npm run build
+```
+
+## Vercel Deployment
+
+See [../VERCEL_DEPLOYMENT.md](../VERCEL_DEPLOYMENT.md) for complete instructions.
+
+Quick deploy:
+```bash
+npm i -g vercel
+vercel --prod  # Set REACT_APP_API_URL to your backend URL
+```
+
+## Environment Variables
+
+Create `.env` file (see `.env.example`):
+```
+REACT_APP_API_URL=http://localhost:4000  # or your Vercel backend URL
+```
 
 ## Available Scripts
 
-In the project directory, you can run:
-
 ### `npm start`
 
-Runs the app in the development mode.\
+Runs the app in development mode.\
 Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
-
-### `npm test`
-
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+The page reloads when you make changes.
 
 ### `npm run build`
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+Builds the app for production to the `build` folder.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+Correctly bundles React in production mode and optimizes for best performance.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### `npm test`
+
+Launches the test runner in interactive watch mode.
+
+See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+
+## Test Credentials
+
+```
+Email: admin@example.com
+Password: admin
+```
+
+Auto-seeded on backend initialization.
+
+## Features
+
+- User authentication (JWT)
+- Client management
+- Loan applications & tracking
+- Repayment recording
+- Aging reports
+- Audit logs
+- User management (admin)
+
+## Learn More
+
+- [Create React App Documentation](https://facebook.github.io/create-react-app/docs/getting-started)
+- [Vercel Deployment Documentation](https://vercel.com/docs)
+- [React Documentation](https://react.dev)
+- [React Router Documentation](https://reactrouter.com)
+
+## License
+
+MIT
+
 
 ### `npm run eject`
 

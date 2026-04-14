@@ -38,7 +38,11 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/users', userRoutes);
 
 app.get('/', (_req, res) => {
-  res.send('Server working');
+  res.json({ status: 'ok', message: 'Server is running' });
+});
+
+app.get('/health', (_req, res) => {
+  res.json({ status: 'ok', message: 'Server is healthy' });
 });
 
 app.get('/test-db', async (_req, res) => {
