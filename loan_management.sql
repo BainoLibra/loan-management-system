@@ -1,6 +1,5 @@
 -- Loan Management System Database Schema
 -- Compatible with MySQL 5.7+ / MySQL 8.x
--- Run against Railway MySQL database: railway
 
 SET NAMES utf8mb4;
 SET time_zone = '+00:00';

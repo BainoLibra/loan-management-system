@@ -3,7 +3,7 @@
 ## ✅ Completed Tasks
 
 ### 1. **Database Migration** 
-- ✅ Migrated from Railway MySQL to Supabase PostgreSQL
+- ✅ Using Supabase PostgreSQL as primary database
 - ✅ Implemented Prisma ORM for type-safe database access
 - ✅ Created migration scripts for data export/import
 - ✅ Schema includes all tables, enums, relationships, and indexes

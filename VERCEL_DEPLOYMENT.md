@@ -153,24 +153,6 @@ curl https://your-backend.vercel.app/test-db
 - Hard refresh browser (Ctrl+Shift+R)
 - Check that frontend framework is "create-react-app" in Vercel settings
 
-## Manual Database Migration (if needed)
-
-If you need to migrate data from Railway to Supabase:
-
-```bash
-cd backend
-
-# Set Railway connection details
-export MYSQL_HOST=caboose.proxy.rlwy.net
-export MYSQL_PORT=27655
-export MYSQL_USER=root
-export MYSQL_PASSWORD=your-password
-export MYSQL_DATABASE=railway
-
-# Run migration
-npm run migrate:railway
-```
-
 ## Monitoring & Logs
 
 - **Backend**: Vercel Dashboard > Deployment > Functions > Logs

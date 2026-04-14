@@ -110,25 +110,7 @@ vercel --prod
 
 ## Data Migration
 
-### Export from Railway MySQL
-
-```bash
-npm run export:railway
-```
-
-Requires Railway environment variables:
-- `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_DATABASE`
-
-### Full Migration (Export + Import)
-
-```bash
-MYSQL_HOST=caboose.proxy.rlwy.net \
-MYSQL_PORT=27655 \
-MYSQL_USER=root \
-MYSQL_PASSWORD=your-password \
-MYSQL_DATABASE=railway \
-npm run migrate:railway
-```
+The backend now runs directly on Supabase PostgreSQL.
 
 ## Database Management
 
@@ -158,7 +140,6 @@ backend/
 ├── controllers/             # Route handlers
 ├── middleware/              # Auth middleware
 ├── routes/                  # Express routes
-├── scripts/                 # Migration & export
 ├── utils/                   # Utility functions (hashing, audit)
 ├── prisma/
 │   └── schema.prisma        # Database schema
@@ -215,8 +196,6 @@ npm install
 npm start              # Start production server
 npm run dev            # Start development server with auto-reload
 npm run prisma:generate # Generate Prisma client
-npm run export:railway # Export data from Railway MySQL
-npm run migrate:railway # Export from Railway and import to Supabase
 ```
 
 ## Security Notes
