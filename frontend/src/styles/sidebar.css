@@ -33,10 +33,17 @@
   transition: background 0.2s;
 }
 
-.sidebar li a {
+.sidebar li a,
+.sidebar li button {
   display: block;
+  width: 100%;
   padding: 10px 14px;
   color: rgba(255,255,255,0.75);
+  background: none;
+  border: 0;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
   text-decoration: none;
   border-radius: 6px;
   transition: color 0.2s;
@@ -46,11 +53,13 @@
   background: rgba(255,255,255,0.08);
 }
 
-.sidebar li:hover a {
+.sidebar li:hover a,
+.sidebar li:hover button {
   color: #fff;
 }
 
-.sidebar li.change-password a {
+.sidebar li.change-password a,
+.sidebar li.change-password button {
   color: #ffce54;
 }
 
@@ -62,7 +71,8 @@
   background: rgba(255,255,255,0.15);
 }
 
-.sidebar li.active a {
+.sidebar li.active a,
+.sidebar li.active button {
   color: #fff;
   font-weight: 600;
 }

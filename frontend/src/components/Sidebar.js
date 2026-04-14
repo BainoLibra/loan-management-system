@@ -21,7 +21,9 @@ function Sidebar({ isOpen, onChangePassword }) {
         {user && user.role === "admin" && (
           <li className={isActive("/users")}><Link to="/users">Users</Link></li>
         )}
-        <li className="change-password"><a href="#" onClick={(e) => { e.preventDefault(); onChangePassword(); }}>Change Password</a></li>
+        <li className="change-password">
+          <button type="button" onClick={onChangePassword}>Change Password</button>
+        </li>
       </ul>
     </div>
   );
