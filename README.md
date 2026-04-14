@@ -1,331 +1,169 @@
 # Loan Management System
 
-A comprehensive role-based loan management system built with Node.js and Express on the backend and React on the frontend, designed to manage loan applications, approvals, disbursements, and repayments with JWT-based authentication.
+Role-based loan management platform with a Node.js/Express backend and React frontend.
 
-## Overview
+## What It Does
 
-This system provides full functionality for:
-- **User Authentication**: JWT-based token authentication with role-based access control (Admin, Loan Officer, Cashier, Client)
-- **User Signup**: Self-service onboarding with signup form for new users
-- **Client Management**: Create and manage loan clients with detailed information
-- **Loan Management**: Apply for loans, approve/reject applications, disburse funds, and track loan status
-- **Repayment Tracking**: Record, track, and manage loan repayments
-- **Loan Status Tracking**: Monitor loans through multiple statuses (Applied → Approved → Disbursed → Closed)
-- **Audit Logging**: Track all user actions for compliance and auditing
-- **Reporting**: Generate aging reports for loan portfolio analysis
-- **Role-Based Access Control**: Granular permission management based on user roles
+- User authentication and role-based access (admin, loan_officer, cashier, client)
+- Client registration and management
+- Loan lifecycle management: apply, approve/reject, disburse, repay
+- Repayment tracking
+- Audit logs for key actions
+- Aging report for portfolio monitoring
 
 ## Tech Stack
 
-- **Backend**: Node.js with Express.js framework
-- **Frontend**: React with React Router for navigation
-- **Database**: PostgreSQL on Supabase with Prisma ORM
-- **Authentication**: JWT (JSON Web Tokens) for secure API access
-- **API**: RESTful API with full CORS support
-- **Development**: Nodemon for backend hot-reloading, React Scripts for frontend
-- **Middleware**: Body-Parser for JSON request handling and custom authentication middleware
+- Backend: Node.js, Express, Prisma
+- Frontend: React (Create React App)
+- Database: Supabase PostgreSQL
+- Auth: JWT
+- Deployment: Vercel (backend and frontend as separate projects)
 
-## Project Structure
+## Repository Structure
 
-```
+```text
 loan-management-system/
-├── README.md
-├── backend/
-│   ├── index.js                 # Main Express server entry point
-│   ├── db.js                    # MySQL database connection and table initialization
-│   ├── package.json             # Backend dependencies and scripts
-│   ├── controllers/
-│   │   ├── auditController.js   # Audit log management
-│   │   ├── authController.js    # Authentication and user management
-│   │   ├── clientController.js  # Client management operations
-│   │   ├── loanController.js    # Loan application and management
-│   │   ├── repaymentController.js # Repayment tracking
-│   │   └── reportController.js  # Reporting functionality
-│   ├── middleware/
-│   │   └── auth.js              # JWT authentication and role authorization middleware
-│   ├── routes/
-│   │   ├── auditRoutes.js       # Audit log API routes
-│   │   ├── authRoutes.js        # Authentication API routes
-│   │   ├── clientRoutes.js      # Client management API routes
-│   │   ├── loanRoutes.js        # Loan management API routes
-│   │   ├── repaymentRoutes.js   # Repayment API routes
-│   │   └── reportRoutes.js      # Report API routes
-│   └── utils/
-│       └── hash.js              # Password hashing utilities
-└── frontend/
-    ├── package.json             # Frontend dependencies and scripts
-    ├── public/
-    │   ├── index.html           # Main HTML template
-    │   ├── manifest.json        # PWA manifest
-    │   └── robots.txt           # Search engine crawling rules
-    └── src/
-        ├── index.js             # React application entry point
-        ├── App.js               # Main App component with routing
-        ├── index.css            # Global styles
-        ├── components/
-        │   ├── ClientTable.js   # Client data table component
-        │   ├── LoanForm.js      # Loan application form
-        │   ├── LoanTable.js     # Loan data table component
-        │   ├── Navbar.js        # Navigation bar
-        │   └── Sidebar.js       # Sidebar navigation
-        ├── context/             # React context for state management
-        ├── pages/
-        │   ├── AuditLogs.js     # Audit logs page
-        │   ├── Clients.js       # Client management page
-        │   ├── Dashboard.js     # Main dashboard
-        │   ├── Loans.js         # Loan management page
-        │   ├── Login.js         # User login page
-        │   ├── Repayments.js    # Repayment tracking page
-        │   └── Reports.js       # Reports and analytics page
-        ├── services/
-        │   ├── authService.js   # Authentication API calls
-        │   ├── clientService.js # Client API calls
-        │   ├── loanService.js   # Loan API calls
-        │   └── reportService.js # Report API calls
-        └── utils/               # Utility functions
+|-- backend/
+|   |-- api/[...all].js
+|   |-- app.js
+|   |-- db.js
+|   |-- index.js
+|   |-- prisma/schema.prisma
+|   |-- controllers/
+|   |-- routes/
+|   |-- middleware/
+|   |-- utils/
+|   `-- vercel.json
+|-- frontend/
+|   |-- src/
+|   |-- public/
+|   `-- vercel.json
+|-- VERCEL_DEPLOYMENT.md
+`-- README.md
 ```
 
-## Backend Setup
+## Local Development
 
-### Prerequisites
-- Node.js v14 or higher
-- A Supabase project with Postgres enabled
-- npm or yarn package manager
+### 1) Backend setup
 
-### Installation
-
-1. Navigate to the backend directory:
 ```bash
 cd backend
-```
-
-2. Install all dependencies:
-```bash
 npm install
 ```
 
-This will install:
-- `express` - Web framework
-- `body-parser` - JSON request parsing
-- `cors` - Cross-Origin Resource Sharing support
-- `@prisma/client` - Prisma runtime client
-- `prisma` - ORM tooling and migrations
-- `pg` - PostgreSQL driver
-- `jsonwebtoken` - JWT token generation and verification
-- `bcrypt` - Password hashing
-- `nodemon` - Development auto-reload (dev dependency)
+Create `backend/.env` from `backend/.env.example` and set:
 
-3. **Configure your database connection** using Supabase direct connection strings.
-Use the values from your Supabase project settings:
-```bash
-DATABASE_URL="postgresql://postgres.<project-ref>:[YOUR-PASSWORD]@db.<project-ref>.supabase.co:5432/postgres"
-DIRECT_URL="postgresql://postgres.<project-ref>:[YOUR-PASSWORD]@db.<project-ref>.supabase.co:5432/postgres"
-```
-
-4. Create a `.env` file for local development:
-```bash
-DATABASE_URL=your_supabase_direct_connection_string
-DIRECT_URL=your_supabase_direct_connection_string
+```dotenv
+DATABASE_URL=postgresql://...
+DIRECT_URL=postgresql://...
 PORT=4000
-JWT_SECRET=mysecretkey
+JWT_SECRET=your_strong_secret
 FRONTEND_URL=http://localhost:3000
+SEED_DEFAULT_ADMIN=true
 ```
 
-### Database Setup
+Run backend:
 
-1. Create a Supabase project and copy the Postgres connection string from the Supabase dashboard.
-
-2. Run Prisma migrations or push the schema to Supabase.
-
-3. The application seeds an admin user on first run if the users table is empty:
-  - **Admin User**: email: `admin@example.com`, password: `admin`
-
-### Running the Server
-
-**Development mode** (with hot-reload):
 ```bash
 npm run dev
 ```
 
-This will run `nodemon` against the main entry point `index.js`.
+Backend health checks:
 
-**Production mode**:
-```bash
-npm start
-```
+- `GET /`
+- `GET /health`
+- `GET /test-db`
 
-The server will start on `http://localhost:4000` by default, or whatever is defined in the `PORT` environment variable.
+### 2) Frontend setup
 
-### Vercel Deployment
-
-The backend is structured to run on Vercel through the `backend/api/[...all].js` serverless entrypoint.
-
-- Deploy the `backend/` folder as a separate Vercel project.
-- Set `DATABASE_URL` and `DIRECT_URL` in the Vercel environment variables to the Supabase direct connection string.
-- Set `JWT_SECRET` and `FRONTEND_URL` in Vercel as well.
-- Deploy the `frontend/` folder as a separate Vercel project and set `REACT_APP_API_URL` to the backend Vercel URL.
-
-## Frontend Setup
-
-### Prerequisites
-- Node.js v14 or higher
-- npm or yarn package manager
-
-### Installation
-
-1. Navigate to the frontend directory:
 ```bash
 cd frontend
-```
-
-2. Install all dependencies:
-```bash
 npm install
 ```
 
-This will install:
-- `react` - React library
-- `react-dom` - React DOM rendering
-- `react-router-dom` - Client-side routing
-- `react-scripts` - Build and development scripts
-- Testing libraries (`@testing-library/react`, etc.)
+Create `frontend/.env`:
 
-### Running the Frontend
+```dotenv
+REACT_APP_API_URL=http://localhost:4000
+```
 
-**Development mode** (with hot-reload):
+Run frontend:
+
 ```bash
 npm start
 ```
 
-This will start the React development server on `http://localhost:3000` by default.
+Open `http://localhost:3000`.
 
-Open the app at `http://localhost:3000/` to sign in, or go to `http://localhost:3000/signup` to create a new account.
+## Vercel Deployment (Current Recommended Setup)
 
-**Build for production**:
-```bash
-npm run build
-```
+Deploy as **two Vercel projects**:
 
-This creates an optimized production build in the `build` folder.
+1. Backend project
+- Root Directory: `backend`
+- Uses serverless entrypoint: `api/[...all].js`
+- Required env vars:
+  - `DATABASE_URL`
+  - `DIRECT_URL`
+  - `JWT_SECRET`
+  - `FRONTEND_URL`
+  - `NODE_ENV=production`
 
-**Run tests**:
-```bash
-npm test
-```
+2. Frontend project
+- Root Directory: `frontend`
+- Required env vars:
+  - `REACT_APP_API_URL` (set to your backend Vercel URL, without trailing `/api`)
 
-## API Endpoints
+Detailed steps: see `VERCEL_DEPLOYMENT.md`.
 
-### Authentication
-- `POST /api/auth/register` - Register a new user via signup
-  - Request: `{ "name": "John Doe", "email": "john@example.com", "password": "password", "role": "loan_officer" }`
-  - Response: `{ "message": "User registered successfully" }`
-- `POST /api/auth/login` - Login with email and password, receive JWT token
-  - Request: `{ "email": "user@example.com", "password": "password" }`
-  - Response: `{ "token": "eyJhbGc...", "user": { "id": 1, "name": "John", "email": "user@example.com", "role": "loan_officer" } }`
+## API Summary
 
-### Protected Endpoints
-All endpoints below require JWT token in the Authorization header:
-```
-Authorization: Bearer <your_jwt_token>
-```
+### Auth
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `POST /api/auth/change-password`
 
 ### Clients
-- `GET /api/clients` - Get all clients (Admin, Loan Officer)
-- `POST /api/clients` - Create a new client (Admin, Loan Officer)
-  - Request: `{ "name": "John Doe", "phone": "123-456-7890", "email": "john@example.com", "identifier": "ID123" }`
+- `GET /api/clients`
+- `GET /api/clients/:id`
+- `POST /api/clients`
+- `PUT /api/clients/:id`
+- `DELETE /api/clients/:id`
 
 ### Loans
-- `GET /api/loans` - Get all loans (Admin, Loan Officer) or client's own loans (Client)
-- `POST /api/loans` - Apply for a new loan (Admin, Loan Officer)
-  - Request: `{ "clientId": 1, "amount": 10000, "interestRate": 5.5, "termMonths": 12 }`
-- `POST /api/loans/:id/approve` - Approve loan application (Admin)
-- `POST /api/loans/:id/disburse` - Disburse approved loan funds (Admin, Cashier)
-- `POST /api/loans/:id/repay` - Record a loan repayment (Admin, Cashier)
-  - Request: `{ "amount": 1000 }`
-- `GET /api/loans/:id/repayments` - Get repayments for a specific loan (Admin, Loan Officer, Cashier)
-- `DELETE /api/loans/:id` - Delete a loan (Admin) - only if not disbursed
+- `GET /api/loans`
+- `POST /api/loans`
+- `POST /api/loans/:id/approve`
+- `POST /api/loans/:id/reject`
+- `POST /api/loans/:id/disburse`
+- `GET /api/loans/:id/schedule`
 
 ### Repayments
-- `GET /api/loans/:id/repayments` - Get repayments for a specific loan (Admin, Loan Officer, Cashier)
+- `POST /api/loans/:loanId/repay`
+- `GET /api/loans/:loanId`
 
-### Audit Logs
-- `GET /api/audit-logs` - Get all audit logs (Admin)
+### Reports and Audit
+- `GET /api/reports/aging`
+- `GET /api/audit-logs`
 
-### Reports
-- `GET /api/reports/aging` - Get loan aging report with PAR buckets (Admin, Cashier, Loan Officer)
+### Users
+- `GET /api/users`
+- `POST /api/users`
+- `PUT /api/users/:id`
+- `POST /api/users/:id/reset-password`
+- `DELETE /api/users/:id`
 
-## Database Schema
+## Default Admin Seeding
 
-The system uses the following tables:
+If `SEED_DEFAULT_ADMIN` is not set to `false`, the backend seeds a default admin user when the users table is empty:
 
-**users** - User accounts with authentication
-- `id` (INT, Primary Key, Auto Increment)
-- `name` (VARCHAR(255))
-- `email` (VARCHAR(255), Unique)
-- `password` (VARCHAR(255)) - Bcrypt hashed
-- `role` (ENUM: admin, loan_officer, cashier, client)
+- Email: `admin@example.com`
+- Password: `admin`
 
-**clients** - Client information
-- `id` (INT, Primary Key, Auto Increment)
-- `name` (VARCHAR(255))
-- `phone` (VARCHAR(50))
-- `email` (VARCHAR(255))
-- `identifier` (VARCHAR(255))
+Change this password immediately in non-local environments.
 
-**loans** - Loan applications and records
-- `id` (INT, Primary Key, Auto Increment)
-- `clientId` (INT, Foreign Key to clients.id)
-- `amount` (DOUBLE)
-- `interestRate` (DOUBLE)
-- `termMonths` (INT)
-- `status` (VARCHAR(50): applied, approved, disbursed, closed)
-- `appliedAt` (DATETIME)
-- `approvedBy` (INT, Foreign Key to users.id, Nullable)
-- `approvedAt` (DATETIME, Nullable)
-- `disbursedAt` (DATETIME, Nullable)
-- `balance` (DOUBLE)
-- `createdBy` (INT, Foreign Key to users.id)
+## Notes
 
-**repayments** - Repayment records
-- `id` (INT, Primary Key, Auto Increment)
-- `loanId` (INT, Foreign Key to loans.id)
-- `amount` (DOUBLE)
-- `date` (DATETIME)
-- `paidBy` (INT, Foreign Key to users.id)
-
-**audit_logs** - Audit trail for user actions
-- `id` (INT, Primary Key, Auto Increment)
-- `userId` (INT, Foreign Key to users.id)
-- `action` (VARCHAR(255))
-- `entity` (VARCHAR(255))
-- `entityId` (INT)
-- `createdAt` (TIMESTAMP)
-
-## Development Notes
-
-- **Authentication**: JWT tokens expire after 24 hours. Clients must include the token in the `Authorization` header for all protected endpoints
-- **Role-Based Access**:
-  - `admin` - Full system access including user registration, loan approval, audit logs
-  - `loan_officer` - Can create clients and loans, view reports
-  - `cashier` - Can disburse loans and record repayments
-  - `client` - Can view own loan information (not implemented in current API)
-- **Seed Data**: Initialize with default admin user (email: `admin@example.com`, password: `admin`) on first database setup
-- **Error Handling**: All endpoints return appropriate HTTP status codes with detailed error messages in JSON format
-- **CORS Support**: API is configured with CORS enabled for cross-origin requests
-- **Audit Logging**: All major actions are logged to audit_logs table for compliance
-- **Reports**: Aging report categorizes loans into PAR buckets (Current, PAR 30, PAR 60, PAR 90)
-
-## Future Enhancements
-
-- [x] Frontend application (React)
-- [ ] Password hashing improvements (currently using bcrypt)
-- [ ] Email notifications for loan status updates
-- [ ] PDF report generation for loan documents
-- [ ] Advanced analytics and reporting dashboard
-- [ ] Loan rejection functionality
-- [ ] Client-specific loan viewing for client role
-- [ ] Database migration scripts
-- [ ] API documentation (Swagger/OpenAPI)
-- [ ] Input validation and sanitization middleware
-- [ ] SMS notifications for repayment reminders
-- [ ] Integration with payment gateways
+- Frontend requests use `REACT_APP_API_URL` as base URL.
+- Backend CORS allows the single origin in `FRONTEND_URL` with credentials enabled.
+- Prisma is configured for PostgreSQL via Supabase connection strings.
