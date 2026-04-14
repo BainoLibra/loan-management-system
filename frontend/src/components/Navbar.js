@@ -8,6 +8,7 @@ function Navbar({ toggleSidebar }) {
   const user = getUser();
 
   const handleLogout = () => {
+    if (!window.confirm("Are you sure you want to logout?")) return;
     logout();
     navigate("/");
   };
