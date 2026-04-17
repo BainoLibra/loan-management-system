@@ -54,6 +54,7 @@ model Client {
   phone      String?
   email      String?
   identifier String?
+  address    String?
   status     ClientStatus  @default(active)
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import Layout from "../components/Layout";
+import ClientTable from "../components/ClientTable";
 import { getClients, createClient, updateClient, deleteClient } from "../services/clientService";
 import { getUser } from "../services/authService";
 import "../styles/table.css";
@@ -9,7 +9,7 @@ const PAGE_SIZE = 10;
 
 function Clients() {
   const [clients, setClients] = useState([]);
-  const [form, setForm] = useState({ name: "", phone: "", email: "", identifier: "" });
+  const [form, setForm] = useState({ name: "", phone: "", email: "", identifier: "", address: "" });
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [search, setSearch] = useState("");
@@ -30,7 +30,7 @@ function Clients() {
     } else {
       await createClient(form);
     }
-    setForm({ name: "", phone: "", email: "", identifier: "" });
+    setForm({ name: "", phone: "", email: "", identifier: "", address: "" });
     setShowForm(false);
     setEditingId(null);
     fetchClients();
@@ -38,7 +38,7 @@ function Clients() {
 
   const handleEdit = (c) => {
     setEditingId(c.id);
-    setForm({ name: c.name, phone: c.phone || "", email: c.email || "", identifier: c.identifier || "" });
+    setForm({ name: c.name, phone: c.phone || "", email: c.email || "", identifier: c.identifier || "", address: c.address || "" });
     setShowForm(true);
   };
 
@@ -50,8 +50,8 @@ function Clients() {
   };
 
   const exportCSV = () => {
-    const header = "ID,Name,Phone,Email,Identifier\n";
-    const rows = filtered.map(c => `${c.id},"${c.name}","${c.phone || ""}","${c.email || ""}","${c.identifier || ""}"`).join("\n");
+    const header = "ID,Name,Phone,Email,Address,Identifier\n";
+    const rows = filtered.map(c => `${c.id},"${c.name}","${c.phone || ""}","${c.email || ""}","${c.address || ""}","${c.identifier || ""}"`).join("\n");
     const blob = new Blob([header + rows], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a"); a.href = url; a.download = "clients.csv"; a.click();
@@ -62,6 +62,7 @@ function Clients() {
     c.name.toLowerCase().includes(search.toLowerCase()) ||
     (c.phone || "").includes(search) ||
     (c.email || "").toLowerCase().includes(search.toLowerCase()) ||
+    (c.address || "").toLowerCase().includes(search.toLowerCase()) ||
     (c.identifier || "").toLowerCase().includes(search.toLowerCase())
   );
 
@@ -72,7 +73,7 @@ function Clients() {
     <Layout>
       <h2>Clients</h2>
       <div className="toolbar">
-        <button onClick={() => { setShowForm(!showForm); setEditingId(null); setForm({ name: "", phone: "", email: "", identifier: "" }); }}>
+        <button onClick={() => { setShowForm(!showForm); setEditingId(null); setForm({ name: "", phone: "", email: "", identifier: "", address: "" }); }}>
           {showForm ? "Cancel" : "+ New Client"}
         </button>
         <input
@@ -89,42 +90,18 @@ function Clients() {
           <input placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
           <input placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
           <input placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+          <input placeholder="Address" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
           <input placeholder="ID/Identifier" value={form.identifier} onChange={(e) => setForm({ ...form, identifier: e.target.value })} />
           <button type="submit">{editingId ? "Update" : "Save Client"}</button>
         </form>
       )}
 
-      <div className="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Name</th>
-              <th>Phone</th>
-              <th>Email</th>
-              <th>Identifier</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {paginated.map((c) => (
-              <tr key={c.id}>
-                <td>{c.id}</td>
-                <td><Link to={`/clients/${c.id}`}>{c.name}</Link></td>
-                <td>{c.phone}</td>
-                <td>{c.email}</td>
-                <td>{c.identifier}</td>
-                <td>
-                  <button className="btn-sm" onClick={() => handleEdit(c)}>Edit</button>{" "}
-                  {user && user.role === "admin" && (
-                    <button className="btn-sm btn-danger" onClick={() => handleDelete(c.id)}>Delete</button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <ClientTable
+        clients={paginated}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        user={user}
+      />
 
       {totalPages > 1 && (
         <div className="pagination">
