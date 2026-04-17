@@ -81,6 +81,7 @@ model Loan {
   createdByUser User       @relation("LoanCreatedBy", fields: [createdBy], references: [id])
   approvedByUser User?     @relation("LoanApprovedBy", fields: [approvedBy], references: [id])
   repayments   Repayment[]
+  schedules    Schedule[]
 
   @@index([clientId])
   @@index([approvedBy])
@@ -101,6 +102,24 @@ model Repayment {
   @@index([loanId])
   @@index([paidBy])
   @@map("repayments")
+}
+
+model Schedule {
+  id         Int      @id @default(autoincrement())
+  loanId     Int
+  month      Int
+  dueDate    DateTime
+  payment    Decimal  @db.Decimal(15, 2)
+  principal  Decimal  @db.Decimal(15, 2)
+  interest   Decimal  @db.Decimal(15, 2)
+  balance    Decimal  @db.Decimal(15, 2)
+  status     String   @default("pending") // pending, paid, overdue
+  penalty    Decimal  @db.Decimal(15, 2) @default(0)
+  createdAt  DateTime @default(now())
+  loan       Loan     @relation(fields: [loanId], references: [id])
+
+  @@index([loanId])
+  @@map("schedules")
 }
 
 model AuditLog {
