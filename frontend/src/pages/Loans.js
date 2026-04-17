@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Layout from "../components/Layout";
+import LoanForm from "../components/LoanForm";
+import LoanTable from "../components/LoanTable";
 import { getLoans, createLoan, approveLoan, rejectLoan, disburseLoan, getLoanSchedule } from "../services/loanService";
 import { getClients } from "../services/clientService";
 import { getUser } from "../services/authService";
@@ -9,9 +11,7 @@ const PAGE_SIZE = 10;
 
 function Loans() {
   const [loans, setLoans] = useState([]);
-  const [clients, setClients] = useState([]);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ clientId: "", amount: "", interestRate: "1.5", termMonths: "6" });
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [page, setPage] = useState(1);
@@ -19,27 +19,23 @@ function Loans() {
   const [scheduleLoanId, setScheduleLoanId] = useState(null);
   const user = getUser();
 
-  useEffect(() => { fetchLoans(); fetchClients(); }, []);
+  useEffect(() => { fetchLoans(); }, []);
 
   const fetchLoans = async () => {
     const data = await getLoans();
     if (Array.isArray(data)) setLoans(data);
   };
 
-  const fetchClients = async () => {
-    const data = await getClients();
-    if (Array.isArray(data)) setClients(data);
-  };
-
-  const handleCreate = async (e) => {
-    e.preventDefault();
+  const handleCreate = async (formData) => {
     await createLoan({
-      clientId: Number(form.clientId),
-      amount: Number(form.amount),
-      interestRate: Number(form.interestRate),
-      termMonths: Number(form.termMonths),
+      clientId: Number(formData.clientId),
+      amount: Number(formData.amount),
+      interestRate: Number(formData.interestRate),
+      termMonths: Number(formData.termMonths),
+      guarantorName: formData.guarantorName,
+      notes: formData.notes,
+      documents: formData.documents, // handle file upload later
     });
-    setForm({ clientId: "", amount: "", interestRate: "1.5", termMonths: "6" });
     setShowForm(false);
     fetchLoans();
   };
@@ -87,8 +83,6 @@ function Loans() {
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  const statusColors = { applied: "#3498db", approved: "#f39c12", disbursed: "#27ae60", closed: "#95a5a6", rejected: "#e74c3c" };
-
   return (
     <Layout>
       <h2>Loans</h2>
@@ -114,63 +108,17 @@ function Loans() {
       </div>
 
       {showForm && (
-        <form onSubmit={handleCreate} className="inline-form">
-          <select value={form.clientId} onChange={(e) => setForm({ ...form, clientId: e.target.value })} required>
-            <option value="">Select Client</option>
-            {clients.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
-          <input type="number" placeholder="Amount" min="300000" max="2000000" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} required />
-          <input type="number" step="0.01" placeholder="Interest Rate (%)" value={form.interestRate} readOnly />
-          <input type="number" placeholder="Term (months)" value={form.termMonths} readOnly />
-          <button type="submit">Create Loan</button>
-        </form>
+        <LoanForm onSubmit={handleCreate} />
       )}
 
-      <div className="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Client</th>
-              <th>Amount</th>
-              <th>Interest</th>
-              <th>Term</th>
-              <th>Balance</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {paginated.map((l) => (
-              <tr key={l.id}>
-                <td>{l.id}</td>
-                <td>{l.clientName}</td>
-                <td>{Number(l.amount).toLocaleString()}</td>
-                <td>{l.interestRate}%</td>
-                <td>{l.termMonths}m</td>
-                <td>{Number(l.balance).toLocaleString()}</td>
-                <td><span className="badge" style={{ background: statusColors[l.status] || "#999" }}>{l.status}</span></td>
-                <td>
-                  {l.status === "applied" && user && user.role === "admin" && (
-                    <>
-                      <button className="btn-sm btn-success" onClick={() => handleApprove(l.id)}>Approve</button>{" "}
-                      <button className="btn-sm btn-danger" onClick={() => handleReject(l.id)}>Reject</button>{" "}
-                    </>
-                  )}
-                  {l.status === "approved" && user && (user.role === "admin" || user.role === "cashier") && (
-                    <button className="btn-sm btn-success" onClick={() => handleDisburse(l.id)}>Disburse</button>
-                  )}{" "}
-                  <button className="btn-sm" onClick={() => viewSchedule(l.id)}>
-                    {scheduleLoanId === l.id ? "Hide" : "Schedule"}
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <LoanTable
+        loans={paginated}
+        onViewSchedule={viewSchedule}
+        onApprove={handleApprove}
+        onReject={handleReject}
+        onDisburse={handleDisburse}
+        user={user}
+      />
 
       {totalPages > 1 && (
         <div className="pagination">

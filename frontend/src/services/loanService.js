@@ -11,11 +11,17 @@ export const getLoans = async () => {
 };
 
 export const createLoan = async (loan) => {
+  const formData = new FormData();
+  Object.keys(loan).forEach(key => {
+    if (loan[key] !== null && loan[key] !== undefined) {
+      formData.append(key, loan[key]);
+    }
+  });
   const response = await fetch(API_URL, {
     method: "POST",
     headers: getAuthHeaders(),
     credentials: "include",
-    body: JSON.stringify(loan),
+    body: formData,
   });
   return response.json();
 };

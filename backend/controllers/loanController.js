@@ -9,7 +9,7 @@ const getLoanById = async (id) => {
 
 const createLoan = async (req, res) => {
   try {
-    const { clientId, amount, interestRate, termMonths } = req.body;
+    const { clientId, amount, interestRate, termMonths, guarantorName, notes, documents } = req.body;
 
     const numAmount = Number(amount);
     if (numAmount < 300000 || numAmount > 2000000) {
@@ -28,6 +28,9 @@ const createLoan = async (req, res) => {
         amount,
         interestRate: 1.5, // Monthly interest rate
         termMonths: 6,
+        guarantorName,
+        notes,
+        documents,
         status,
         appliedAt,
         balance,

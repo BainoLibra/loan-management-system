@@ -68,6 +68,9 @@ model Loan {
   amount       Decimal     @db.Decimal(15, 2)
   interestRate Decimal     @db.Decimal(5, 2)
   termMonths   Int
+  guarantorName String?
+  notes        String?
+  documents    String?     // file path or URL
   status       LoanStatus  @default(applied)
   appliedAt    DateTime?
   approvedBy   Int?
