@@ -10,7 +10,7 @@ const getLoanById = async (id) => {
 const repayLoan = async (req, res) => {
   try {
     const loanId = req.params.loanId;
-    const { amount } = req.body;
+    const { amount, scheduleId } = req.body;
 
     const paidBy = req.user.id;
     const repaymentAmount = Number(amount);
@@ -26,6 +26,15 @@ const repayLoan = async (req, res) => {
     if (repaymentAmount > Number(loan.balance)) return res.status(400).json({ error: 'Repayment exceeds remaining balance' });
 
     const date = new Date();
+
+    let schedule = null;
+    if (scheduleId) {
+      schedule = await prisma.schedule.findUnique({
+        where: { id: Number(scheduleId) },
+      });
+      if (!schedule || schedule.loanId !== Number(loanId)) return res.status(404).json({ error: 'Schedule not found' });
+      if (schedule.status === 'paid') return res.status(400).json({ error: 'Installment already paid' });
+    }
 
     const repayment = await prisma.$transaction(async (tx) => {
       const createdRepayment = await tx.repayment.create({
@@ -46,6 +55,13 @@ const repayLoan = async (req, res) => {
           status: updatedBalance <= 0 ? 'closed' : loan.status,
         },
       });
+
+      if (schedule) {
+        await tx.schedule.update({
+          where: { id: Number(scheduleId) },
+          data: { status: 'paid' },
+        });
+      }
 
       return createdRepayment;
     });

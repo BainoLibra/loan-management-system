@@ -86,6 +86,46 @@ const approveLoan = async (req, res) => {
       },
     });
 
+    // Generate schedule
+    const principal = Number(loan.amount);
+    const rate = Number(loan.interestRate) / 100 / 12; // monthly rate
+    const n = loan.termMonths;
+
+    let monthlyPayment;
+    if (rate === 0) {
+      monthlyPayment = principal / n;
+    } else {
+      monthlyPayment = principal * (rate * Math.pow(1 + rate, n)) / (Math.pow(1 + rate, n) - 1);
+    }
+
+    const schedules = [];
+    let remaining = principal;
+    const startDate = approvedAt;
+
+    for (let i = 1; i <= n; i++) {
+      const interestPortion = remaining * rate;
+      const principalPortion = monthlyPayment - interestPortion;
+      remaining = Math.max(0, remaining - principalPortion);
+
+      const dueDate = new Date(startDate);
+      dueDate.setMonth(dueDate.getMonth() + i);
+
+      schedules.push({
+        loanId: Number(id),
+        month: i,
+        dueDate,
+        payment: Math.round(monthlyPayment * 100) / 100,
+        principal: Math.round(principalPortion * 100) / 100,
+        interest: Math.round(interestPortion * 100) / 100,
+        balance: Math.round(remaining * 100) / 100,
+        status: 'pending',
+      });
+    }
+
+    await prisma.schedule.createMany({
+      data: schedules,
+    });
+
     await logAudit(req.user.id, 'APPROVE_LOAN', 'loan', id);
 
     res.json({ updated: 1 });
@@ -156,38 +196,23 @@ const getLoanSchedule = async (req, res) => {
     const loan = await getLoanById(id);
     if (!loan) return res.status(404).json({ error: 'Loan not found' });
 
-    const principal = Number(loan.amount);
-    const monthlyRate = Number(loan.interestRate) / 100; // monthly rate
-    const n = loan.termMonths;
+    // Update overdue
+    const today = new Date();
+    await prisma.schedule.updateMany({
+      where: {
+        loanId: Number(id),
+        dueDate: { lt: today },
+        status: 'pending',
+      },
+      data: { status: 'overdue' },
+    });
 
-    // Flat rate calculation
-    const monthlyPrincipal = principal / n;
-    const monthlyInterest = principal * monthlyRate;
-    const monthlyPayment = monthlyPrincipal + monthlyInterest;
+    const schedules = await prisma.schedule.findMany({
+      where: { loanId: Number(id) },
+      orderBy: { month: 'asc' },
+    });
 
-    const schedule = [];
-    let remaining = principal;
-    const startDate = loan.disbursedAt ? new Date(loan.disbursedAt) : new Date(loan.appliedAt);
-
-    for (let i = 1; i <= n; i++) {
-      const interestPortion = monthlyInterest;
-      const principalPortion = monthlyPrincipal;
-      remaining = Math.max(0, remaining - principalPortion);
-
-      const dueDate = new Date(startDate);
-      dueDate.setMonth(dueDate.getMonth() + i);
-
-      schedule.push({
-        month: i,
-        dueDate,
-        payment: Math.round(monthlyPayment * 100) / 100,
-        principal: Math.round(principalPortion * 100) / 100,
-        interest: Math.round(interestPortion * 100) / 100,
-        balance: Math.round(remaining * 100) / 100,
-      });
-    }
-
-    res.json(schedule);
+    res.json(schedules);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

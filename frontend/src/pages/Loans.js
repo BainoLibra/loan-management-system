@@ -49,7 +49,16 @@ function Loans() {
     if (!window.confirm("Reject this loan application?")) return;
     await rejectLoan(id); fetchLoans();
   };
-  const handleDisburse = async (id) => { await disburseLoan(id); fetchLoans(); };
+  const handlePayInstallment = async (scheduleId, payment, status) => {
+    let amount = payment;
+    if (status === 'overdue') {
+      amount = payment + (payment * 0.02);
+    }
+    if (!window.confirm(`Pay installment of ${amount.toFixed(2)}?`)) return;
+    await repayLoan(scheduleLoanId, amount, scheduleId);
+    viewSchedule(scheduleLoanId); // refresh schedule
+    fetchLoans(); // refresh loans list
+  };
 
   const viewSchedule = async (id) => {
     if (scheduleLoanId === id) { setSchedule(null); setScheduleLoanId(null); return; }
@@ -184,6 +193,8 @@ function Loans() {
                   <th>Principal</th>
                   <th>Interest</th>
                   <th>Balance</th>
+                  <th>Status</th>
+                  <th>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -191,10 +202,18 @@ function Loans() {
                   <tr key={s.month}>
                     <td>{s.month}</td>
                     <td>{new Date(s.dueDate).toLocaleDateString()}</td>
-                    <td>{s.payment.toLocaleString()}</td>
-                    <td>{s.principal.toLocaleString()}</td>
-                    <td>{s.interest.toLocaleString()}</td>
-                    <td>{s.balance.toLocaleString()}</td>
+                    <td>{Number(s.payment).toLocaleString()}</td>
+                    <td>{Number(s.principal).toLocaleString()}</td>
+                    <td>{Number(s.interest).toLocaleString()}</td>
+                    <td>{Number(s.balance).toLocaleString()}</td>
+                    <td>{s.status}</td>
+                    <td>
+                      {s.status !== 'paid' && (
+                        <button className="btn-sm btn-primary" onClick={() => handlePayInstallment(s.id, s.payment, s.status)}>
+                          Pay Installment
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>

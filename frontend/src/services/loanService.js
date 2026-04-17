@@ -63,12 +63,12 @@ export const getRepayments = async (loanId) => {
   return response.json();
 };
 
-export const repayLoan = async (loanId, amount) => {
+export const repayLoan = async (loanId, amount, scheduleId) => {
   const response = await fetch(`${API_URL}/${loanId}/repay`, {
     method: "POST",
     headers: getAuthHeaders(),
     credentials: "include",
-    body: JSON.stringify({ amount }),
+    body: JSON.stringify({ amount, scheduleId }),
   });
   return response.json();
 };
