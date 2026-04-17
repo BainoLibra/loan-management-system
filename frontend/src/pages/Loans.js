@@ -2,8 +2,7 @@ import React, { useEffect, useState } from "react";
 import Layout from "../components/Layout";
 import LoanForm from "../components/LoanForm";
 import LoanTable from "../components/LoanTable";
-import { getLoans, createLoan, approveLoan, rejectLoan, disburseLoan, getLoanSchedule } from "../services/loanService";
-import { getClients } from "../services/clientService";
+import { getLoans, createLoan, approveLoan, rejectLoan, disburseLoan, getLoanSchedule, repayLoan } from "../services/loanService";
 import { getUser } from "../services/authService";
 import "../styles/table.css";
 
@@ -27,15 +26,15 @@ function Loans() {
   };
 
   const handleCreate = async (formData) => {
-    await createLoan({
-      clientId: Number(formData.clientId),
-      amount: Number(formData.amount),
-      interestRate: Number(formData.interestRate),
-      termMonths: Number(formData.termMonths),
-      guarantorName: formData.guarantorName,
-      notes: formData.notes,
-      documents: formData.documents, // handle file upload later
-    });
+    const data = new FormData();
+    data.append('clientId', Number(formData.clientId));
+    data.append('amount', Number(formData.amount));
+    data.append('interestRate', Number(formData.interestRate));
+    data.append('termMonths', Number(formData.termMonths));
+    if (formData.guarantorName) data.append('guarantorName', formData.guarantorName);
+    if (formData.notes) data.append('notes', formData.notes);
+    if (formData.documents) data.append('documents', formData.documents);
+    await createLoan(data);
     setShowForm(false);
     fetchLoans();
   };
@@ -45,6 +44,7 @@ function Loans() {
     if (!window.confirm("Reject this loan application?")) return;
     await rejectLoan(id); fetchLoans();
   };
+  const handleDisburse = async (id) => { await disburseLoan(id); fetchLoans(); };
   const handlePayInstallment = async (scheduleId, payment, status) => {
     let amount = payment;
     if (status === 'overdue') {

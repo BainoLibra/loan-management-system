@@ -10,13 +10,7 @@ export const getLoans = async () => {
   return response.json();
 };
 
-export const createLoan = async (loan) => {
-  const formData = new FormData();
-  Object.keys(loan).forEach(key => {
-    if (loan[key] !== null && loan[key] !== undefined) {
-      formData.append(key, loan[key]);
-    }
-  });
+export const createLoan = async (formData) => {
   const response = await fetch(API_URL, {
     method: "POST",
     headers: getAuthHeaders(),
