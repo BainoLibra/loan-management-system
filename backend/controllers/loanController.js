@@ -11,6 +11,11 @@ const createLoan = async (req, res) => {
   try {
     const { clientId, amount, interestRate, termMonths } = req.body;
 
+    const numAmount = Number(amount);
+    if (numAmount < 300000 || numAmount > 2000000) {
+      return res.status(400).json({ error: 'Loan amount must be between 300,000 and 2,000,000' });
+    }
+
     const createdBy = req.user.id;
 
     const appliedAt = new Date();
@@ -21,8 +26,8 @@ const createLoan = async (req, res) => {
       data: {
         clientId: Number(clientId),
         amount,
-        interestRate,
-        termMonths: Number(termMonths),
+        interestRate: 1.5, // Monthly interest rate
+        termMonths: 6,
         status,
         appliedAt,
         balance,
@@ -124,8 +129,8 @@ const disburseLoan = async (req, res) => {
 
     // Apply interest to balance on disbursement
     const principal = Number(loan.amount);
-    const rate = Number(loan.interestRate) / 100;
-    const totalWithInterest = principal + (principal * rate * loan.termMonths / 12);
+    const rate = Number(loan.interestRate) / 100; // monthly rate
+    const totalWithInterest = principal + (principal * rate * loan.termMonths);
     const balance = Math.round(totalWithInterest * 100) / 100;
 
     await prisma.loan.update({
@@ -152,24 +157,21 @@ const getLoanSchedule = async (req, res) => {
     if (!loan) return res.status(404).json({ error: 'Loan not found' });
 
     const principal = Number(loan.amount);
-    const rate = Number(loan.interestRate) / 100 / 12; // monthly rate
+    const monthlyRate = Number(loan.interestRate) / 100; // monthly rate
     const n = loan.termMonths;
 
-    // Calculate monthly payment (amortization formula)
-    let monthlyPayment;
-    if (rate === 0) {
-      monthlyPayment = principal / n;
-    } else {
-      monthlyPayment = principal * (rate * Math.pow(1 + rate, n)) / (Math.pow(1 + rate, n) - 1);
-    }
+    // Flat rate calculation
+    const monthlyPrincipal = principal / n;
+    const monthlyInterest = principal * monthlyRate;
+    const monthlyPayment = monthlyPrincipal + monthlyInterest;
 
     const schedule = [];
     let remaining = principal;
     const startDate = loan.disbursedAt ? new Date(loan.disbursedAt) : new Date(loan.appliedAt);
 
     for (let i = 1; i <= n; i++) {
-      const interestPortion = remaining * rate;
-      const principalPortion = monthlyPayment - interestPortion;
+      const interestPortion = monthlyInterest;
+      const principalPortion = monthlyPrincipal;
       remaining = Math.max(0, remaining - principalPortion);
 
       const dueDate = new Date(startDate);

@@ -11,7 +11,7 @@ function Loans() {
   const [loans, setLoans] = useState([]);
   const [clients, setClients] = useState([]);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ clientId: "", amount: "", interestRate: "", termMonths: "" });
+  const [form, setForm] = useState({ clientId: "", amount: "", interestRate: "1.5", termMonths: "6" });
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [page, setPage] = useState(1);
@@ -39,7 +39,7 @@ function Loans() {
       interestRate: Number(form.interestRate),
       termMonths: Number(form.termMonths),
     });
-    setForm({ clientId: "", amount: "", interestRate: "", termMonths: "" });
+    setForm({ clientId: "", amount: "", interestRate: "1.5", termMonths: "6" });
     setShowForm(false);
     fetchLoans();
   };
@@ -112,9 +112,9 @@ function Loans() {
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>
-          <input type="number" placeholder="Amount" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} required />
-          <input type="number" step="0.01" placeholder="Interest Rate (%)" value={form.interestRate} onChange={(e) => setForm({ ...form, interestRate: e.target.value })} required />
-          <input type="number" placeholder="Term (months)" value={form.termMonths} onChange={(e) => setForm({ ...form, termMonths: e.target.value })} required />
+          <input type="number" placeholder="Amount" min="300000" max="2000000" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} required />
+          <input type="number" step="0.01" placeholder="Interest Rate (%)" value={form.interestRate} readOnly />
+          <input type="number" placeholder="Term (months)" value={form.termMonths} readOnly />
           <button type="submit">Create Loan</button>
         </form>
       )}
