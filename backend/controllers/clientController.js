@@ -10,9 +10,11 @@ const titleCaseName = (value) => {
     .join(" ");
 };
 
-const validateClientPayload = ({ name, phone, identifier, guarantorName, guarantorPhone, guarantorId }) => {
-  if (!String(name || "").trim()) return "Name is required.";
-  if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(name)) return "Name may only contain letters and spaces.";
+const validateClientPayload = ({ firstName, lastName, phone, identifier, guarantorName, guarantorPhone, guarantorId }) => {
+  if (!String(firstName || "").trim()) return "First name is required.";
+  if (!String(lastName || "").trim()) return "Last name is required.";
+  if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(firstName)) return "First name may only contain letters and spaces.";
+  if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(lastName)) return "Last name may only contain letters and spaces.";
   if (phone && !/^256\d{9}$/.test(phone)) return "Phone must start with 256 and be 12 digits long.";
   if (identifier && !/^[A-Z0-9]{1,14}$/.test(identifier)) return "Identifier must be up to 14 characters of uppercase letters and digits only.";
   if (guarantorName && !/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(guarantorName)) return "Guarantor name may only contain letters and spaces.";
@@ -23,11 +25,13 @@ const validateClientPayload = ({ name, phone, identifier, guarantorName, guarant
 
 const createClient = async (req, res) => {
   try {
-    const { name, phone, email, identifier, guarantorName, guarantorPhone, guarantorId } = req.body;
-    const formattedName = titleCaseName(name);
+    const { firstName, lastName, phone, email, identifier, groupId, guarantorName, guarantorPhone, guarantorId, address } = req.body;
+    const formattedFirstName = titleCaseName(firstName);
+    const formattedLastName = titleCaseName(lastName);
     const formattedGuarantorName = titleCaseName(guarantorName);
     const validationError = validateClientPayload({
-      name: formattedName,
+      firstName: formattedFirstName,
+      lastName: formattedLastName,
       phone,
       identifier,
       guarantorName: formattedGuarantorName,
@@ -37,7 +41,18 @@ const createClient = async (req, res) => {
     if (validationError) return res.status(400).json({ error: validationError });
 
     const client = await prisma.client.create({
-      data: { name: formattedName, phone, email, identifier, guarantorName: formattedGuarantorName, guarantorPhone, guarantorId },
+      data: {
+        firstName: formattedFirstName,
+        lastName: formattedLastName,
+        phone,
+        email,
+        identifier,
+        address,
+        groupId: groupId ? Number(groupId) : null,
+        guarantorName: formattedGuarantorName,
+        guarantorPhone,
+        guarantorId,
+      },
     });
 
     await logAudit(req.user.id, 'CREATE_CLIENT', 'client', client.id);
@@ -82,11 +97,13 @@ const getClientById = async (req, res) => {
 const updateClient = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, phone, email, identifier, guarantorName, guarantorPhone, guarantorId } = req.body;
-    const formattedName = titleCaseName(name);
+    const { firstName, lastName, phone, email, identifier, groupId, guarantorName, guarantorPhone, guarantorId, address } = req.body;
+    const formattedFirstName = titleCaseName(firstName);
+    const formattedLastName = titleCaseName(lastName);
     const formattedGuarantorName = titleCaseName(guarantorName);
     const validationError = validateClientPayload({
-      name: formattedName,
+      firstName: formattedFirstName,
+      lastName: formattedLastName,
       phone,
       identifier,
       guarantorName: formattedGuarantorName,
@@ -97,7 +114,18 @@ const updateClient = async (req, res) => {
 
     await prisma.client.update({
       where: { id: Number(id) },
-      data: { name: formattedName, phone, email, identifier, guarantorName: formattedGuarantorName, guarantorPhone, guarantorId },
+      data: {
+        firstName: formattedFirstName,
+        lastName: formattedLastName,
+        phone,
+        email,
+        identifier,
+        address,
+        groupId: groupId ? Number(groupId) : null,
+        guarantorName: formattedGuarantorName,
+        guarantorPhone,
+        guarantorId,
+      },
     });
 
     await logAudit(req.user.id, 'UPDATE_CLIENT', 'client', id);

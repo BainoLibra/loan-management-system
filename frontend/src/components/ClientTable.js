@@ -13,7 +13,8 @@ const ClientTable = ({ clients, onEdit, onDelete, user }) => {
         <thead>
           <tr>
             <th>ID</th>
-            <th>Name</th>
+            <th>First Name</th>
+            <th>Last Name</th>
             <th>Phone</th>
             <th>Guarantor</th>
             <th>Guarantor Phone</th>
@@ -29,7 +30,8 @@ const ClientTable = ({ clients, onEdit, onDelete, user }) => {
           {clients.map((c) => (
             <tr key={c.id}>
               <td>{c.id}</td>
-              <td><Link to={`/clients/${c.id}`}>{c.name}</Link></td>
+              <td><Link to={`/clients/${c.id}`}>{c.firstName}</Link></td>
+              <td>{c.lastName}</td>
               <td>{c.phone || "N/A"}</td>
               <td>{c.guarantorName || "N/A"}</td>
               <td>{c.guarantorPhone || "N/A"}</td>

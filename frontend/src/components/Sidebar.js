@@ -14,6 +14,7 @@ function Sidebar({ isOpen, onChangePassword }) {
       <ul>
         <li className={isActive("/dashboard")}><Link to="/dashboard">Dashboard</Link></li>
         <li className={isActive("/clients")}><Link to="/clients">Clients</Link></li>
+        <li className={isActive("/groups")}><Link to="/groups">Client Groups</Link></li>
         <li className={isActive("/loans")}><Link to="/loans">Loans</Link></li>
         <li className={isActive("/repayments")}><Link to="/repayments">Repayments</Link></li>
         <li className={isActive("/audit-logs")}><Link to="/audit-logs">Audit Logs</Link></li>

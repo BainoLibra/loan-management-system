@@ -7,6 +7,7 @@ const { prisma, init } = require('./db');
 // Routes
 const authRoutes = require('./routes/authRoutes');
 const clientRoutes = require('./routes/clientRoutes');
+const groupRoutes = require('./routes/groupRoutes');
 const loanRoutes = require('./routes/loanRoutes');
 const repaymentRoutes = require('./routes/repaymentRoutes');
 const auditRoutes = require('./routes/auditRoutes');
@@ -41,6 +42,7 @@ app.use(async (_req, _res, next) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/clients', clientRoutes);
+app.use('/api/groups', groupRoutes);
 app.use('/api/loans', loanRoutes);
 app.use('/api/loans', repaymentRoutes);
 app.use('/api/audit-logs', auditRoutes);

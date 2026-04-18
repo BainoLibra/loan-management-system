@@ -31,6 +31,17 @@ enum LoanStatus {
   rejected
 }
 
+model Group {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  description String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  clients   Client[]
+
+  @@map("groups")
+}
+
 model User {
   id            Int        @id @default(autoincrement())
   name          String
@@ -50,7 +61,8 @@ model User {
 
 model Client {
   id         Int           @id @default(autoincrement())
-  name          String
+  firstName     String
+  lastName      String
   phone         String?
   email         String?
   identifier    String?
@@ -58,11 +70,14 @@ model Client {
   guarantorName String?
   guarantorPhone String?
   guarantorId   String?
+  groupId       Int?
   status        ClientStatus  @default(active)
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt
+  group      Group?        @relation(fields: [groupId], references: [id], onDelete: SetNull)
   loans      Loan[]
 
+  @@index([groupId])
   @@map("clients")
 }
 

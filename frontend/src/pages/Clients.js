@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import Layout from "../components/Layout";
 import ClientTable from "../components/ClientTable";
 import { getClients, createClient, updateClient, deleteClient } from "../services/clientService";
+import { getGroups } from "../services/groupService";
 import { getUser } from "../services/authService";
 import "../styles/table.css";
 
@@ -26,9 +27,11 @@ const sanitizeIdentifierInput = (value) => {
   return normalized.slice(0, 14);
 };
 
-const validateClientForm = ({ name, phone, identifier, guarantorName, guarantorPhone, guarantorId }) => {
-  if (!name.trim()) return "Name is required.";
-  if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(name)) return "Name may only contain letters and spaces.";
+const validateClientForm = ({ firstName, lastName, phone, identifier, guarantorName, guarantorPhone, guarantorId }) => {
+  if (!firstName.trim()) return "First name is required.";
+  if (!lastName.trim()) return "Last name is required.";
+  if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(firstName)) return "First name may only contain letters and spaces.";
+  if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(lastName)) return "Last name may only contain letters and spaces.";
   if (phone) {
     if (!/^256\d{9}$/.test(phone)) return "Phone must start with 256 and be 12 digits long.";
   }
@@ -49,7 +52,8 @@ const validateClientForm = ({ name, phone, identifier, guarantorName, guarantorP
 
 function Clients() {
   const [clients, setClients] = useState([]);
-  const [form, setForm] = useState({ name: "", phone: "", email: "", identifier: "", address: "", guarantorName: "", guarantorPhone: "", guarantorId: "" });
+  const [groups, setGroups] = useState([]);
+  const [form, setForm] = useState({ firstName: "", lastName: "", phone: "", email: "", identifier: "", address: "", groupId: "", guarantorName: "", guarantorPhone: "", guarantorId: "" });
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [search, setSearch] = useState("");
@@ -57,26 +61,34 @@ function Clients() {
   const [error, setError] = useState("");
   const user = getUser();
 
-  useEffect(() => { fetchClients(); }, []);
+  useEffect(() => { fetchClients(); fetchGroups(); }, []);
 
   const fetchClients = async () => {
     const data = await getClients();
     if (Array.isArray(data)) setClients(data);
   };
 
+  const fetchGroups = async () => {
+    const data = await getGroups();
+    if (Array.isArray(data)) setGroups(data);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    const formattedName = titleCaseName(form.name);
+    const formattedFirstName = titleCaseName(form.firstName);
+    const formattedLastName = titleCaseName(form.lastName);
     const formattedGuarantorName = titleCaseName(form.guarantorName);
     const dataToSubmit = {
       ...form,
-      name: formattedName,
+      firstName: formattedFirstName,
+      lastName: formattedLastName,
       phone: sanitizePhoneInput(form.phone),
       guarantorPhone: sanitizePhoneInput(form.guarantorPhone),
       guarantorName: formattedGuarantorName,
       guarantorId: sanitizeIdentifierInput(form.guarantorId),
       identifier: sanitizeIdentifierInput(form.identifier),
+      groupId: form.groupId ? Number(form.groupId) : null,
     };
 
     const validationError = validateClientForm(dataToSubmit);
@@ -94,7 +106,7 @@ function Clients() {
       return;
     }
 
-    setForm({ name: "", phone: "", email: "", identifier: "", address: "", guarantorName: "", guarantorPhone: "", guarantorId: "" });
+    setForm({ firstName: "", lastName: "", phone: "", email: "", identifier: "", address: "", groupId: "", guarantorName: "", guarantorPhone: "", guarantorId: "" });
     setShowForm(false);
     setEditingId(null);
     fetchClients();
@@ -103,11 +115,13 @@ function Clients() {
   const handleEdit = (c) => {
     setEditingId(c.id);
     setForm({
-      name: c.name,
+      firstName: c.firstName || "",
+      lastName: c.lastName || "",
       phone: c.phone || "",
       email: c.email || "",
       identifier: c.identifier || "",
       address: c.address || "",
+      groupId: c.groupId || "",
       guarantorName: c.guarantorName || "",
       guarantorPhone: c.guarantorPhone || "",
       guarantorId: c.guarantorId || ""
@@ -124,24 +138,27 @@ function Clients() {
   };
 
   const exportCSV = () => {
-    const header = "ID,Name,Phone,Guarantor Name,Guarantor Phone,Guarantor ID,Email,Address,Identifier\n";
-    const rows = filtered.map(c => `${c.id},"${c.name}","${c.phone || ""}","${c.guarantorName || ""}","${c.guarantorPhone || ""}","${c.guarantorId || ""}","${c.email || ""}","${c.address || ""}","${c.identifier || ""}"`).join("\n");
+    const header = "ID,First Name,Last Name,Phone,Guarantor Name,Guarantor Phone,Guarantor ID,Email,Address,Identifier,Group\n";
+    const rows = filtered.map(c => `${c.id},"${c.firstName || ""}","${c.lastName || ""}","${c.phone || ""}","${c.guarantorName || ""}","${c.guarantorPhone || ""}","${c.guarantorId || ""}","${c.email || ""}","${c.address || ""}","${c.identifier || ""}","${groups.find(g => g.id === c.groupId)?.name || ""}"`).join("\n");
     const blob = new Blob([header + rows], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a"); a.href = url; a.download = "clients.csv"; a.click();
     URL.revokeObjectURL(url);
   };
 
-  const filtered = clients.filter(c =>
-    c.name.toLowerCase().includes(search.toLowerCase()) ||
-    (c.phone || "").includes(search) ||
-    (c.guarantorName || "").toLowerCase().includes(search.toLowerCase()) ||
-    (c.guarantorPhone || "").includes(search) ||
-    (c.guarantorId || "").toLowerCase().includes(search.toLowerCase()) ||
-    (c.email || "").toLowerCase().includes(search.toLowerCase()) ||
-    (c.address || "").toLowerCase().includes(search.toLowerCase()) ||
-    (c.identifier || "").toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = clients.filter(c => {
+    const fullName = `${c.firstName || ""} ${c.lastName || ""}`.toLowerCase();
+    const groupName = groups.find(g => g.id === c.groupId)?.name || "";
+    return fullName.includes(search.toLowerCase()) ||
+      (c.phone || "").includes(search) ||
+      (c.guarantorName || "").toLowerCase().includes(search.toLowerCase()) ||
+      (c.guarantorPhone || "").includes(search) ||
+      (c.guarantorId || "").toLowerCase().includes(search.toLowerCase()) ||
+      (c.email || "").toLowerCase().includes(search.toLowerCase()) ||
+      (c.address || "").toLowerCase().includes(search.toLowerCase()) ||
+      (c.identifier || "").toLowerCase().includes(search.toLowerCase()) ||
+      groupName.toLowerCase().includes(search.toLowerCase())
+  });
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -150,7 +167,7 @@ function Clients() {
     <Layout>
       <h2>Clients</h2>
       <div className="toolbar">
-        <button onClick={() => { setShowForm(!showForm); setEditingId(null); setForm({ name: "", phone: "", email: "", identifier: "", address: "", guarantorName: "", guarantorPhone: "", guarantorId: "" }); setError(""); }}>
+        <button onClick={() => { setShowForm(!showForm); setEditingId(null); setForm({ firstName: "", lastName: "", phone: "", email: "", identifier: "", address: "", groupId: "", guarantorName: "", guarantorPhone: "", guarantorId: "" }); setError(""); }}>
           {showForm ? "Cancel" : "+ New Client"}
         </button>
         <input
@@ -166,11 +183,23 @@ function Clients() {
         <form onSubmit={handleSubmit} className="inline-form">
           {error && <div className="form-error">{error}</div>}
           <input
-            placeholder="Name"
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: titleCaseName(e.target.value) })}
+            placeholder="First Name"
+            value={form.firstName}
+            onChange={(e) => setForm({ ...form, firstName: titleCaseName(e.target.value) })}
             required
           />
+          <input
+            placeholder="Last Name"
+            value={form.lastName}
+            onChange={(e) => setForm({ ...form, lastName: titleCaseName(e.target.value) })}
+            required
+          />
+          <select value={form.groupId} onChange={(e) => setForm({ ...form, groupId: e.target.value })}>
+            <option value="">Select Group</option>
+            {groups.map(g => (
+              <option key={g.id} value={g.id}>{g.name}</option>
+            ))}
+          </select>
           <input
             placeholder="Phone"
             value={form.phone}

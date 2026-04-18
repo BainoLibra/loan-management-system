@@ -43,7 +43,7 @@ function ClientDetail() {
   return (
     <Layout>
       <Link to="/clients" style={{ color: "#3498db", textDecoration: "none" }}>&larr; Back to Clients</Link>
-      <h2 style={{ marginTop: 10 }}>{client.name}</h2>
+      <h2 style={{ marginTop: 10 }}>{client.firstName} {client.lastName}</h2>
 
       <div className="detail-cards">
         <div className="detail-card">

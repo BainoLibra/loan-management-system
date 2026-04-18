@@ -6,6 +6,7 @@ import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import Clients from "./pages/Clients";
 import ClientDetail from "./pages/ClientDetail";
+import Groups from "./pages/Groups";
 import Loans from "./pages/Loans";
 import Repayments from "./pages/Repayments";
 import Reports from "./pages/Reports";
@@ -21,6 +22,7 @@ function App() {
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/clients" element={<ProtectedRoute><Clients /></ProtectedRoute>} />
         <Route path="/clients/:id" element={<ProtectedRoute><ClientDetail /></ProtectedRoute>} />
+        <Route path="/groups" element={<ProtectedRoute><Groups /></ProtectedRoute>} />
         <Route path="/loans" element={<ProtectedRoute><Loans /></ProtectedRoute>} />
         <Route path="/repayments" element={<ProtectedRoute><Repayments /></ProtectedRoute>} />
         <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
