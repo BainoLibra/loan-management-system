@@ -1,12 +1,32 @@
 const { prisma } = require('../db');
 const { logAudit } = require('../utils/hash');
 
+const titleCaseName = (value) => {
+  return String(value || "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .split(" ")
+    .map((word) => word ? word.charAt(0).toUpperCase() + word.slice(1).toLowerCase() : "")
+    .join(" ");
+};
+
+const validateClientPayload = ({ name, phone, identifier }) => {
+  if (!String(name || "").trim()) return "Name is required.";
+  if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(name)) return "Name may only contain letters and spaces.";
+  if (phone && !/^256\d{9}$/.test(phone)) return "Phone must start with 256 and be 12 digits long.";
+  if (identifier && !/^[A-Z0-9]{1,14}$/.test(identifier)) return "Identifier must be up to 14 characters of uppercase letters and digits only.";
+  return "";
+};
+
 const createClient = async (req, res) => {
   try {
     const { name, phone, email, identifier } = req.body;
+    const formattedName = titleCaseName(name);
+    const validationError = validateClientPayload({ name: formattedName, phone, identifier });
+    if (validationError) return res.status(400).json({ error: validationError });
 
     const client = await prisma.client.create({
-      data: { name, phone, email, identifier },
+      data: { name: formattedName, phone, email, identifier },
     });
 
     await logAudit(req.user.id, 'CREATE_CLIENT', 'client', client.id);
@@ -52,10 +72,13 @@ const updateClient = async (req, res) => {
   try {
     const { id } = req.params;
     const { name, phone, email, identifier } = req.body;
+    const formattedName = titleCaseName(name);
+    const validationError = validateClientPayload({ name: formattedName, phone, identifier });
+    if (validationError) return res.status(400).json({ error: validationError });
 
     await prisma.client.update({
       where: { id: Number(id) },
-      data: { name, phone, email, identifier },
+      data: { name: formattedName, phone, email, identifier },
     });
 
     await logAudit(req.user.id, 'UPDATE_CLIENT', 'client', id);

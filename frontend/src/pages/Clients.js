@@ -7,6 +7,37 @@ import "../styles/table.css";
 
 const PAGE_SIZE = 10;
 
+const titleCaseName = (value) => {
+  return value
+    .trim()
+    .replace(/\s+/g, " ")
+    .split(" ")
+    .map((word) => word ? word.charAt(0).toUpperCase() + word.slice(1).toLowerCase() : "")
+    .join(" ");
+};
+
+const sanitizePhoneInput = (value) => {
+  const digits = value.replace(/\D/g, "");
+  return digits.slice(0, 12);
+};
+
+const sanitizeIdentifierInput = (value) => {
+  const normalized = value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  return normalized.slice(0, 14);
+};
+
+const validateClientForm = ({ name, phone, identifier }) => {
+  if (!name.trim()) return "Name is required.";
+  if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(name)) return "Name may only contain letters and spaces.";
+  if (phone) {
+    if (!/^256\d{9}$/.test(phone)) return "Phone must start with 256 and be 12 digits long.";
+  }
+  if (identifier) {
+    if (!/^[A-Z0-9]{1,14}$/.test(identifier)) return "Identifier must be up to 14 characters of uppercase letters and digits only.";
+  }
+  return "";
+};
+
 function Clients() {
   const [clients, setClients] = useState([]);
   const [form, setForm] = useState({ name: "", phone: "", email: "", identifier: "", address: "" });
@@ -14,6 +45,7 @@ function Clients() {
   const [editingId, setEditingId] = useState(null);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [error, setError] = useState("");
   const user = getUser();
 
   useEffect(() => { fetchClients(); }, []);
@@ -25,11 +57,30 @@ function Clients() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (editingId) {
-      await updateClient(editingId, form);
-    } else {
-      await createClient(form);
+    setError("");
+    const formattedName = titleCaseName(form.name);
+    const dataToSubmit = {
+      ...form,
+      name: formattedName,
+      phone: sanitizePhoneInput(form.phone),
+      identifier: sanitizeIdentifierInput(form.identifier),
+    };
+
+    const validationError = validateClientForm(dataToSubmit);
+    if (validationError) {
+      setError(validationError);
+      return;
     }
+
+    const response = editingId
+      ? await updateClient(editingId, dataToSubmit)
+      : await createClient(dataToSubmit);
+
+    if (response.error) {
+      setError(response.error);
+      return;
+    }
+
     setForm({ name: "", phone: "", email: "", identifier: "", address: "" });
     setShowForm(false);
     setEditingId(null);
@@ -39,6 +90,7 @@ function Clients() {
   const handleEdit = (c) => {
     setEditingId(c.id);
     setForm({ name: c.name, phone: c.phone || "", email: c.email || "", identifier: c.identifier || "", address: c.address || "" });
+    setError("");
     setShowForm(true);
   };
 
@@ -73,7 +125,7 @@ function Clients() {
     <Layout>
       <h2>Clients</h2>
       <div className="toolbar">
-        <button onClick={() => { setShowForm(!showForm); setEditingId(null); setForm({ name: "", phone: "", email: "", identifier: "", address: "" }); }}>
+        <button onClick={() => { setShowForm(!showForm); setEditingId(null); setForm({ name: "", phone: "", email: "", identifier: "", address: "" }); setError(""); }}>
           {showForm ? "Cancel" : "+ New Client"}
         </button>
         <input
@@ -87,11 +139,35 @@ function Clients() {
 
       {showForm && (
         <form onSubmit={handleSubmit} className="inline-form">
-          <input placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-          <input placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-          <input placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-          <input placeholder="Address" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
-          <input placeholder="ID/Identifier" value={form.identifier} onChange={(e) => setForm({ ...form, identifier: e.target.value })} />
+          {error && <div className="form-error">{error}</div>}
+          <input
+            placeholder="Name"
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: titleCaseName(e.target.value) })}
+            required
+          />
+          <input
+            placeholder="Phone"
+            value={form.phone}
+            onChange={(e) => setForm({ ...form, phone: sanitizePhoneInput(e.target.value) })}
+            maxLength={12}
+          />
+          <input
+            placeholder="Email"
+            value={form.email}
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
+          />
+          <input
+            placeholder="Address"
+            value={form.address}
+            onChange={(e) => setForm({ ...form, address: e.target.value })}
+          />
+          <input
+            placeholder="ID/Identifier"
+            value={form.identifier}
+            onChange={(e) => setForm({ ...form, identifier: sanitizeIdentifierInput(e.target.value) })}
+            maxLength={14}
+          />
           <button type="submit">{editingId ? "Update" : "Save Client"}</button>
         </form>
       )}

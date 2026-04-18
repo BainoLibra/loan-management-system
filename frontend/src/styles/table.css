@@ -221,6 +221,17 @@ button:disabled {
   min-width: 180px;
 }
 
+.form-error {
+  width: 100%;
+  margin-bottom: 10px;
+  color: #c0392b;
+  background: #fdecea;
+  border: 1px solid #e74c3c;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
 /* ── Dashboard stat cards ────────────────────── */
 .stat-cards {
   display: grid;
