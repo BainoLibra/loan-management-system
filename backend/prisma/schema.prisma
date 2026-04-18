@@ -50,12 +50,15 @@ model User {
 
 model Client {
   id         Int           @id @default(autoincrement())
-  name       String
-  phone      String?
-  email      String?
-  identifier String?
-  address    String?
-  status     ClientStatus  @default(active)
+  name          String
+  phone         String?
+  email         String?
+  identifier    String?
+  address       String?
+  guarantorName String?
+  guarantorPhone String?
+  guarantorId   String?
+  status        ClientStatus  @default(active)
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt
   loans      Loan[]

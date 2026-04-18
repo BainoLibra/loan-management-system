@@ -26,7 +26,7 @@ const sanitizeIdentifierInput = (value) => {
   return normalized.slice(0, 14);
 };
 
-const validateClientForm = ({ name, phone, identifier }) => {
+const validateClientForm = ({ name, phone, identifier, guarantorName, guarantorPhone, guarantorId }) => {
   if (!name.trim()) return "Name is required.";
   if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(name)) return "Name may only contain letters and spaces.";
   if (phone) {
@@ -35,12 +35,21 @@ const validateClientForm = ({ name, phone, identifier }) => {
   if (identifier) {
     if (!/^[A-Z0-9]{1,14}$/.test(identifier)) return "Identifier must be up to 14 characters of uppercase letters and digits only.";
   }
+  if (guarantorName) {
+    if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(guarantorName)) return "Guarantor name may only contain letters and spaces.";
+  }
+  if (guarantorPhone) {
+    if (!/^256\d{9}$/.test(guarantorPhone)) return "Guarantor phone must start with 256 and be 12 digits long.";
+  }
+  if (guarantorId) {
+    if (!/^[A-Z0-9]{1,14}$/.test(guarantorId)) return "Guarantor ID must be up to 14 characters of uppercase letters and digits only.";
+  }
   return "";
 };
 
 function Clients() {
   const [clients, setClients] = useState([]);
-  const [form, setForm] = useState({ name: "", phone: "", email: "", identifier: "", address: "" });
+  const [form, setForm] = useState({ name: "", phone: "", email: "", identifier: "", address: "", guarantorName: "", guarantorPhone: "", guarantorId: "" });
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [search, setSearch] = useState("");
@@ -59,10 +68,14 @@ function Clients() {
     e.preventDefault();
     setError("");
     const formattedName = titleCaseName(form.name);
+    const formattedGuarantorName = titleCaseName(form.guarantorName);
     const dataToSubmit = {
       ...form,
       name: formattedName,
       phone: sanitizePhoneInput(form.phone),
+      guarantorPhone: sanitizePhoneInput(form.guarantorPhone),
+      guarantorName: formattedGuarantorName,
+      guarantorId: sanitizeIdentifierInput(form.guarantorId),
       identifier: sanitizeIdentifierInput(form.identifier),
     };
 
@@ -81,7 +94,7 @@ function Clients() {
       return;
     }
 
-    setForm({ name: "", phone: "", email: "", identifier: "", address: "" });
+    setForm({ name: "", phone: "", email: "", identifier: "", address: "", guarantorName: "", guarantorPhone: "", guarantorId: "" });
     setShowForm(false);
     setEditingId(null);
     fetchClients();
@@ -89,7 +102,16 @@ function Clients() {
 
   const handleEdit = (c) => {
     setEditingId(c.id);
-    setForm({ name: c.name, phone: c.phone || "", email: c.email || "", identifier: c.identifier || "", address: c.address || "" });
+    setForm({
+      name: c.name,
+      phone: c.phone || "",
+      email: c.email || "",
+      identifier: c.identifier || "",
+      address: c.address || "",
+      guarantorName: c.guarantorName || "",
+      guarantorPhone: c.guarantorPhone || "",
+      guarantorId: c.guarantorId || ""
+    });
     setError("");
     setShowForm(true);
   };
@@ -102,8 +124,8 @@ function Clients() {
   };
 
   const exportCSV = () => {
-    const header = "ID,Name,Phone,Email,Address,Identifier\n";
-    const rows = filtered.map(c => `${c.id},"${c.name}","${c.phone || ""}","${c.email || ""}","${c.address || ""}","${c.identifier || ""}"`).join("\n");
+    const header = "ID,Name,Phone,Guarantor Name,Guarantor Phone,Guarantor ID,Email,Address,Identifier\n";
+    const rows = filtered.map(c => `${c.id},"${c.name}","${c.phone || ""}","${c.guarantorName || ""}","${c.guarantorPhone || ""}","${c.guarantorId || ""}","${c.email || ""}","${c.address || ""}","${c.identifier || ""}"`).join("\n");
     const blob = new Blob([header + rows], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a"); a.href = url; a.download = "clients.csv"; a.click();
@@ -113,6 +135,9 @@ function Clients() {
   const filtered = clients.filter(c =>
     c.name.toLowerCase().includes(search.toLowerCase()) ||
     (c.phone || "").includes(search) ||
+    (c.guarantorName || "").toLowerCase().includes(search.toLowerCase()) ||
+    (c.guarantorPhone || "").includes(search) ||
+    (c.guarantorId || "").toLowerCase().includes(search.toLowerCase()) ||
     (c.email || "").toLowerCase().includes(search.toLowerCase()) ||
     (c.address || "").toLowerCase().includes(search.toLowerCase()) ||
     (c.identifier || "").toLowerCase().includes(search.toLowerCase())
@@ -125,7 +150,7 @@ function Clients() {
     <Layout>
       <h2>Clients</h2>
       <div className="toolbar">
-        <button onClick={() => { setShowForm(!showForm); setEditingId(null); setForm({ name: "", phone: "", email: "", identifier: "", address: "" }); setError(""); }}>
+        <button onClick={() => { setShowForm(!showForm); setEditingId(null); setForm({ name: "", phone: "", email: "", identifier: "", address: "", guarantorName: "", guarantorPhone: "", guarantorId: "" }); setError(""); }}>
           {showForm ? "Cancel" : "+ New Client"}
         </button>
         <input
@@ -151,6 +176,23 @@ function Clients() {
             value={form.phone}
             onChange={(e) => setForm({ ...form, phone: sanitizePhoneInput(e.target.value) })}
             maxLength={12}
+          />
+          <input
+            placeholder="Guarantor Name"
+            value={form.guarantorName}
+            onChange={(e) => setForm({ ...form, guarantorName: titleCaseName(e.target.value) })}
+          />
+          <input
+            placeholder="Guarantor Phone"
+            value={form.guarantorPhone}
+            onChange={(e) => setForm({ ...form, guarantorPhone: sanitizePhoneInput(e.target.value) })}
+            maxLength={12}
+          />
+          <input
+            placeholder="Guarantor ID"
+            value={form.guarantorId}
+            onChange={(e) => setForm({ ...form, guarantorId: sanitizeIdentifierInput(e.target.value) })}
+            maxLength={14}
           />
           <input
             placeholder="Email"

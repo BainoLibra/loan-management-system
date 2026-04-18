@@ -10,23 +10,34 @@ const titleCaseName = (value) => {
     .join(" ");
 };
 
-const validateClientPayload = ({ name, phone, identifier }) => {
+const validateClientPayload = ({ name, phone, identifier, guarantorName, guarantorPhone, guarantorId }) => {
   if (!String(name || "").trim()) return "Name is required.";
   if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(name)) return "Name may only contain letters and spaces.";
   if (phone && !/^256\d{9}$/.test(phone)) return "Phone must start with 256 and be 12 digits long.";
   if (identifier && !/^[A-Z0-9]{1,14}$/.test(identifier)) return "Identifier must be up to 14 characters of uppercase letters and digits only.";
+  if (guarantorName && !/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(guarantorName)) return "Guarantor name may only contain letters and spaces.";
+  if (guarantorPhone && !/^256\d{9}$/.test(guarantorPhone)) return "Guarantor phone must start with 256 and be 12 digits long.";
+  if (guarantorId && !/^[A-Z0-9]{1,14}$/.test(guarantorId)) return "Guarantor ID must be up to 14 characters of uppercase letters and digits only.";
   return "";
 };
 
 const createClient = async (req, res) => {
   try {
-    const { name, phone, email, identifier } = req.body;
+    const { name, phone, email, identifier, guarantorName, guarantorPhone, guarantorId } = req.body;
     const formattedName = titleCaseName(name);
-    const validationError = validateClientPayload({ name: formattedName, phone, identifier });
+    const formattedGuarantorName = titleCaseName(guarantorName);
+    const validationError = validateClientPayload({
+      name: formattedName,
+      phone,
+      identifier,
+      guarantorName: formattedGuarantorName,
+      guarantorPhone,
+      guarantorId,
+    });
     if (validationError) return res.status(400).json({ error: validationError });
 
     const client = await prisma.client.create({
-      data: { name: formattedName, phone, email, identifier },
+      data: { name: formattedName, phone, email, identifier, guarantorName: formattedGuarantorName, guarantorPhone, guarantorId },
     });
 
     await logAudit(req.user.id, 'CREATE_CLIENT', 'client', client.id);
@@ -71,14 +82,22 @@ const getClientById = async (req, res) => {
 const updateClient = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, phone, email, identifier } = req.body;
+    const { name, phone, email, identifier, guarantorName, guarantorPhone, guarantorId } = req.body;
     const formattedName = titleCaseName(name);
-    const validationError = validateClientPayload({ name: formattedName, phone, identifier });
+    const formattedGuarantorName = titleCaseName(guarantorName);
+    const validationError = validateClientPayload({
+      name: formattedName,
+      phone,
+      identifier,
+      guarantorName: formattedGuarantorName,
+      guarantorPhone,
+      guarantorId,
+    });
     if (validationError) return res.status(400).json({ error: validationError });
 
     await prisma.client.update({
       where: { id: Number(id) },
-      data: { name: formattedName, phone, email, identifier },
+      data: { name: formattedName, phone, email, identifier, guarantorName: formattedGuarantorName, guarantorPhone, guarantorId },
     });
 
     await logAudit(req.user.id, 'UPDATE_CLIENT', 'client', id);

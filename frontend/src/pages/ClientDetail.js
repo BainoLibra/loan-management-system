@@ -55,6 +55,18 @@ function ClientDetail() {
           <span>{client.email || "-"}</span>
         </div>
         <div className="detail-card">
+          <label>Guarantor</label>
+          <span>{client.guarantorName || "-"}</span>
+        </div>
+        <div className="detail-card">
+          <label>Guarantor Phone</label>
+          <span>{client.guarantorPhone || "-"}</span>
+        </div>
+        <div className="detail-card">
+          <label>Guarantor ID</label>
+          <span>{client.guarantorId || "-"}</span>
+        </div>
+        <div className="detail-card">
           <label>Identifier</label>
           <span>{client.identifier || "-"}</span>
         </div>

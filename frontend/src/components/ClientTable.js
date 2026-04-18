@@ -15,6 +15,9 @@ const ClientTable = ({ clients, onEdit, onDelete, user }) => {
             <th>ID</th>
             <th>Name</th>
             <th>Phone</th>
+            <th>Guarantor</th>
+            <th>Guarantor Phone</th>
+            <th>Guarantor ID</th>
             <th>Email</th>
             <th>Address</th>
             <th>Identifier</th>
@@ -28,6 +31,9 @@ const ClientTable = ({ clients, onEdit, onDelete, user }) => {
               <td>{c.id}</td>
               <td><Link to={`/clients/${c.id}`}>{c.name}</Link></td>
               <td>{c.phone || "N/A"}</td>
+              <td>{c.guarantorName || "N/A"}</td>
+              <td>{c.guarantorPhone || "N/A"}</td>
+              <td>{c.guarantorId || "N/A"}</td>
               <td>{c.email || "N/A"}</td>
               <td>{c.address || "N/A"}</td>
               <td>{c.identifier || "N/A"}</td>

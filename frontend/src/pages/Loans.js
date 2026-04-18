@@ -87,9 +87,11 @@ function Loans() {
     <Layout>
       <h2>Loans</h2>
       <div className="toolbar">
-        <button onClick={() => setShowForm(!showForm)}>
-          {showForm ? "Cancel" : "+ New Loan"}
-        </button>
+        {(user && (user.role === "loan_officer" || user.role === "admin")) && (
+          <button onClick={() => setShowForm(!showForm)}>
+            {showForm ? "Cancel" : "+ New Loan"}
+          </button>
+        )}
         <input
           className="search-input"
           placeholder="Search by client or ID..."
