@@ -40,6 +40,11 @@ CREATE INDEX IF NOT EXISTS "clients_groupId_idx" ON "clients" ("groupId");
 
 ALTER TABLE "clients" DROP COLUMN IF EXISTS "name";
 
+ALTER TABLE "loans"
+  ADD COLUMN IF NOT EXISTS "guarantorName" text,
+  ADD COLUMN IF NOT EXISTS "notes" text,
+  ADD COLUMN IF NOT EXISTS "documents" text;
+
 CREATE TABLE IF NOT EXISTS "schedules" (
   "id" SERIAL PRIMARY KEY,
   "loanId" integer NOT NULL,
