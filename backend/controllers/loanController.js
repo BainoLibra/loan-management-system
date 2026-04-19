@@ -7,6 +7,11 @@ const getLoanById = async (id) => {
   });
 };
 
+const formatClientName = (client) => {
+  if (!client) return null;
+  return [client.firstName, client.lastName].filter(Boolean).join(' ') || null;
+};
+
 const createLoan = async (req, res) => {
   try {
     const { clientId, amount, interestRate, termMonths, guarantorName, notes, documents } = req.body;
@@ -80,13 +85,13 @@ const getLoans = async (req, res) => {
       where,
       orderBy: { createdAt: 'desc' },
       include: {
-        client: { select: { name: true } },
+        client: { select: { firstName: true, lastName: true } },
       },
     });
 
     res.json(rows.map((loan) => ({
       ...loan,
-      clientName: loan.client?.name || null,
+      clientName: formatClientName(loan.client),
     })));
   } catch (err) {
     res.status(500).json({ error: err.message });

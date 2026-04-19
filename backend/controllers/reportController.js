@@ -1,10 +1,15 @@
 const { prisma } = require('../db');
 
+const formatClientName = (client) => {
+  if (!client) return null;
+  return [client.firstName, client.lastName].filter(Boolean).join(' ') || null;
+};
+
 const getAgingReport = async (req, res) => {
   try {
     const rows = await prisma.loan.findMany({
       where: { status: 'disbursed' },
-      include: { client: { select: { name: true } } },
+      include: { client: { select: { firstName: true, lastName: true } } },
       orderBy: { disbursedAt: 'desc' },
     });
 
@@ -30,7 +35,7 @@ const getAgingReport = async (req, res) => {
 
       return {
         id: loan.id,
-        clientName: loan.client?.name || null,
+        clientName: formatClientName(loan.client),
         amount: loan.amount,
         balance: loan.balance,
         termMonths: loan.termMonths,

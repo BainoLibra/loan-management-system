@@ -33,6 +33,8 @@ FRONTEND_URL=http://localhost:3000
 
 **Note:** Special characters in password must be URL encoded (e.g., `?` → `%3F`)
 
+**Important:** Keep `DATABASE_URL` pointed at the Supabase pooler for app runtime, but use the direct `5432` host in `DIRECT_URL` for Prisma migrations. Using the pooler for `prisma migrate dev` can trigger `prepared statement "s1" already exists`.
+
 ### Running the Server
 
 **Development mode** (with auto-reload):
@@ -131,6 +133,8 @@ npx prisma migrate dev --name migration_name
 npx prisma db push
 ```
 
+If Prisma migrations fail with `prepared statement "s1" already exists`, verify that `DIRECT_URL` is the direct Supabase host on port `5432` and not the pooler on port `6543`.
+
 ## Project Structure
 
 ```
@@ -156,7 +160,7 @@ backend/
 | Variable | Required | Purpose |
 |----------|----------|---------|
 | `DATABASE_URL` | Yes | Supabase connection (pooling) |
-| `DIRECT_URL` | Yes | Supabase connection (direct) |
+| `DIRECT_URL` | Yes | Supabase direct connection for Prisma migrations |
 | `JWT_SECRET` | Yes | Secret for JWT signing |
 | `FRONTEND_URL` | Yes | Frontend URL for CORS |
 | `PORT` | No | Server port (default: 4000) |
