@@ -10,15 +10,23 @@ const titleCaseName = (value) => {
     .join(" ");
 };
 
+const normalizePhoneNumber = (value) => {
+  const digits = String(value || '').replace(/\D/g, '');
+  if (!digits) return '';
+  if (/^0\d{9}$/.test(digits)) return `256${digits.slice(1)}`;
+  if (/^256\d{9}$/.test(digits)) return digits;
+  return digits;
+};
+
 const validateClientPayload = ({ firstName, lastName, phone, identifier, guarantorName, guarantorPhone, guarantorId }) => {
   if (!String(firstName || "").trim()) return "First name is required.";
   if (!String(lastName || "").trim()) return "Last name is required.";
   if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(firstName)) return "First name may only contain letters and spaces.";
   if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(lastName)) return "Last name may only contain letters and spaces.";
-  if (phone && !/^256\d{9}$/.test(phone)) return "Phone must start with 256 and be 12 digits long.";
+  if (phone && !/^256\d{9}$/.test(phone)) return "Phone must be in format 256XXXXXXXXX or 07XXXXXXXX.";
   if (identifier && !/^[A-Z0-9]{1,14}$/.test(identifier)) return "Identifier must be up to 14 characters of uppercase letters and digits only.";
   if (guarantorName && !/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(guarantorName)) return "Guarantor name may only contain letters and spaces.";
-  if (guarantorPhone && !/^256\d{9}$/.test(guarantorPhone)) return "Guarantor phone must start with 256 and be 12 digits long.";
+  if (guarantorPhone && !/^256\d{9}$/.test(guarantorPhone)) return "Guarantor phone must be in format 256XXXXXXXXX or 07XXXXXXXX.";
   if (guarantorId && !/^[A-Z0-9]{1,14}$/.test(guarantorId)) return "Guarantor ID must be up to 14 characters of uppercase letters and digits only.";
   return "";
 };
@@ -29,13 +37,15 @@ const createClient = async (req, res) => {
     const formattedFirstName = titleCaseName(firstName);
     const formattedLastName = titleCaseName(lastName);
     const formattedGuarantorName = titleCaseName(guarantorName);
+    const normalizedPhone = normalizePhoneNumber(phone);
+    const normalizedGuarantorPhone = normalizePhoneNumber(guarantorPhone);
     const validationError = validateClientPayload({
       firstName: formattedFirstName,
       lastName: formattedLastName,
-      phone,
+      phone: normalizedPhone,
       identifier,
       guarantorName: formattedGuarantorName,
-      guarantorPhone,
+      guarantorPhone: normalizedGuarantorPhone,
       guarantorId,
     });
     if (validationError) return res.status(400).json({ error: validationError });
@@ -44,13 +54,13 @@ const createClient = async (req, res) => {
       data: {
         firstName: formattedFirstName,
         lastName: formattedLastName,
-        phone,
+        phone: normalizedPhone || null,
         email,
         identifier,
         address,
         groupId: groupId ? Number(groupId) : null,
         guarantorName: formattedGuarantorName,
-        guarantorPhone,
+        guarantorPhone: normalizedGuarantorPhone || null,
         guarantorId,
       },
     });
@@ -101,13 +111,15 @@ const updateClient = async (req, res) => {
     const formattedFirstName = titleCaseName(firstName);
     const formattedLastName = titleCaseName(lastName);
     const formattedGuarantorName = titleCaseName(guarantorName);
+    const normalizedPhone = normalizePhoneNumber(phone);
+    const normalizedGuarantorPhone = normalizePhoneNumber(guarantorPhone);
     const validationError = validateClientPayload({
       firstName: formattedFirstName,
       lastName: formattedLastName,
-      phone,
+      phone: normalizedPhone,
       identifier,
       guarantorName: formattedGuarantorName,
-      guarantorPhone,
+      guarantorPhone: normalizedGuarantorPhone,
       guarantorId,
     });
     if (validationError) return res.status(400).json({ error: validationError });
@@ -117,13 +129,13 @@ const updateClient = async (req, res) => {
       data: {
         firstName: formattedFirstName,
         lastName: formattedLastName,
-        phone,
+        phone: normalizedPhone || null,
         email,
         identifier,
         address,
         groupId: groupId ? Number(groupId) : null,
         guarantorName: formattedGuarantorName,
-        guarantorPhone,
+        guarantorPhone: normalizedGuarantorPhone || null,
         guarantorId,
       },
     });

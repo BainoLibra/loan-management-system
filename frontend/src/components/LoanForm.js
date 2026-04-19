@@ -36,6 +36,11 @@ const LoanForm = ({ onSubmit, initialData = {} }) => {
     onSubmit(form);
   };
 
+  const getClientLabel = (client) => {
+    const fullName = [client.firstName, client.lastName].filter(Boolean).join(" ").trim();
+    return fullName || client.name || `Client #${client.id}`;
+  };
+
   return (
     <form onSubmit={handleSubmit} className="loan-form">
       <h3>{initialData.id ? "Edit Loan" : "New Loan Application"}</h3>
@@ -44,7 +49,7 @@ const LoanForm = ({ onSubmit, initialData = {} }) => {
         <select name="clientId" value={form.clientId} onChange={handleChange} required>
           <option value="">Select Client</option>
           {clients.map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
+            <option key={c.id} value={c.id}>{getClientLabel(c)}</option>
           ))}
         </select>
       </div>

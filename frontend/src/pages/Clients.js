@@ -22,6 +22,13 @@ const sanitizePhoneInput = (value) => {
   return digits.slice(0, 12);
 };
 
+const normalizePhoneNumber = (value) => {
+  const digits = String(value || "").replace(/\D/g, "");
+  if (/^0\d{9}$/.test(digits)) return `256${digits.slice(1)}`;
+  if (/^256\d{9}$/.test(digits)) return digits;
+  return digits;
+};
+
 const sanitizeIdentifierInput = (value) => {
   const normalized = value.toUpperCase().replace(/[^A-Z0-9]/g, "");
   return normalized.slice(0, 14);
@@ -33,7 +40,7 @@ const validateClientForm = ({ firstName, lastName, phone, identifier, guarantorN
   if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(firstName)) return "First name may only contain letters and spaces.";
   if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(lastName)) return "Last name may only contain letters and spaces.";
   if (phone) {
-    if (!/^256\d{9}$/.test(phone)) return "Phone must start with 256 and be 12 digits long.";
+    if (!/^256\d{9}$/.test(phone)) return "Phone must be in format 256XXXXXXXXX or 07XXXXXXXX.";
   }
   if (identifier) {
     if (!/^[A-Z0-9]{1,14}$/.test(identifier)) return "Identifier must be up to 14 characters of uppercase letters and digits only.";
@@ -42,7 +49,7 @@ const validateClientForm = ({ firstName, lastName, phone, identifier, guarantorN
     if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(guarantorName)) return "Guarantor name may only contain letters and spaces.";
   }
   if (guarantorPhone) {
-    if (!/^256\d{9}$/.test(guarantorPhone)) return "Guarantor phone must start with 256 and be 12 digits long.";
+    if (!/^256\d{9}$/.test(guarantorPhone)) return "Guarantor phone must be in format 256XXXXXXXXX or 07XXXXXXXX.";
   }
   if (guarantorId) {
     if (!/^[A-Z0-9]{1,14}$/.test(guarantorId)) return "Guarantor ID must be up to 14 characters of uppercase letters and digits only.";
@@ -96,8 +103,8 @@ function Clients() {
       ...form,
       firstName: formattedFirstName,
       lastName: formattedLastName,
-      phone: sanitizePhoneInput(form.phone),
-      guarantorPhone: sanitizePhoneInput(form.guarantorPhone),
+      phone: normalizePhoneNumber(form.phone),
+      guarantorPhone: normalizePhoneNumber(form.guarantorPhone),
       guarantorName: formattedGuarantorName,
       guarantorId: sanitizeIdentifierInput(form.guarantorId),
       identifier: sanitizeIdentifierInput(form.identifier),
