@@ -36,7 +36,10 @@ app.use(async (_req, _res, next) => {
     await ready;
     next();
   } catch (error) {
-    next(error);
+    console.error('Database initialization failed:', error);
+    const err = new Error('Database connection failed');
+    err.status = 503; // Service Unavailable
+    next(err);
   }
 });
 
@@ -77,6 +80,19 @@ app.get('/api/test-db', async (_req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
+});
+
+// 404 handler - must come before error handler
+app.use((_req, res) => {
+  res.status(404).json({ error: 'Route not found' });
+});
+
+// Error handler - must be last middleware
+app.use((err, _req, res, _next) => {
+  console.error('Server Error:', err);
+  res.status(err.status || 500).json({
+    error: err.message || 'Internal Server Error',
+  });
 });
 
 module.exports = { app };
