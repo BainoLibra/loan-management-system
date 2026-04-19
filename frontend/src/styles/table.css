@@ -2,7 +2,6 @@
 .table-container {
   width: 100%;
   overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
 }
 
 table {
@@ -42,7 +41,6 @@ tbody tr:hover {
 
   .table-container {
     overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
   }
 }
 

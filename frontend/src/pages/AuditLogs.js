@@ -9,11 +9,16 @@ function AuditLogs() {
   const [logs, setLogs] = useState([]);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const fetchLogs = async () => {
-      const data = await getAuditLogs();
-      if (Array.isArray(data)) setLogs(data);
+      try {
+        const data = await getAuditLogs();
+        if (Array.isArray(data)) setLogs(data);
+      } catch (err) {
+        setError(err.message || "Failed to load audit logs");
+      }
     };
     fetchLogs();
   }, []);
@@ -41,6 +46,7 @@ function AuditLogs() {
   return (
     <Layout>
       <h2>Audit Logs</h2>
+      {error && <div className="form-error">{error}</div>}
       <div className="toolbar">
         <input
           className="search-input"

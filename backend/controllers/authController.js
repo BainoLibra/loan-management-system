@@ -8,13 +8,20 @@ if (!SECRET) {
 }
 const allowedRoles = ['admin', 'loan_officer', 'cashier'];
 
+const normalizeEmail = (value) => {
+        if (typeof value !== 'string') return null;
+        const normalized = value.trim().toLowerCase();
+        return normalized || null;
+};
+
 // REGISTER USER
 const register = async (req, res) => {
     try {
         const { name, email, password, role } = req.body;
+        const normalizedEmail = normalizeEmail(email);
         
         // Validate required fields
-        if (!name || !email || !password) {
+        if (!name || !normalizedEmail || !password) {
             return res.status(400).json({ error: 'Name, email and password are required' });
         }
 
@@ -25,7 +32,7 @@ const register = async (req, res) => {
 
         // Validate email format
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
+        if (!emailRegex.test(normalizedEmail)) {
             return res.status(400).json({ error: 'Invalid email format' });
         }
 
@@ -42,7 +49,7 @@ const register = async (req, res) => {
         await prisma.user.create({
             data: {
                 name: name.trim(),
-                email: email.toLowerCase().trim(),
+                email: normalizedEmail,
                 password: hashedPassword,
                 role: selectedRole,
             },
@@ -66,9 +73,14 @@ const register = async (req, res) => {
 const login = async (req, res) => {
     try {
         const { email, password } = req.body;
+        const normalizedEmail = normalizeEmail(email);
+
+        if (!normalizedEmail || typeof password !== 'string') {
+            return res.status(400).json({ message: 'Email and password are required' });
+        }
 
         const user = await prisma.user.findUnique({
-            where: { email },
+            where: { email: normalizedEmail },
         });
 
         if (!user) {
