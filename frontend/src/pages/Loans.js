@@ -134,7 +134,7 @@ function Loans() {
   return (
     <Layout>
       <h2>Loans</h2>
-      
+
       {error && <div style={{ padding: '15px', backgroundColor: '#fee', color: '#c33', borderRadius: '4px', marginBottom: '20px' }}>
         ⚠️ {error}
       </div>}
@@ -158,76 +158,78 @@ function Loans() {
             />
             <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }} className="filter-select" disabled={submitting}>
               <option value="all">All Status</option>
-          <option value="applied">Applied</option>
-          <option value="approved">Approved</option>
-          <option value="disbursed">Disbursed</option>
-          <option value="closed">Closed</option>
-          <option value="rejected">Rejected</option>
-        </select>
-        <button className="btn-secondary" onClick={exportCSV}>Export CSV</button>
-      </div>
-
-      {showForm && (
-        <LoanForm onSubmit={handleCreate} />
-      )}
-
-      <LoanTable
-        loans={paginated}
-        onViewSchedule={viewSchedule}
-        onApprove={handleApprove}
-        onReject={handleReject}
-        onDisburse={handleDisburse}
-        user={user}
-      />
-
-      {totalPages > 1 && (
-        <div className="pagination">
-          <button disabled={page <= 1} onClick={() => setPage(page - 1)}>Prev</button>
-          <span>Page {page} of {totalPages}</span>
-          <button disabled={page >= totalPages} onClick={() => setPage(page + 1)}>Next</button>
-        </div>
-      )}
-
-      {schedule && (
-        <div style={{ marginTop: 20 }}>
-          <h3>Repayment Schedule - Loan #{scheduleLoanId}</h3>
-          <div className="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>Month</th>
-                  <th>Due Date</th>
-                  <th>Payment</th>
-                  <th>Principal</th>
-                  <th>Interest</th>
-                  <th>Balance</th>
-                  <th>Status</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {schedule.map((s) => (
-                  <tr key={s.month}>
-                    <td>{s.month}</td>
-                    <td>{new Date(s.dueDate).toLocaleDateString()}</td>
-                    <td>{Number(s.payment).toLocaleString()}</td>
-                    <td>{Number(s.principal).toLocaleString()}</td>
-                    <td>{Number(s.interest).toLocaleString()}</td>
-                    <td>{Number(s.balance).toLocaleString()}</td>
-                    <td>{s.status}</td>
-                    <td>
-                      {s.status !== 'paid' && (
-                        <button className="btn-sm btn-primary" onClick={() => handlePayInstallment(s.id, s.payment, s.status)}>
-                          Pay Installment
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+              <option value="applied">Applied</option>
+              <option value="approved">Approved</option>
+              <option value="disbursed">Disbursed</option>
+              <option value="closed">Closed</option>
+              <option value="rejected">Rejected</option>
+            </select>
+            <button className="btn-secondary" onClick={exportCSV}>Export CSV</button>
           </div>
-        </div>
+
+          {showForm && (
+            <LoanForm onSubmit={handleCreate} />
+          )}
+
+          <LoanTable
+            loans={paginated}
+            onViewSchedule={viewSchedule}
+            onApprove={handleApprove}
+            onReject={handleReject}
+            onDisburse={handleDisburse}
+            user={user}
+          />
+
+          {totalPages > 1 && (
+            <div className="pagination">
+              <button disabled={page <= 1} onClick={() => setPage(page - 1)}>Prev</button>
+              <span>Page {page} of {totalPages}</span>
+              <button disabled={page >= totalPages} onClick={() => setPage(page + 1)}>Next</button>
+            </div>
+          )}
+
+          {schedule && (
+            <div style={{ marginTop: 20 }}>
+              <h3>Repayment Schedule - Loan #{scheduleLoanId}</h3>
+              <div className="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Month</th>
+                      <th>Due Date</th>
+                      <th>Payment</th>
+                      <th>Principal</th>
+                      <th>Interest</th>
+                      <th>Balance</th>
+                      <th>Status</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {schedule.map((s) => (
+                      <tr key={s.month}>
+                        <td>{s.month}</td>
+                        <td>{new Date(s.dueDate).toLocaleDateString()}</td>
+                        <td>{Number(s.payment).toLocaleString()}</td>
+                        <td>{Number(s.principal).toLocaleString()}</td>
+                        <td>{Number(s.interest).toLocaleString()}</td>
+                        <td>{Number(s.balance).toLocaleString()}</td>
+                        <td>{s.status}</td>
+                        <td>
+                          {s.status !== 'paid' && (
+                            <button className="btn-sm btn-primary" onClick={() => handlePayInstallment(s.id, s.payment, s.status)}>
+                              Pay Installment
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </Layout>
   );

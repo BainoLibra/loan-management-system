@@ -59,7 +59,6 @@ function Clients() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [error, setError] = useState("");
-    const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
   const user = getUser();
 
@@ -67,20 +66,15 @@ function Clients() {
 
   const fetchClients = async () => {
     try {
-      setLoading(true);
-    const data = await getClients();
-    if (Array.isArray(data)) setClients(data);
+      const data = await getClients();
+      if (Array.isArray(data)) setClients(data);
     } catch (err) {
       setError(err.message || 'Failed to fetch clients');
       setClients([]);
-    } finally {
-      setLoading(false);
     }
   };
 
   const fetchGroups = async () => {
-    const data = await getGroups();
-    if (Array.isArray(data)) setGroups(data);
     try {
       const data = await getGroups();
       if (Array.isArray(data)) setGroups(data);
@@ -92,7 +86,7 @@ function Clients() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    
+
     if (submitting) return;
     setSubmitting(true);
     const formattedFirstName = titleCaseName(form.firstName);
@@ -119,18 +113,23 @@ function Clients() {
 
     try {
       const response = editingId
-      ? await updateClient(editingId, dataToSubmit)
-      : await createClient(dataToSubmit);
+        ? await updateClient(editingId, dataToSubmit)
+        : await createClient(dataToSubmit);
 
-    if (response.error) {
-      setError(response.error);
-      return;
+      if (response.error) {
+        setError(response.error);
+        return;
+      }
+
+      setForm({ firstName: "", lastName: "", phone: "", email: "", identifier: "", address: "", groupId: "", guarantorName: "", guarantorPhone: "", guarantorId: "" });
+      setShowForm(false);
+      setEditingId(null);
+      fetchClients();
+    } catch (err) {
+      setError(err.message || "Failed to save client");
+    } finally {
+      setSubmitting(false);
     }
-
-    setForm({ firstName: "", lastName: "", phone: "", email: "", identifier: "", address: "", groupId: "", guarantorName: "", guarantorPhone: "", guarantorId: "" });
-    setShowForm(false);
-    setEditingId(null);
-    fetchClients();
   };
 
   const handleEdit = (c) => {

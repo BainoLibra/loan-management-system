@@ -15,7 +15,7 @@ export const getClients = async () => {
     headers: getAuthHeaders(),
     credentials: "include"
   });
-  return response.json();
+  return handleResponse(response);
 };
 
 export const getClientById = async (id) => {
@@ -23,7 +23,7 @@ export const getClientById = async (id) => {
     headers: getAuthHeaders(),
     credentials: "include"
   });
-  return response.json();
+  return handleResponse(response);
 };
 
 export const createClient = async (client) => {
@@ -33,7 +33,7 @@ export const createClient = async (client) => {
     credentials: "include",
     body: JSON.stringify(client),
   });
-  return response.json();
+  return handleResponse(response);
 };
 
 export const updateClient = async (id, client) => {
@@ -43,7 +43,7 @@ export const updateClient = async (id, client) => {
     credentials: "include",
     body: JSON.stringify(client),
   });
-  return response.json();
+  return handleResponse(response);
 };
 
 export const deleteClient = async (id) => {
@@ -52,5 +52,5 @@ export const deleteClient = async (id) => {
     headers: getAuthHeaders(),
     credentials: "include"
   });
-  return response.json();
+  return handleResponse(response);
 };
