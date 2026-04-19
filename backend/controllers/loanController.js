@@ -11,23 +11,48 @@ const createLoan = async (req, res) => {
   try {
     const { clientId, amount, interestRate, termMonths, guarantorName, notes, documents } = req.body;
 
+    // Validate required fields
+    if (!clientId || !amount || interestRate === undefined || !termMonths) {
+      return res.status(400).json({ error: 'clientId, amount, interestRate, and termMonths are required' });
+    }
+
+    // Validate amount
     const numAmount = Number(amount);
-    if (numAmount < 300000 || numAmount > 2000000) {
-      return res.status(400).json({ error: 'Loan amount must be between 300,000 and 2,000,000' });
+    if (isNaN(numAmount) || numAmount < 300000 || numAmount > 2000000) {
+      return res.status(400).json({ error: 'Loan amount must be a number between 300,000 and 2,000,000' });
+    }
+
+    // Validate interestRate
+    const numInterestRate = Number(interestRate);
+    if (isNaN(numInterestRate) || numInterestRate < 0 || numInterestRate > 50) {
+      return res.status(400).json({ error: 'Interest rate must be a number between 0 and 50' });
+    }
+
+    // Validate termMonths
+    const numTermMonths = Number(termMonths);
+    if (isNaN(numTermMonths) || numTermMonths < 1 || numTermMonths > 120) {
+      return res.status(400).json({ error: 'Term months must be a number between 1 and 120' });
+    }
+
+    // Validate client exists
+    const client = await prisma.client.findUnique({
+      where: { id: Number(clientId) },
+    });
+    if (!client) {
+      return res.status(404).json({ error: 'Client not found' });
     }
 
     const createdBy = req.user.id;
-
     const appliedAt = new Date();
     const status = 'applied';
-    const balance = amount;
+    const balance = numAmount;
 
     const loan = await prisma.loan.create({
       data: {
         clientId: Number(clientId),
-        amount,
-        interestRate: 1.5, // Monthly interest rate
-        termMonths: 6,
+        amount: numAmount,
+        interestRate: numInterestRate,
+        termMonths: numTermMonths,
         guarantorName,
         notes,
         documents,
@@ -42,7 +67,8 @@ const createLoan = async (req, res) => {
 
     res.json({ id: loan.id });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Error creating loan:', err);
+    res.status(500).json({ error: 'Failed to create loan. Please check your input and try again.' });
   }
 };
 

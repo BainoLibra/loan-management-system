@@ -14,19 +14,29 @@ function Login() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    
+    // Prevent multiple submissions
+    if (loading) return;
+    
     setError("");
     setLoading(true);
 
     try {
+      if (!email || !password) {
+        setError("Please enter both email and password");
+        setLoading(false);
+        return;
+      }
+
       const data = await loginUser(email, password);
       if (data.token) {
         navigate("/dashboard");
       } else {
         setError(data.message || data.error || "Login failed");
+        setLoading(false);
       }
-    } catch {
-      setError("Unable to connect to server");
-    } finally {
+    } catch (err) {
+      setError(err.message || "Unable to connect to server. Please check your connection and try again.");
       setLoading(false);
     }
   };
@@ -40,7 +50,7 @@ function Login() {
           <p className="login-subtitle">Loan Management System</p>
         </div>
 
-        {error && <div className="login-error">{error}</div>}
+        {error && <div className="login-error">⚠️ {error}</div>}
 
         <form onSubmit={handleLogin} className="login-form">
           <div className="form-group">
@@ -53,6 +63,7 @@ function Login() {
               onChange={(e) => setEmail(e.target.value)}
               required
               autoFocus
+              disabled={loading}
             />
           </div>
           <div className="form-group">
@@ -65,12 +76,14 @@ function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                disabled={loading}
               />
               <button
                 type="button"
                 className="password-toggle-btn"
                 onClick={() => setShowPassword(!showPassword)}
                 title={showPassword ? "Hide password" : "Show password"}
+                disabled={loading}
               >
                 {showPassword ? "🙈" : "👁️"}
               </button>

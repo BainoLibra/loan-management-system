@@ -59,23 +59,42 @@ function Clients() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [error, setError] = useState("");
+    const [loading, setLoading] = useState(true);
+    const [submitting, setSubmitting] = useState(false);
   const user = getUser();
 
   useEffect(() => { fetchClients(); fetchGroups(); }, []);
 
   const fetchClients = async () => {
+    try {
+      setLoading(true);
     const data = await getClients();
     if (Array.isArray(data)) setClients(data);
+    } catch (err) {
+      setError(err.message || 'Failed to fetch clients');
+      setClients([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const fetchGroups = async () => {
     const data = await getGroups();
     if (Array.isArray(data)) setGroups(data);
+    try {
+      const data = await getGroups();
+      if (Array.isArray(data)) setGroups(data);
+    } catch (err) {
+      console.error('Failed to fetch groups:', err);
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    
+    if (submitting) return;
+    setSubmitting(true);
     const formattedFirstName = titleCaseName(form.firstName);
     const formattedLastName = titleCaseName(form.lastName);
     const formattedGuarantorName = titleCaseName(form.guarantorName);
@@ -94,10 +113,12 @@ function Clients() {
     const validationError = validateClientForm(dataToSubmit);
     if (validationError) {
       setError(validationError);
+      setSubmitting(false);
       return;
     }
 
-    const response = editingId
+    try {
+      const response = editingId
       ? await updateClient(editingId, dataToSubmit)
       : await createClient(dataToSubmit);
 

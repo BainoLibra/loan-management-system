@@ -12,8 +12,26 @@ const allowedRoles = ['admin', 'loan_officer', 'cashier'];
 const register = async (req, res) => {
     try {
         const { name, email, password, role } = req.body;
+        
+        // Validate required fields
         if (!name || !email || !password) {
             return res.status(400).json({ error: 'Name, email and password are required' });
+        }
+
+        // Validate name
+        if (typeof name !== 'string' || name.trim().length < 2 || name.trim().length > 100) {
+            return res.status(400).json({ error: 'Name must be between 2 and 100 characters' });
+        }
+
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({ error: 'Invalid email format' });
+        }
+
+        // Validate password strength
+        if (typeof password !== 'string' || password.length < 8) {
+            return res.status(400).json({ error: 'Password must be at least 8 characters long' });
         }
 
         const selectedRole = allowedRoles.includes(role) ? role : 'loan_officer';
@@ -23,8 +41,8 @@ const register = async (req, res) => {
 
         await prisma.user.create({
             data: {
-                name,
-                email,
+                name: name.trim(),
+                email: email.toLowerCase().trim(),
                 password: hashedPassword,
                 role: selectedRole,
             },
@@ -33,7 +51,7 @@ const register = async (req, res) => {
         res.json({ message: 'User registered successfully' });
 
     } catch (error) {
-        console.log(error);
+        console.error('Registration error:', error);
 
         if (error.code === 'P2002') {
             return res.status(400).json({

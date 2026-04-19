@@ -18,11 +18,15 @@ function Dashboard() {
   const [stats, setStats] = useState({ loans: 0, clients: 0, disbursed: 0, totalBalance: 0 });
   const [statusData, setStatusData] = useState([]);
   const [monthlyData, setMonthlyData] = useState([]);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
   const user = getUser();
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
+        setLoading(true);
+        setError("");
         const [loans, clients] = await Promise.all([getLoans(), getClients()]);
         const loansArr = Array.isArray(loans) ? loans : [];
         const clientsArr = Array.isArray(clients) ? clients : [];
@@ -63,8 +67,11 @@ function Dashboard() {
         setMonthlyData(
           Object.entries(monthly).map(([month, amount]) => ({ month, amount }))
         );
-      } catch {
-        /* dashboard is best-effort */
+      } catch (err) {
+        console.error('Dashboard error:', err);
+        setError(err.message || 'Failed to load dashboard data');
+      } finally {
+        setLoading(false);
       }
     };
     fetchStats();
@@ -75,50 +82,60 @@ function Dashboard() {
       <h2>Dashboard</h2>
       <p>Welcome, {user ? user.name : "User"}!</p>
 
-      <div className="stat-cards">
-        <div className="stat-card"><h3>{stats.clients}</h3><p>Clients</p></div>
-        <div className="stat-card"><h3>{stats.loans}</h3><p>Total Loans</p></div>
-        <div className="stat-card"><h3>{stats.disbursed}</h3><p>Active (Disbursed)</p></div>
-        <div className="stat-card"><h3>{stats.totalBalance.toLocaleString()}</h3><p>Outstanding Balance</p></div>
-      </div>
+      {error && <div style={{ padding: '15px', backgroundColor: '#fee', color: '#c33', borderRadius: '4px', marginBottom: '20px' }}>
+        ⚠️ {error}
+      </div>}
 
-      <div className="chart-row">
-        <div className="chart-box">
-          <h4>Loan Status Breakdown</h4>
-          {statusData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={280}>
-              <PieChart>
-                <Pie data={statusData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
-                  {statusData.map((entry) => (
-                    <Cell key={entry.name} fill={STATUS_COLORS[entry.name] || "#999"} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          ) : (
-            <p style={{ color: "#999" }}>No loan data yet</p>
-          )}
-        </div>
+      {loading && <p style={{ color: '#666', textAlign: 'center', padding: '20px' }}>Loading dashboard...</p>}
 
-        <div className="chart-box">
-          <h4>Monthly Disbursements (Last 6 Months)</h4>
-          {monthlyData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={monthlyData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip formatter={(v) => Number(v).toLocaleString()} />
-                <Bar dataKey="amount" fill="#3498db" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <p style={{ color: "#999" }}>No disbursement data yet</p>
-          )}
-        </div>
-      </div>
+      {!loading && (
+        <>
+          <div className="stat-cards">
+            <div className="stat-card"><h3>{stats.clients}</h3><p>Clients</p></div>
+            <div className="stat-card"><h3>{stats.loans}</h3><p>Total Loans</p></div>
+            <div className="stat-card"><h3>{stats.disbursed}</h3><p>Active (Disbursed)</p></div>
+            <div className="stat-card"><h3>{stats.totalBalance.toLocaleString()}</h3><p>Outstanding Balance</p></div>
+          </div>
+
+          <div className="chart-row">
+            <div className="chart-box">
+              <h4>Loan Status Breakdown</h4>
+              {statusData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={280}>
+                  <PieChart>
+                    <Pie data={statusData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
+                      {statusData.map((entry) => (
+                        <Cell key={entry.name} fill={STATUS_COLORS[entry.name] || "#999"} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <p style={{ color: "#999" }}>No loan data yet</p>
+              )}
+            </div>
+
+            <div className="chart-box">
+              <h4>Monthly Disbursements (Last 6 Months)</h4>
+              {monthlyData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={monthlyData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis />
+                    <Tooltip formatter={(v) => Number(v).toLocaleString()} />
+                    <Bar dataKey="amount" fill="#3498db" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <p style={{ color: "#999" }}>No disbursement data yet</p>
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </Layout>
   );
 }

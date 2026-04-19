@@ -16,35 +16,83 @@ function Loans() {
   const [page, setPage] = useState(1);
   const [schedule, setSchedule] = useState(null);
   const [scheduleLoanId, setScheduleLoanId] = useState(null);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const user = getUser();
 
   useEffect(() => { fetchLoans(); }, []);
 
   const fetchLoans = async () => {
-    const data = await getLoans();
-    if (Array.isArray(data)) setLoans(data);
+    try {
+      setLoading(true);
+      setError("");
+      const data = await getLoans();
+      if (Array.isArray(data)) setLoans(data);
+    } catch (err) {
+      setError(err.message || 'Failed to fetch loans');
+      setLoans([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCreate = async (formData) => {
-    const data = new FormData();
-    data.append('clientId', Number(formData.clientId));
-    data.append('amount', Number(formData.amount));
-    data.append('interestRate', Number(formData.interestRate));
-    data.append('termMonths', Number(formData.termMonths));
-    if (formData.guarantorName) data.append('guarantorName', formData.guarantorName);
-    if (formData.notes) data.append('notes', formData.notes);
-    if (formData.documents) data.append('documents', formData.documents);
-    await createLoan(data);
-    setShowForm(false);
-    fetchLoans();
+    try {
+      setSubmitting(true);
+      setError("");
+      const data = new FormData();
+      data.append('clientId', Number(formData.clientId));
+      data.append('amount', Number(formData.amount));
+      data.append('interestRate', Number(formData.interestRate));
+      data.append('termMonths', Number(formData.termMonths));
+      if (formData.guarantorName) data.append('guarantorName', formData.guarantorName);
+      if (formData.notes) data.append('notes', formData.notes);
+      if (formData.documents) data.append('documents', formData.documents);
+      await createLoan(data);
+      setShowForm(false);
+      fetchLoans();
+    } catch (err) {
+      setError(err.message || 'Failed to create loan');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const handleApprove = async (id) => { await approveLoan(id); fetchLoans(); };
+  const handleApprove = async (id) => { 
+    try {
+      setSubmitting(true);
+      setError("");
+      await approveLoan(id); 
+      fetchLoans();
+    } catch (err) {
+      setError(err.message || 'Failed to approve loan');
+      setSubmitting(false);
+    }
+  };
   const handleReject = async (id) => {
     if (!window.confirm("Reject this loan application?")) return;
-    await rejectLoan(id); fetchLoans();
+    try {
+      setSubmitting(true);
+      setError("");
+      await rejectLoan(id); 
+      fetchLoans();
+    } catch (err) {
+      setError(err.message || 'Failed to reject loan');
+      setSubmitting(false);
+    }
   };
-  const handleDisburse = async (id) => { await disburseLoan(id); fetchLoans(); };
+  const handleDisburse = async (id) => { 
+    try {
+      setSubmitting(true);
+      setError("");
+      await disburseLoan(id); 
+      fetchLoans();
+    } catch (err) {
+      setError(err.message || 'Failed to disburse loan');
+      setSubmitting(false);
+    }
+  };
   const handlePayInstallment = async (scheduleId, payment, status) => {
     let amount = payment;
     if (status === 'overdue') {
@@ -86,20 +134,30 @@ function Loans() {
   return (
     <Layout>
       <h2>Loans</h2>
-      <div className="toolbar">
-        {(user && (user.role === "loan_officer" || user.role === "admin")) && (
-          <button onClick={() => setShowForm(!showForm)}>
-            {showForm ? "Cancel" : "+ New Loan"}
-          </button>
-        )}
-        <input
-          className="search-input"
-          placeholder="Search by client or ID..."
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-        />
-        <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }} className="filter-select">
-          <option value="all">All Status</option>
+      
+      {error && <div style={{ padding: '15px', backgroundColor: '#fee', color: '#c33', borderRadius: '4px', marginBottom: '20px' }}>
+        ⚠️ {error}
+      </div>}
+
+      {loading && <p style={{ color: '#666', textAlign: 'center', padding: '20px' }}>Loading loans...</p>}
+
+      {!loading && (
+        <>
+          <div className="toolbar">
+            {(user && (user.role === "loan_officer" || user.role === "admin")) && (
+              <button onClick={() => setShowForm(!showForm)} disabled={submitting}>
+                {showForm ? "Cancel" : "+ New Loan"}
+              </button>
+            )}
+            <input
+              className="search-input"
+              placeholder="Search by client or ID..."
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              disabled={submitting}
+            />
+            <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }} className="filter-select" disabled={submitting}>
+              <option value="all">All Status</option>
           <option value="applied">Applied</option>
           <option value="approved">Approved</option>
           <option value="disbursed">Disbursed</option>

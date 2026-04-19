@@ -2,6 +2,14 @@ import API_BASE, { getAuthHeaders } from "./api";
 
 const API_URL = `${API_BASE}/api/clients`;
 
+const handleResponse = async (response) => {
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || error.message || 'Request failed');
+  }
+  return response.json();
+};
+
 export const getClients = async () => {
   const response = await fetch(API_URL, { 
     headers: getAuthHeaders(),

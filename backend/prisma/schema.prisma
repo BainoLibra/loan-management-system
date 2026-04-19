@@ -56,6 +56,7 @@ model User {
   repayments    Repayment[]
   auditLogs     AuditLog[]
 
+  @@index([email])
   @@map("users")
 }
 
@@ -99,9 +100,9 @@ model Loan {
   createdBy    Int
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
-  client       Client      @relation(fields: [clientId], references: [id])
-  createdByUser User       @relation("LoanCreatedBy", fields: [createdBy], references: [id])
-  approvedByUser User?     @relation("LoanApprovedBy", fields: [approvedBy], references: [id])
+  client       Client      @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  createdByUser User       @relation("LoanCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+  approvedByUser User?     @relation("LoanApprovedBy", fields: [approvedBy], references: [id], onDelete: SetNull)
   repayments   Repayment[]
   schedules    Schedule[]
 
@@ -118,8 +119,8 @@ model Repayment {
   paidBy     Int
   date       DateTime
   createdAt  DateTime @default(now())
-  loan       Loan     @relation(fields: [loanId], references: [id])
-  paidByUser User     @relation(fields: [paidBy], references: [id])
+  loan       Loan     @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  paidByUser User     @relation(fields: [paidBy], references: [id], onDelete: Restrict)
 
   @@index([loanId])
   @@index([paidBy])
@@ -138,7 +139,7 @@ model Schedule {
   status     String   @default("pending") // pending, paid, overdue
   penalty    Decimal  @db.Decimal(15, 2) @default(0)
   createdAt  DateTime @default(now())
-  loan       Loan     @relation(fields: [loanId], references: [id])
+  loan       Loan     @relation(fields: [loanId], references: [id], onDelete: Cascade)
 
   @@index([loanId])
   @@map("schedules")
