@@ -16,6 +16,9 @@ const userRoutes = require('./routes/userRoutes');
 
 const app = express();
 
+// Security: Disable X-Powered-By header
+app.disable('x-powered-by');
+
 // CORS Configuration
 const corsOptions = {
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',

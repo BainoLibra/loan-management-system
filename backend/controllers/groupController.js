@@ -5,7 +5,7 @@ const createGroup = async (req, res) => {
   try {
     const { name, description } = req.body;
 
-    if (!name || !name.trim()) {
+    if (!name || typeof name !== 'string' || !name.trim()) {
       return res.status(400).json({ error: 'Group name is required.' });
     }
 
@@ -55,7 +55,7 @@ const updateGroup = async (req, res) => {
     const { id } = req.params;
     const { name, description } = req.body;
 
-    if (!name || !name.trim()) {
+    if (!name || typeof name !== 'string' || !name.trim()) {
       return res.status(400).json({ error: 'Group name is required.' });
     }
 
