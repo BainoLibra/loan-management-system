@@ -9,7 +9,12 @@ if (!runtimeDatasourceUrl) {
   throw new Error('DATABASE_URL (or DIRECT_URL) is required to initialize Prisma.');
 }
 
-const pgPool = global.__prismaPgPool || new Pool({ connectionString: runtimeDatasourceUrl });
+const pgPool = global.__prismaPgPool || new Pool({ 
+  connectionString: runtimeDatasourceUrl,
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
+});
 const pgAdapter = new PrismaPg(pgPool);
 
 if (process.env.NODE_ENV !== 'production') {

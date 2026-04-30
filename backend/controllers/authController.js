@@ -14,6 +14,8 @@ const normalizeEmail = (value) => {
         return normalized || null;
 };
 
+const loginAttempts = new Map();
+
 // REGISTER USER
 const register = async (req, res) => {
     try {
@@ -65,7 +67,7 @@ const register = async (req, res) => {
                 error: 'Email already exists'
             });
         }
-        res.status(500).json({ error: 'Error registering user' });
+        res.status(500).json({ error: 'Internal server error' });
     }
 };
 
@@ -78,6 +80,23 @@ const login = async (req, res) => {
         if (!normalizedEmail || typeof password !== 'string') {
             return res.status(400).json({ message: 'Email and password are required' });
         }
+
+        const ip = req.ip || req.connection.remoteAddress || 'unknown';
+        const now = Date.now();
+        const windowMs = 15 * 60 * 1000; // 15 minutes
+        const maxAttempts = 5;
+
+        const attempts = loginAttempts.get(ip) || { count: 0, firstAttempt: now };
+        if (now - attempts.firstAttempt > windowMs) {
+            attempts.count = 1;
+            attempts.firstAttempt = now;
+        } else {
+            attempts.count++;
+            if (attempts.count > maxAttempts) {
+                return res.status(429).json({ message: 'Too many login attempts. Please try again later.' });
+            }
+        }
+        loginAttempts.set(ip, attempts);
 
         const user = await prisma.user.findUnique({
             where: { email: normalizedEmail },
@@ -106,6 +125,9 @@ const login = async (req, res) => {
             { expiresIn: '1d' }
         );
 
+        // Reset rate limits on success
+        loginAttempts.delete(ip);
+
         res.json({
             message: 'Login successful',
             token,
@@ -118,8 +140,8 @@ const login = async (req, res) => {
         });
 
     } catch (error) {
-        console.log(error);
-        res.status(500).json({ error: 'Error logging in' });
+        console.error(error);
+        res.status(500).json({ error: 'Internal server error' });
     }
 };
 
@@ -159,8 +181,8 @@ const changePassword = async (req, res) => {
         res.json({ message: 'Password changed successfully' });
 
     } catch (error) {
-        console.log(error);
-        res.status(500).json({ error: 'Error changing password' });
+        console.error(error);
+        res.status(500).json({ error: 'Internal server error' });
     }
 };
 

@@ -18,16 +18,18 @@ const normalizePhoneNumber = (value) => {
   return digits;
 };
 
-const validateClientPayload = ({ firstName, lastName, phone, identifier, guarantorName, guarantorPhone, guarantorId }) => {
+const validateClientPayload = ({ firstName, lastName, phone, email, identifier, guarantorName, guarantorPhone, guarantorId, address }) => {
   if (!String(firstName || "").trim()) return "First name is required.";
   if (!String(lastName || "").trim()) return "Last name is required.";
   if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(firstName)) return "First name may only contain letters and spaces.";
   if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(lastName)) return "Last name may only contain letters and spaces.";
   if (phone && !/^256\d{9}$/.test(phone)) return "Phone must be in format 256XXXXXXXXX or 07XXXXXXXX.";
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "Invalid email format.";
   if (identifier && !/^[A-Z0-9]{1,14}$/.test(identifier)) return "Identifier must be up to 14 characters of uppercase letters and digits only.";
   if (guarantorName && !/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(guarantorName)) return "Guarantor name may only contain letters and spaces.";
   if (guarantorPhone && !/^256\d{9}$/.test(guarantorPhone)) return "Guarantor phone must be in format 256XXXXXXXXX or 07XXXXXXXX.";
   if (guarantorId && !/^[A-Z0-9]{1,14}$/.test(guarantorId)) return "Guarantor ID must be up to 14 characters of uppercase letters and digits only.";
+  if (address && address.length > 255) return "Address must be under 255 characters.";
   return "";
 };
 
@@ -43,10 +45,12 @@ const createClient = async (req, res) => {
       firstName: formattedFirstName,
       lastName: formattedLastName,
       phone: normalizedPhone,
+      email,
       identifier,
       guarantorName: formattedGuarantorName,
       guarantorPhone: normalizedGuarantorPhone,
       guarantorId,
+      address,
     });
     if (validationError) return res.status(400).json({ error: validationError });
 
@@ -69,7 +73,8 @@ const createClient = async (req, res) => {
 
     res.json({ id: client.id });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
 
@@ -80,7 +85,8 @@ const getClients = async (req, res) => {
     });
     res.json(rows);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
 
@@ -100,7 +106,8 @@ const getClientById = async (req, res) => {
 
     res.json(client);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
 
@@ -117,10 +124,12 @@ const updateClient = async (req, res) => {
       firstName: formattedFirstName,
       lastName: formattedLastName,
       phone: normalizedPhone,
+      email,
       identifier,
       guarantorName: formattedGuarantorName,
       guarantorPhone: normalizedGuarantorPhone,
       guarantorId,
+      address,
     });
     if (validationError) return res.status(400).json({ error: validationError });
 
@@ -143,7 +152,8 @@ const updateClient = async (req, res) => {
     await logAudit(req.user.id, 'UPDATE_CLIENT', 'client', id);
     res.json({ updated: 1 });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
 
@@ -161,7 +171,8 @@ const deleteClient = async (req, res) => {
     await logAudit(req.user.id, 'DELETE_CLIENT', 'client', id);
     res.json({ deleted: 1 });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
 

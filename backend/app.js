@@ -19,9 +19,14 @@ const app = express();
 // Security: Disable X-Powered-By header
 app.disable('x-powered-by');
 
+const origin = process.env.FRONTEND_URL || 'http://localhost:3000';
+if (process.env.NODE_ENV === 'production' && origin === 'http://localhost:3000') {
+  console.warn('WARNING: FRONTEND_URL is not set in production. CORS will default to localhost.');
+}
+
 // CORS Configuration
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization',],
@@ -72,7 +77,8 @@ app.get('/test-db', async (_req, res) => {
     const rows = await prisma.$queryRaw`SELECT 1 AS ok`;
     res.json({ message: 'DB connected', rows });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Test DB error:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -81,7 +87,8 @@ app.get('/api/test-db', async (_req, res) => {
     const rows = await prisma.$queryRaw`SELECT 1 AS ok`;
     res.json({ message: 'DB connected', rows });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Test DB API error:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

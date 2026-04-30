@@ -94,7 +94,8 @@ const getLoans = async (req, res) => {
       clientName: formatClientName(loan.client),
     })));
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
 
@@ -164,7 +165,8 @@ const approveLoan = async (req, res) => {
 
     res.json({ updated: 1 });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
 
@@ -185,7 +187,8 @@ const rejectLoan = async (req, res) => {
 
     res.json({ updated: 1 });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
 
@@ -220,7 +223,8 @@ const disburseLoan = async (req, res) => {
 
     res.json({ updated: 1 });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
 
@@ -248,7 +252,8 @@ const getLoanSchedule = async (req, res) => {
 
     res.json(schedules);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
 
