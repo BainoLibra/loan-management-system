@@ -40,6 +40,7 @@ const getGroupById = async (req, res) => {
     const { id } = req.params;
     const group = await prisma.group.findUnique({
       where: { id: Number(id) },
+      include: { clients: true },
     });
 
     if (!group) return res.status(404).json({ error: 'Group not found' });
@@ -92,4 +93,30 @@ const deleteGroup = async (req, res) => {
   }
 };
 
-module.exports = { createGroup, getGroups, getGroupById, updateGroup, deleteGroup };
+const updateGroupMembers = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { clientIds } = req.body;
+
+    if (!Array.isArray(clientIds)) {
+      return res.status(400).json({ error: 'clientIds must be an array' });
+    }
+
+    const group = await prisma.group.update({
+      where: { id: Number(id) },
+      data: {
+        clients: {
+          set: clientIds.map((clientId) => ({ id: Number(clientId) })),
+        },
+      },
+      include: { clients: true },
+    });
+
+    await logAudit(req.user.id, 'UPDATE_GROUP_MEMBERS', 'group', id);
+    res.json(group);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+module.exports = { createGroup, getGroups, getGroupById, updateGroup, deleteGroup, updateGroupMembers };

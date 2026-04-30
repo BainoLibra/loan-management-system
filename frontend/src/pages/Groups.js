@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Layout from "../components/Layout";
-import { getGroups, createGroup, updateGroup, deleteGroup } from "../services/groupService";
+import { getGroups, createGroup, updateGroup, deleteGroup, updateGroupMembers } from "../services/groupService";
+import { getClients } from "../services/clientService";
 import "../styles/table.css";
 
 const PAGE_SIZE = 10;
@@ -13,6 +14,12 @@ function Groups() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [error, setError] = useState("");
+
+  const [showMembersModal, setShowMembersModal] = useState(false);
+  const [managingGroup, setManagingGroup] = useState(null);
+  const [allClients, setAllClients] = useState([]);
+  const [selectedClientIds, setSelectedClientIds] = useState([]);
+  const [isSavingMembers, setIsSavingMembers] = useState(false);
 
   useEffect(() => { fetchGroups(); }, []);
 
@@ -57,6 +64,44 @@ function Groups() {
     const res = await deleteGroup(id);
     if (res.error) { alert(res.error); return; }
     fetchGroups();
+  };
+
+  const handleManageMembers = async (g) => {
+    setManagingGroup(g);
+    try {
+      const clientsData = await getClients();
+      if (Array.isArray(clientsData)) {
+        setAllClients(clientsData);
+        const currentMemberIds = clientsData.filter(c => c.groupId === g.id).map(c => c.id);
+        setSelectedClientIds(currentMemberIds);
+        setShowMembersModal(true);
+      } else {
+        alert(clientsData.error || "Failed to load clients.");
+      }
+    } catch (err) {
+      alert("Failed to load clients.");
+    }
+  };
+
+  const handleSaveMembers = async () => {
+    setIsSavingMembers(true);
+    const res = await updateGroupMembers(managingGroup.id, selectedClientIds);
+    setIsSavingMembers(false);
+    if (res.error) {
+      alert(res.error);
+    } else {
+      setShowMembersModal(false);
+      setManagingGroup(null);
+      fetchGroups();
+    }
+  };
+
+  const toggleClient = (clientId) => {
+    if (selectedClientIds.includes(clientId)) {
+      setSelectedClientIds(selectedClientIds.filter(id => id !== clientId));
+    } else {
+      setSelectedClientIds([...selectedClientIds, clientId]);
+    }
   };
 
   const filtered = groups.filter(g =>
@@ -117,6 +162,7 @@ function Groups() {
                 <td>{g.name}</td>
                 <td>{g.description || "N/A"}</td>
                 <td>
+                  <button className="btn-sm" onClick={() => handleManageMembers(g)}>Members</button>{" "}
                   <button className="btn-sm" onClick={() => handleEdit(g)}>Edit</button>{" "}
                   <button className="btn-sm btn-danger" onClick={() => handleDelete(g.id)}>Delete</button>
                 </td>
@@ -131,6 +177,36 @@ function Groups() {
           <button disabled={page <= 1} onClick={() => setPage(page - 1)}>Prev</button>
           <span>Page {page} of {totalPages}</span>
           <button disabled={page >= totalPages} onClick={() => setPage(page + 1)}>Next</button>
+        </div>
+      )}
+
+      {showMembersModal && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <h3>Manage Members for: {managingGroup?.name}</h3>
+            <div className="members-list" style={{ maxHeight: "300px", overflowY: "auto", margin: "1rem 0", textAlign: "left" }}>
+              {allClients.length === 0 ? (
+                <p>No clients available.</p>
+              ) : (
+                allClients.map(client => (
+                  <label key={client.id} style={{ display: "block", marginBottom: "0.5rem" }}>
+                    <input
+                      type="checkbox"
+                      checked={selectedClientIds.includes(client.id)}
+                      onChange={() => toggleClient(client.id)}
+                    />
+                    {" "}{client.firstName} {client.lastName} ({client.identifier || client.phone || "No ID"})
+                  </label>
+                ))
+              )}
+            </div>
+            <div className="modal-actions" style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
+              <button className="btn-secondary" onClick={() => setShowMembersModal(false)}>Cancel</button>
+              <button onClick={handleSaveMembers} disabled={isSavingMembers}>
+                {isSavingMembers ? "Saving..." : "Save Members"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </Layout>

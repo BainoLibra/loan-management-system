@@ -38,3 +38,13 @@ export const deleteGroup = async (id) => {
   });
   return response.json();
 };
+
+export const updateGroupMembers = async (id, clientIds) => {
+  const response = await fetch(`${API_URL}/${id}/members`, {
+    method: "PUT",
+    headers: getAuthHeaders(),
+    credentials: "include",
+    body: JSON.stringify({ clientIds }),
+  });
+  return response.json();
+};
