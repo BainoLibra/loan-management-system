@@ -10,6 +10,14 @@ export const getGroups = async () => {
   return response.json();
 };
 
+export const getGroupById = async (id) => {
+  const response = await fetch(`${API_URL}/${id}`, { 
+    headers: getAuthHeaders(),
+    credentials: "include"
+  });
+  return response.json();
+};
+
 export const createGroup = async (group) => {
   const response = await fetch(API_URL, {
     method: "POST",

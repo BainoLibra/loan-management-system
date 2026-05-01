@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Layout from "../components/Layout";
-import { getGroups, createGroup, updateGroup, deleteGroup, updateGroupMembers } from "../services/groupService";
+import { getGroups, getGroupById, createGroup, updateGroup, deleteGroup, updateGroupMembers } from "../services/groupService";
 import { getClients } from "../services/clientService";
 import { getUser } from "../services/authService";
 import "../styles/table.css";
@@ -22,6 +22,9 @@ function Groups() {
   const [selectedClientIds, setSelectedClientIds] = useState([]);
   const [initialSelectedClientIds, setInitialSelectedClientIds] = useState([]);
   const [isSavingMembers, setIsSavingMembers] = useState(false);
+
+  const [viewingGroup, setViewingGroup] = useState(null);
+  const [groupMembers, setGroupMembers] = useState([]);
 
   const currentUser = getUser();
   const isAdmin = currentUser?.role === "admin";
@@ -47,6 +50,9 @@ function Groups() {
       : await createGroup(form);
 
     if (response.error) {
+      if (response.error.toLowerCase().includes("already exists")) {
+        alert("A group with this name already exists. Please choose a different name.");
+      }
       setError(response.error);
       return;
     }
@@ -110,6 +116,20 @@ function Groups() {
     }
   };
 
+  const handleViewGroup = async (g) => {
+    setViewingGroup(g);
+    try {
+      const data = await getGroupById(g.id);
+      if (data && data.clients) {
+        setGroupMembers(data.clients);
+      } else {
+        setGroupMembers([]);
+      }
+    } catch (err) {
+      alert("Failed to load group members.");
+    }
+  };
+
   const filtered = groups.filter(g =>
     g.name.toLowerCase().includes(search.toLowerCase()) ||
     (g.description || "").toLowerCase().includes(search.toLowerCase())
@@ -167,7 +187,11 @@ function Groups() {
             {paginated.map((g) => (
               <tr key={g.id}>
                 <td>{g.id}</td>
-                <td>{g.name}</td>
+                <td>
+                  <span style={{ color: "#3498db", cursor: "pointer", textDecoration: "underline" }} onClick={() => handleViewGroup(g)}>
+                    {g.name}
+                  </span>
+                </td>
                 <td>{g.description || "N/A"}</td>
                 <td>
                   <button className="btn-sm" onClick={() => handleManageMembers(g)}>Members</button>{" "}
@@ -219,6 +243,33 @@ function Groups() {
               <button onClick={handleSaveMembers} disabled={isSavingMembers}>
                 {isSavingMembers ? "Saving..." : "Save Members"}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {viewingGroup && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <h3>Members in Group: {viewingGroup.name}</h3>
+            <div className="members-list" style={{ maxHeight: "300px", overflowY: "auto", margin: "1rem 0", textAlign: "left" }}>
+              {groupMembers.length === 0 ? (
+                <p>No members in this group.</p>
+              ) : (
+                <ul style={{ listStyleType: "none", padding: 0 }}>
+                  {groupMembers.map(client => (
+                    <li key={client.id} style={{ marginBottom: "0.5rem", padding: "0.5rem", borderBottom: "1px solid #eee" }}>
+                      <strong>{client.firstName} {client.lastName}</strong><br/>
+                      <small style={{ color: "#7f8c8d" }}>
+                        Unique ID: {client.identifier || "N/A"} | System ID: {client.id}
+                      </small>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <div className="modal-actions" style={{ display: "flex", justifyContent: "flex-end" }}>
+              <button className="btn-secondary" onClick={() => { setViewingGroup(null); setGroupMembers([]); }}>Close</button>
             </div>
           </div>
         </div>
