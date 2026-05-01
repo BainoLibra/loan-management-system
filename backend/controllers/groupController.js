@@ -102,6 +102,21 @@ const updateGroupMembers = async (req, res) => {
       return res.status(400).json({ error: 'clientIds must be an array' });
     }
 
+    if (req.user.role !== 'admin') {
+      const currentGroup = await prisma.group.findUnique({
+        where: { id: Number(id) },
+        include: { clients: true }
+      });
+      if (!currentGroup) return res.status(404).json({ error: 'Group not found' });
+      
+      const currentClientIds = currentGroup.clients.map(c => c.id);
+      const removingAny = currentClientIds.some(cid => !clientIds.includes(Number(cid)));
+      
+      if (removingAny) {
+        return res.status(403).json({ error: 'Only admins can remove members from a group.' });
+      }
+    }
+
     const group = await prisma.group.update({
       where: { id: Number(id) },
       data: {

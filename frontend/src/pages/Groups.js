@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import Layout from "../components/Layout";
 import { getGroups, createGroup, updateGroup, deleteGroup, updateGroupMembers } from "../services/groupService";
 import { getClients } from "../services/clientService";
+import { getUser } from "../services/authService";
 import "../styles/table.css";
 
 const PAGE_SIZE = 10;
@@ -19,7 +20,11 @@ function Groups() {
   const [managingGroup, setManagingGroup] = useState(null);
   const [allClients, setAllClients] = useState([]);
   const [selectedClientIds, setSelectedClientIds] = useState([]);
+  const [initialSelectedClientIds, setInitialSelectedClientIds] = useState([]);
   const [isSavingMembers, setIsSavingMembers] = useState(false);
+
+  const currentUser = getUser();
+  const isAdmin = currentUser?.role === "admin";
 
   useEffect(() => { fetchGroups(); }, []);
 
@@ -74,6 +79,7 @@ function Groups() {
         setAllClients(clientsData);
         const currentMemberIds = clientsData.filter(c => c.groupId === g.id).map(c => c.id);
         setSelectedClientIds(currentMemberIds);
+        setInitialSelectedClientIds(currentMemberIds);
         setShowMembersModal(true);
       } else {
         alert(clientsData.error || "Failed to load clients.");
@@ -116,9 +122,11 @@ function Groups() {
     <Layout>
       <h2>Client Groups</h2>
       <div className="toolbar">
-        <button onClick={() => { setShowForm(!showForm); setEditingId(null); setForm({ name: "", description: "" }); setError(""); }}>
-          {showForm ? "Cancel" : "+ New Group"}
-        </button>
+        {(isAdmin || currentUser?.role === "loan_officer") && (
+          <button onClick={() => { setShowForm(!showForm); setEditingId(null); setForm({ name: "", description: "" }); setError(""); }}>
+            {showForm ? "Cancel" : "+ New Group"}
+          </button>
+        )}
         <input
           className="search-input"
           placeholder="Search groups..."
@@ -163,8 +171,13 @@ function Groups() {
                 <td>{g.description || "N/A"}</td>
                 <td>
                   <button className="btn-sm" onClick={() => handleManageMembers(g)}>Members</button>{" "}
-                  <button className="btn-sm" onClick={() => handleEdit(g)}>Edit</button>{" "}
-                  <button className="btn-sm btn-danger" onClick={() => handleDelete(g.id)}>Delete</button>
+                  {(isAdmin || currentUser?.role === "loan_officer") && (
+                    <button className="btn-sm" onClick={() => handleEdit(g)}>Edit</button>
+                  )}
+                  {" "}
+                  {isAdmin && (
+                    <button className="btn-sm btn-danger" onClick={() => handleDelete(g.id)}>Delete</button>
+                  )}
                 </td>
               </tr>
             ))}
@@ -193,6 +206,7 @@ function Groups() {
                     <input
                       type="checkbox"
                       checked={selectedClientIds.includes(client.id)}
+                      disabled={!isAdmin && initialSelectedClientIds.includes(client.id)}
                       onChange={() => toggleClient(client.id)}
                     />
                     {" "}{client.firstName} {client.lastName} ({client.identifier || client.phone || "No ID"})
