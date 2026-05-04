@@ -7,6 +7,7 @@ function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -89,6 +90,20 @@ function Login() {
               </button>
             </div>
           </div>
+
+          <div className="form-options">
+            <label className="remember-me">
+              <input 
+                type="checkbox" 
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                disabled={loading}
+              />
+              Remember me
+            </label>
+            <Link to="#" className="forgot-password" onClick={(e) => e.preventDefault()}>Forgot Password?</Link>
+          </div>
+
           <button type="submit" className="login-btn" disabled={loading}>
             {loading ? "Signing in..." : "Sign In"}
           </button>
@@ -96,7 +111,7 @@ function Login() {
 
         <div className="auth-switch">
           <span>Don’t have an account?</span>
-          <Link to="/signup">Sign up</Link>
+          <Link to="/signup">Sign Up</Link>
         </div>
 
         <p className="login-footer">Powered by Libra &copy; 2026</p>

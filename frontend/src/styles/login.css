@@ -13,7 +13,7 @@
   padding: 48px 40px 36px;
   width: 100%;
   max-width: 400px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 5px 15px rgba(0,0,0,0.2);
 }
 
 .login-header {
@@ -71,9 +71,12 @@
   margin-bottom: 6px;
 }
 
-.login-form input {
+.login-form input[type="email"],
+.login-form input[type="password"],
+.login-form input[type="text"] {
   width: 100%;
   padding: 12px 14px;
+  background: #fff;
   border: 2px solid #e0e0e0;
   border-radius: 8px;
   font-size: 15px;
@@ -83,7 +86,9 @@
   box-sizing: border-box;
 }
 
-.login-form input:focus {
+.login-form input[type="email"]:focus,
+.login-form input[type="password"]:focus,
+.login-form input[type="text"]:focus {
   border-color: #3498db;
   box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.15);
 }
@@ -144,10 +149,47 @@
   transform: translateY(0);
 }
 
-..login-btn:disabled {
+.login-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
+}
+
+.form-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  font-size: 13px;
+}
+
+.remember-me {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #555;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.remember-me input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  cursor: pointer;
+  accent-color: #3498db;
+}
+
+.forgot-password {
+  color: #3498db;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s;
+}
+
+.forgot-password:hover {
+  color: #2c3e50;
+  text-decoration: underline;
 }
 
 .auth-switch {
@@ -172,7 +214,7 @@
 
 .login-footer {
   text-align: center;
-  color: #aaa;
+  color: #777;
   font-size: 12px;
   margin-top: 28px;
   margin-bottom: 0;
