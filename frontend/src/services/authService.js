@@ -80,6 +80,38 @@ export const changePassword = async (currentPassword, newPassword) => {
   }
 };
 
+export const forgotPassword = async (email) => {
+  try {
+    const response = await fetch(`${API_URL}/forgot-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || data.message || 'Request failed');
+    return data;
+  } catch (error) {
+    throw new Error(error.message || 'Failed to connect to server');
+  }
+};
+
+export const resetPassword = async (token, newPassword) => {
+  try {
+    const response = await fetch(`${API_URL}/reset-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, newPassword }),
+    });
+    
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || data.message || 'Reset failed');
+    return data;
+  } catch (error) {
+    throw new Error(error.message || 'Failed to connect to server');
+  }
+};
+
 export const logout = () => {
   localStorage.removeItem("token");
   localStorage.removeItem("user");

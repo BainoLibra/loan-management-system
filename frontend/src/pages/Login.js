@@ -101,7 +101,7 @@ function Login() {
               />
               Remember me
             </label>
-            <Link to="#" className="forgot-password" onClick={(e) => e.preventDefault()}>Forgot Password?</Link>
+            <Link to="/forgot-password" className="forgot-password">Forgot Password?</Link>
           </div>
 
           <button type="submit" className="login-btn" disabled={loading}>

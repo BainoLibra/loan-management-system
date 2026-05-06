@@ -43,18 +43,20 @@ model Group {
 }
 
 model User {
-  id            Int        @id @default(autoincrement())
-  name          String
-  email         String     @unique
-  password      String
-  role          UserRole
-  status        UserStatus @default(active)
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
-  createdLoans  Loan[]     @relation("LoanCreatedBy")
-  approvedLoans Loan[]     @relation("LoanApprovedBy")
-  repayments    Repayment[]
-  auditLogs     AuditLog[]
+  id                 Int        @id @default(autoincrement())
+  name               String
+  email              String     @unique
+  password           String
+  role               UserRole
+  status             UserStatus @default(active)
+  resetPasswordToken String?
+  resetPasswordExpires DateTime?
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+  createdLoans       Loan[]     @relation("LoanCreatedBy")
+  approvedLoans      Loan[]     @relation("LoanApprovedBy")
+  repayments         Repayment[]
+  auditLogs          AuditLog[]
 
   @@index([email])
   @@map("users")

@@ -1,6 +1,8 @@
 const { prisma } = require('../db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const sendEmail = require('../utils/sendEmail');
 
 const SECRET = process.env.JWT_SECRET;
 if (!SECRET) {
@@ -186,4 +188,118 @@ const changePassword = async (req, res) => {
     }
 };
 
-module.exports = { register, login, changePassword };
+// FORGOT PASSWORD
+const forgotPassword = async (req, res) => {
+    try {
+        const { email } = req.body;
+        const normalizedEmail = normalizeEmail(email);
+
+        if (!normalizedEmail) {
+            return res.status(400).json({ error: 'Email is required' });
+        }
+
+        const user = await prisma.user.findUnique({
+            where: { email: normalizedEmail },
+        });
+
+        if (!user) {
+            // Return success even if user not found for security reasons
+            return res.json({ message: 'If an account with that email exists, a password reset link has been sent.' });
+        }
+
+        // Generate token
+        const resetToken = crypto.randomBytes(32).toString('hex');
+        const resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+        
+        // Set expiration (1 hour)
+        const resetPasswordExpires = new Date(Date.now() + 3600000);
+
+        // Update user
+        await prisma.user.update({
+            where: { email: normalizedEmail },
+            data: {
+                resetPasswordToken,
+                resetPasswordExpires,
+            },
+        });
+
+        // Send email
+        const resetUrl = `http://localhost:3000/reset-password?token=${resetToken}`;
+        const message = `You requested a password reset. Please click the link to reset your password: \n\n ${resetUrl}`;
+
+        try {
+            await sendEmail({
+                to: user.email,
+                subject: 'Password Reset Request',
+                text: message,
+            });
+
+            res.json({ message: 'If an account with that email exists, a password reset link has been sent.' });
+        } catch (error) {
+            console.error('Email error:', error);
+            // Revert the token if email fails
+            await prisma.user.update({
+                where: { email: normalizedEmail },
+                data: {
+                    resetPasswordToken: null,
+                    resetPasswordExpires: null,
+                },
+            });
+            return res.status(500).json({ error: 'Email could not be sent' });
+        }
+
+    } catch (error) {
+        console.error('Forgot password error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+// RESET PASSWORD
+const resetPassword = async (req, res) => {
+    try {
+        const { token, newPassword } = req.body;
+
+        if (!token || !newPassword) {
+            return res.status(400).json({ error: 'Token and new password are required' });
+        }
+
+        if (typeof newPassword !== 'string' || newPassword.length < 8) {
+            return res.status(400).json({ error: 'Password must be at least 8 characters long' });
+        }
+
+        // Hash token to compare with database
+        const resetPasswordToken = crypto.createHash('sha256').update(token).digest('hex');
+
+        const user = await prisma.user.findFirst({
+            where: {
+                resetPasswordToken,
+                resetPasswordExpires: { gt: new Date() },
+            },
+        });
+
+        if (!user) {
+            return res.status(400).json({ error: 'Invalid or expired password reset token' });
+        }
+
+        // Hash new password
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        // Update user
+        await prisma.user.update({
+            where: { id: user.id },
+            data: {
+                password: hashedPassword,
+                resetPasswordToken: null,
+                resetPasswordExpires: null,
+            },
+        });
+
+        res.json({ message: 'Password has been successfully reset' });
+
+    } catch (error) {
+        console.error('Reset password error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+module.exports = { register, login, changePassword, forgotPassword, resetPassword };
