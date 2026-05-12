@@ -93,6 +93,20 @@ export const resetPassword = async (token, newPassword) => {
   }
 };
 
+export const verifyEmail = async (token) => {
+  try {
+    const response = await fetch(`${API_URL}/verify-email`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token }),
+    });
+
+    return await handleApiResponse(response);
+  } catch (error) {
+    throw new Error(error.message || 'Failed to verify email');
+  }
+};
+
 export const logout = () => {
   clearAuthSession();
 };

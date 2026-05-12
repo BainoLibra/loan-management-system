@@ -1,6 +1,11 @@
 const { Client } = require('pg');
+require('dotenv').config();
 
-const connectionString = process.env.DATABASE_URL || 'postgresql://postgres.lujvlbvpbzkqejdvzcel:5%3FKAhSmKc3rNqVQ@aws-0-eu-west-1.pooler.supabase.com:6543/postgres?pgbouncer=true';
+const connectionString = process.env.DATABASE_URL;
+
+if (!connectionString) {
+  throw new Error('DATABASE_URL is required to apply the legacy schema migration.');
+}
 
 const hasColumn = async (client, tableName, columnName) => {
   const result = await client.query(
@@ -63,6 +68,10 @@ async function main() {
     await client.query(`CREATE INDEX IF NOT EXISTS "clients_groupId_idx" ON "clients" ("groupId")`);
 
     await client.query(`ALTER TABLE "users"
+      ADD COLUMN IF NOT EXISTS "emailVerified" boolean NOT NULL DEFAULT true,
+      ADD COLUMN IF NOT EXISTS "emailVerifiedAt" timestamp(3) without time zone,
+      ADD COLUMN IF NOT EXISTS "emailVerificationToken" text,
+      ADD COLUMN IF NOT EXISTS "emailVerificationExpires" timestamp(3) without time zone,
       ADD COLUMN IF NOT EXISTS "resetPasswordToken" text,
       ADD COLUMN IF NOT EXISTS "resetPasswordExpires" timestamp(3) without time zone`);
 

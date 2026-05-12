@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { registerUser } from "../services/authService";
 import "../styles/login.css";
 
@@ -12,8 +12,6 @@ function Signup() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
-
-  const navigate = useNavigate();
 
   const handleSignup = async (e) => {
     e.preventDefault();
@@ -32,8 +30,9 @@ function Signup() {
       if (data.error) {
         setError(data.error);
       } else if (data.message) {
-        setSuccess(data.message + " Please sign in.");
-        setTimeout(() => navigate("/"), 1200);
+        setSuccess(data.message);
+        setPassword("");
+        setConfirmPassword("");
       } else {
         setError("Signup failed. Please try again.");
       }
@@ -67,6 +66,7 @@ function Signup() {
               onChange={(e) => setName(e.target.value)}
               required
               autoFocus
+              disabled={loading || !!success}
             />
           </div>
 
@@ -79,6 +79,7 @@ function Signup() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              disabled={loading || !!success}
             />
           </div>
 
@@ -91,6 +92,7 @@ function Signup() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              disabled={loading || !!success}
             />
           </div>
 
@@ -103,6 +105,7 @@ function Signup() {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
+              disabled={loading || !!success}
             />
           </div>
 
@@ -113,13 +116,14 @@ function Signup() {
               value={role}
               onChange={(e) => setRole(e.target.value)}
               required
+              disabled={loading || !!success}
             >
               <option value="loan_officer">Loan Officer</option>
               <option value="cashier">Cashier</option>
             </select>
           </div>
 
-          <button type="submit" className="login-btn" disabled={loading}>
+          <button type="submit" className="login-btn" disabled={loading || !!success}>
             {loading ? "Creating account..." : "Sign Up"}
           </button>
         </form>

@@ -49,6 +49,10 @@ model User {
   password           String
   role               UserRole
   status             UserStatus @default(active)
+  emailVerified      Boolean    @default(true)
+  emailVerifiedAt    DateTime?
+  emailVerificationToken String?
+  emailVerificationExpires DateTime?
   resetPasswordToken String?
   resetPasswordExpires DateTime?
   createdAt          DateTime   @default(now())

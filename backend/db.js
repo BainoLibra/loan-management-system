@@ -43,6 +43,8 @@ async function init() {
         email: 'admin@example.com',
         password: hashedAdminPassword,
         role: 'admin',
+        emailVerified: true,
+        emailVerifiedAt: new Date(),
       },
     });
   }

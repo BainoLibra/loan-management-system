@@ -13,6 +13,31 @@ const allowedRoles = ['admin', 'loan_officer', 'cashier'];
 
 const loginAttempts = new Map();
 
+const getFrontendUrl = (req) => {
+    return (process.env.FRONTEND_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
+};
+
+const hashToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
+
+const sendVerificationEmail = async (req, user, token) => {
+    const verificationUrl = `${getFrontendUrl(req)}/verify-email?token=${token}`;
+    const message = [
+        `Hello ${user.name},`,
+        '',
+        'Please verify your Libra account email address by opening this link:',
+        '',
+        verificationUrl,
+        '',
+        'This link expires in 24 hours. If you did not create this account, you can ignore this email.',
+    ].join('\n');
+
+    await sendEmail({
+        to: user.email,
+        subject: 'Verify your Libra account',
+        text: message,
+    });
+};
+
 // REGISTER USER
 const register = async (req, res) => {
     try {
@@ -50,17 +75,45 @@ const register = async (req, res) => {
 
         // hash password
         const hashedPassword = await bcrypt.hash(password, 10);
+        const isAdminCreated = req.user?.role === 'admin';
+        const verificationToken = crypto.randomBytes(32).toString('hex');
+        const emailVerificationToken = isAdminCreated ? null : hashToken(verificationToken);
+        const emailVerificationExpires = isAdminCreated ? null : new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-        await prisma.user.create({
+        const user = await prisma.user.create({
             data: {
                 name: name.trim(),
                 email: normalizedEmail,
                 password: hashedPassword,
                 role: selectedRole,
+                emailVerified: isAdminCreated,
+                emailVerifiedAt: isAdminCreated ? new Date() : null,
+                emailVerificationToken,
+                emailVerificationExpires,
+            },
+            select: {
+                id: true,
+                name: true,
+                email: true,
             },
         });
 
-        res.json({ message: 'User registered successfully' });
+        if (!isAdminCreated) {
+            try {
+                await sendVerificationEmail(req, user, verificationToken);
+            } catch (error) {
+                console.error('Verification email error:', error);
+                await prisma.user.delete({ where: { id: user.id } }).catch(() => {});
+                return res.status(500).json({ error: 'Verification email could not be sent' });
+            }
+        }
+
+        res.json({
+            message: isAdminCreated
+                ? 'User registered successfully'
+                : 'Account created. Please check your email to verify your account before signing in.',
+            requiresEmailVerification: !isAdminCreated,
+        });
 
     } catch (error) {
         if (error.code === 'P2002') {
@@ -112,6 +165,7 @@ const login = async (req, res) => {
                 password: true,
                 role: true,
                 status: true,
+                emailVerified: true,
             },
         });
 
@@ -124,6 +178,13 @@ const login = async (req, res) => {
 
         if (!isMatch) {
             return res.status(401).json({ message: 'Invalid credentials' });
+        }
+
+        if (!user.emailVerified) {
+            return res.status(403).json({
+                message: 'Please verify your email address before signing in.',
+                code: 'EMAIL_NOT_VERIFIED',
+            });
         }
 
         // Create Token
@@ -229,7 +290,7 @@ const forgotPassword = async (req, res) => {
 
         // Generate token
         const resetToken = crypto.randomBytes(32).toString('hex');
-        const resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+        const resetPasswordToken = hashToken(resetToken);
         
         // Set expiration (1 hour)
         const resetPasswordExpires = new Date(Date.now() + 3600000);
@@ -244,8 +305,7 @@ const forgotPassword = async (req, res) => {
         });
 
         // Send email
-        const frontendUrl = process.env.FRONTEND_URL || `${req.protocol}://${req.get('host')}`;
-        const resetUrl = `${frontendUrl.replace(/\/$/, '')}/reset-password?token=${resetToken}`;
+        const resetUrl = `${getFrontendUrl(req)}/reset-password?token=${resetToken}`;
         const message = `You requested a password reset. Please click the link to reset your password: \n\n ${resetUrl}`;
 
         try {
@@ -288,7 +348,7 @@ const resetPassword = async (req, res) => {
         }
 
         // Hash token to compare with database
-        const resetPasswordToken = crypto.createHash('sha256').update(token).digest('hex');
+        const resetPasswordToken = hashToken(token);
 
         const user = await prisma.user.findFirst({
             where: {
@@ -321,4 +381,49 @@ const resetPassword = async (req, res) => {
     }
 };
 
-module.exports = { register, login, changePassword, forgotPassword, resetPassword };
+const verifyEmail = async (req, res) => {
+    try {
+        const { token } = req.body;
+
+        if (!token || typeof token !== 'string') {
+            return res.status(400).json({ error: 'Verification token is required' });
+        }
+
+        const emailVerificationToken = hashToken(token);
+
+        const user = await prisma.user.findFirst({
+            where: {
+                emailVerificationToken,
+                emailVerificationExpires: { gt: new Date() },
+            },
+            select: {
+                id: true,
+                emailVerified: true,
+            },
+        });
+
+        if (!user) {
+            return res.status(400).json({ error: 'Invalid or expired verification link' });
+        }
+
+        if (user.emailVerified) {
+            return res.json({ message: 'Email is already verified. You can sign in.' });
+        }
+
+        await prisma.user.update({
+            where: { id: user.id },
+            data: {
+                emailVerified: true,
+                emailVerifiedAt: new Date(),
+                emailVerificationToken: null,
+                emailVerificationExpires: null,
+            },
+        });
+
+        res.json({ message: 'Email verified successfully. You can now sign in.' });
+    } catch (error) {
+        return sendServerError(res, error, 'Verify email error');
+    }
+};
+
+module.exports = { register, login, changePassword, forgotPassword, resetPassword, verifyEmail };

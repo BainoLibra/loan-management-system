@@ -38,7 +38,7 @@ const sendEmail = async (options) => {
   });
 
   const mailOptions = {
-    from: `Libra Loan Management <${process.env.SMTP_FROM || 'noreply@libra.com'}>`,
+    from: process.env.SMTP_FROM || 'Libra Loan Management <noreply@libra.com>',
     to: options.to,
     subject: options.subject,
     text: options.text,
