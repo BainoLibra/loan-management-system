@@ -1,5 +1,3 @@
-const nodemailer = require('nodemailer');
-
 /**
  * Utility to send emails
  * 
@@ -12,13 +10,21 @@ const sendEmail = async (options) => {
 
   if (!isSmtpConfigured) {
     console.log('\n=============================================');
-    console.log('⚠️  DEVELOPMENT MODE: SMTP NOT CONFIGURED');
+    console.log('DEVELOPMENT MODE: SMTP NOT CONFIGURED');
     console.log('=============================================');
     console.log(`To: ${options.to}`);
     console.log(`Subject: ${options.subject}`);
     console.log(`Message: \n${options.text}`);
     console.log('=============================================\n');
     return; // Skip actual sending
+  }
+
+  let nodemailer;
+  try {
+    nodemailer = require('nodemailer');
+  } catch (error) {
+    error.message = 'SMTP is configured, but nodemailer is not installed. Run npm install in backend.';
+    throw error;
   }
 
   // Create transporter

@@ -62,6 +62,10 @@ async function main() {
       FOREIGN KEY ("groupId") REFERENCES "groups"("id") ON DELETE SET NULL`);
     await client.query(`CREATE INDEX IF NOT EXISTS "clients_groupId_idx" ON "clients" ("groupId")`);
 
+    await client.query(`ALTER TABLE "users"
+      ADD COLUMN IF NOT EXISTS "resetPasswordToken" text,
+      ADD COLUMN IF NOT EXISTS "resetPasswordExpires" timestamp(3) without time zone`);
+
     await client.query(`ALTER TABLE "loans"
       ADD COLUMN IF NOT EXISTS "guarantorName" text,
       ADD COLUMN IF NOT EXISTS "notes" text,

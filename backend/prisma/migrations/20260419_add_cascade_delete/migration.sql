@@ -40,6 +40,10 @@ CREATE INDEX IF NOT EXISTS "clients_groupId_idx" ON "clients" ("groupId");
 
 ALTER TABLE "clients" DROP COLUMN IF EXISTS "name";
 
+ALTER TABLE "users"
+  ADD COLUMN IF NOT EXISTS "resetPasswordToken" text,
+  ADD COLUMN IF NOT EXISTS "resetPasswordExpires" timestamp(3) without time zone;
+
 ALTER TABLE "loans"
   ADD COLUMN IF NOT EXISTS "guarantorName" text,
   ADD COLUMN IF NOT EXISTS "notes" text,

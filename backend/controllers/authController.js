@@ -105,6 +105,14 @@ const login = async (req, res) => {
 
         const user = await prisma.user.findUnique({
             where: { email: normalizedEmail },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                password: true,
+                role: true,
+                status: true,
+            },
         });
 
         if (!user || user.status === 'inactive') {
@@ -209,6 +217,9 @@ const forgotPassword = async (req, res) => {
 
         const user = await prisma.user.findUnique({
             where: { email: normalizedEmail },
+            select: {
+                email: true,
+            },
         });
 
         if (!user) {
