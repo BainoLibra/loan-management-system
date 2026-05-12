@@ -41,17 +41,18 @@ function Loans() {
     try {
       setSubmitting(true);
       setError("");
-      const data = new FormData();
-      data.append('clientId', Number(formData.clientId));
-      data.append('amount', Number(formData.amount));
-      data.append('interestRate', Number(formData.interestRate));
-      data.append('termMonths', Number(formData.termMonths));
-      if (formData.guarantorName) data.append('guarantorName', formData.guarantorName);
-      if (formData.notes) data.append('notes', formData.notes);
-      if (formData.documents) data.append('documents', formData.documents);
-      await createLoan(data);
+      const loan = {
+        clientId: Number(formData.clientId),
+        amount: Number(formData.amount),
+        interestRate: Number(formData.interestRate),
+        termMonths: Number(formData.termMonths),
+        guarantorName: formData.guarantorName || undefined,
+        notes: formData.notes || undefined,
+        documents: formData.documents?.name || undefined,
+      };
+      await createLoan(loan);
       setShowForm(false);
-      fetchLoans();
+      await fetchLoans();
     } catch (err) {
       setError(err.message || 'Failed to create loan');
     } finally {
@@ -64,9 +65,10 @@ function Loans() {
       setSubmitting(true);
       setError("");
       await approveLoan(id); 
-      fetchLoans();
+      await fetchLoans();
     } catch (err) {
       setError(err.message || 'Failed to approve loan');
+    } finally {
       setSubmitting(false);
     }
   };
@@ -76,9 +78,10 @@ function Loans() {
       setSubmitting(true);
       setError("");
       await rejectLoan(id); 
-      fetchLoans();
+      await fetchLoans();
     } catch (err) {
       setError(err.message || 'Failed to reject loan');
+    } finally {
       setSubmitting(false);
     }
   };
@@ -87,9 +90,10 @@ function Loans() {
       setSubmitting(true);
       setError("");
       await disburseLoan(id); 
-      fetchLoans();
+      await fetchLoans();
     } catch (err) {
       setError(err.message || 'Failed to disburse loan');
+    } finally {
       setSubmitting(false);
     }
   };
@@ -99,15 +103,32 @@ function Loans() {
       amount = payment + (payment * 0.02);
     }
     if (!window.confirm(`Pay installment of ${amount.toFixed(2)}?`)) return;
-    await repayLoan(scheduleLoanId, amount, scheduleId);
-    viewSchedule(scheduleLoanId); // refresh schedule
-    fetchLoans(); // refresh loans list
+    try {
+      setSubmitting(true);
+      setError("");
+      await repayLoan(scheduleLoanId, amount, scheduleId);
+      await viewSchedule(scheduleLoanId, { force: true });
+      await fetchLoans();
+    } catch (err) {
+      setError(err.message || 'Failed to record repayment');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const viewSchedule = async (id) => {
-    if (scheduleLoanId === id) { setSchedule(null); setScheduleLoanId(null); return; }
-    const data = await getLoanSchedule(id);
-    if (Array.isArray(data)) { setSchedule(data); setScheduleLoanId(id); }
+  const viewSchedule = async (id, options = {}) => {
+    if (scheduleLoanId === id && !options.force) {
+      setSchedule(null);
+      setScheduleLoanId(null);
+      return;
+    }
+    try {
+      setError("");
+      const data = await getLoanSchedule(id);
+      if (Array.isArray(data)) { setSchedule(data); setScheduleLoanId(id); }
+    } catch (err) {
+      setError(err.message || 'Failed to load repayment schedule');
+    }
   };
 
   const exportCSV = () => {
@@ -168,7 +189,7 @@ function Loans() {
           </div>
 
           {showForm && (
-            <LoanForm onSubmit={handleCreate} />
+            <LoanForm onSubmit={handleCreate} submitting={submitting} />
           )}
 
           <LoanTable
@@ -217,7 +238,7 @@ function Loans() {
                         <td>{s.status}</td>
                         <td>
                           {s.status !== 'paid' && (
-                            <button className="btn-sm btn-primary" onClick={() => handlePayInstallment(s.id, s.payment, s.status)}>
+                            <button className="btn-sm btn-primary" onClick={() => handlePayInstallment(s.id, s.payment, s.status)} disabled={submitting}>
                               Pay Installment
                             </button>
                           )}

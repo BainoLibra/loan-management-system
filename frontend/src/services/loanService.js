@@ -1,14 +1,6 @@
-import API_BASE, { getAuthHeaders } from "./api";
+import API_BASE, { getAuthHeaders, handleApiResponse } from "./api";
 
 const API_URL = `${API_BASE}/api/loans`;
-
-const handleResponse = async (response) => {
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || error.message || 'Request failed');
-  }
-  return response.json();
-};
 
 export const getLoans = async () => {
   try {
@@ -16,21 +8,21 @@ export const getLoans = async () => {
       headers: getAuthHeaders(),
       credentials: "include"
     });
-    return await handleResponse(response);
+    return await handleApiResponse(response);
   } catch (error) {
     throw new Error(error.message || 'Failed to fetch loans');
   }
 };
 
-export const createLoan = async (formData) => {
+export const createLoan = async (loan) => {
   try {
     const response = await fetch(API_URL, {
       method: "POST",
       headers: getAuthHeaders(),
       credentials: "include",
-      body: formData,
+      body: JSON.stringify(loan),
     });
-    return await handleResponse(response);
+    return await handleApiResponse(response);
   } catch (error) {
     throw new Error(error.message || 'Failed to create loan');
   }
@@ -43,7 +35,7 @@ export const approveLoan = async (id) => {
       headers: getAuthHeaders(),
       credentials: "include",
     });
-    return await handleResponse(response);
+    return await handleApiResponse(response);
   } catch (error) {
     throw new Error(error.message || 'Failed to approve loan');
   }
@@ -56,7 +48,7 @@ export const rejectLoan = async (id) => {
       headers: getAuthHeaders(),
       credentials: "include",
     });
-    return await handleResponse(response);
+    return await handleApiResponse(response);
   } catch (error) {
     throw new Error(error.message || 'Failed to reject loan');
   }
@@ -69,7 +61,7 @@ export const disburseLoan = async (id) => {
       headers: getAuthHeaders(),
       credentials: "include",
     });
-    return await handleResponse(response);
+    return await handleApiResponse(response);
   } catch (error) {
     throw new Error(error.message || 'Failed to disburse loan');
   }
@@ -80,7 +72,7 @@ export const getLoanSchedule = async (id) => {
     headers: getAuthHeaders(),
     credentials: "include",
   });
-  return response.json();
+  return handleApiResponse(response);
 };
 
 export const getRepayments = async (loanId) => {
@@ -88,7 +80,7 @@ export const getRepayments = async (loanId) => {
     headers: getAuthHeaders(),
     credentials: "include",
   });
-  return response.json();
+  return handleApiResponse(response);
 };
 
 export const repayLoan = async (loanId, amount, scheduleId) => {
@@ -98,5 +90,5 @@ export const repayLoan = async (loanId, amount, scheduleId) => {
     credentials: "include",
     body: JSON.stringify({ amount, scheduleId }),
   });
-  return response.json();
+  return handleApiResponse(response);
 };

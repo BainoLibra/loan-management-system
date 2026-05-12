@@ -12,29 +12,64 @@ function Repayments() {
   const [amount, setAmount] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     fetchLoans();
   }, []);
 
   const fetchLoans = async () => {
-    const data = await getLoans();
-    if (Array.isArray(data)) setLoans(data.filter((l) => l.status === "disbursed"));
+    try {
+      setLoading(true);
+      setError("");
+      const data = await getLoans();
+      if (Array.isArray(data)) setLoans(data.filter((l) => l.status === "disbursed"));
+    } catch (err) {
+      setError(err.message || "Failed to load loans");
+      setLoans([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const selectLoan = async (loan) => {
-    setSelectedLoan(loan);
-    const data = await getRepayments(loan.id);
-    if (Array.isArray(data)) setRepayments(data);
+    try {
+      setError("");
+      setSelectedLoan(loan);
+      const data = await getRepayments(loan.id);
+      if (Array.isArray(data)) setRepayments(data);
+    } catch (err) {
+      setError(err.message || "Failed to load repayments");
+      setRepayments([]);
+    }
   };
 
   const handleRepay = async (e) => {
     e.preventDefault();
     if (!selectedLoan) return;
-    await repayLoan(selectedLoan.id, Number(amount));
-    setAmount("");
-    selectLoan(selectedLoan);
-    fetchLoans();
+    const repaymentAmount = Number(amount);
+    if (!Number.isFinite(repaymentAmount) || repaymentAmount <= 0) {
+      setError("Enter a repayment amount greater than zero.");
+      return;
+    }
+    if (repaymentAmount > Number(selectedLoan.balance)) {
+      setError("Repayment cannot exceed the remaining balance.");
+      return;
+    }
+    try {
+      setSubmitting(true);
+      setError("");
+      await repayLoan(selectedLoan.id, repaymentAmount);
+      setAmount("");
+      await selectLoan(selectedLoan);
+      await fetchLoans();
+    } catch (err) {
+      setError(err.message || "Failed to record repayment");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const exportCSV = () => {
@@ -60,8 +95,10 @@ function Repayments() {
   return (
     <Layout>
       <h2>Repayments</h2>
+      {error && <div className="form-error">{error}</div>}
 
       <h3>Disbursed Loans</h3>
+      {loading && <p style={{ color: '#666', textAlign: 'center', padding: '20px' }}>Loading loans...</p>}
       <div className="toolbar">
         <input
           className="search-input"
@@ -88,7 +125,7 @@ function Repayments() {
                 <td>{l.clientName}</td>
                 <td>{Number(l.amount).toLocaleString()}</td>
                 <td>{Number(l.balance).toLocaleString()}</td>
-                <td><button className="btn-sm" onClick={() => selectLoan(l)}>Select</button></td>
+                <td><button className="btn-sm" onClick={() => selectLoan(l)} disabled={submitting}>Select</button></td>
               </tr>
             ))}
           </tbody>
@@ -107,8 +144,8 @@ function Repayments() {
         <>
           <h3 style={{ marginTop: 20 }}>Make Repayment for Loan #{selectedLoan.id}</h3>
           <form onSubmit={handleRepay} className="inline-form">
-            <input type="number" placeholder="Amount" value={amount} onChange={(e) => setAmount(e.target.value)} required />
-            <button type="submit">Pay</button>
+            <input type="number" placeholder="Amount" value={amount} onChange={(e) => setAmount(e.target.value)} required disabled={submitting} />
+            <button type="submit" disabled={submitting}>{submitting ? "Paying..." : "Pay"}</button>
           </form>
 
           <div className="toolbar">

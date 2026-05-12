@@ -1,16 +1,22 @@
 const { prisma } = require('../db');
 const { logAudit } = require('../utils/hash');
+const { optionalTrimmedString, parsePositiveInt, sendServerError } = require('../utils/http');
 
 const createGroup = async (req, res) => {
   try {
     const { name, description } = req.body;
+    const groupName = optionalTrimmedString(name, 100);
+    const groupDescription = optionalTrimmedString(description, 500);
 
-    if (!name || typeof name !== 'string' || !name.trim()) {
+    if (!groupName) {
       return res.status(400).json({ error: 'Group name is required.' });
+    }
+    if (description && !groupDescription) {
+      return res.status(400).json({ error: 'Description must be under 500 characters.' });
     }
 
     const group = await prisma.group.create({
-      data: { name: name.trim(), description },
+      data: { name: groupName, description: groupDescription },
     });
 
     await logAudit(req.user.id, 'CREATE_GROUP', 'group', group.id);
@@ -20,7 +26,7 @@ const createGroup = async (req, res) => {
     if (err.code === 'P2002') {
       return res.status(400).json({ error: 'Group name already exists.' });
     }
-    res.status(500).json({ error: err.message });
+    return sendServerError(res, err, 'Create group error');
   }
 };
 
@@ -31,15 +37,18 @@ const getGroups = async (req, res) => {
     });
     res.json(rows);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    return sendServerError(res, err, 'List groups error');
   }
 };
 
 const getGroupById = async (req, res) => {
   try {
     const { id } = req.params;
+    const groupId = parsePositiveInt(id);
+    if (!groupId) return res.status(400).json({ error: 'Invalid group id' });
+
     const group = await prisma.group.findUnique({
-      where: { id: Number(id) },
+      where: { id: groupId },
       include: { clients: true },
     });
 
@@ -47,7 +56,7 @@ const getGroupById = async (req, res) => {
 
     res.json(group);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    return sendServerError(res, err, 'Get group error');
   }
 };
 
@@ -55,41 +64,57 @@ const updateGroup = async (req, res) => {
   try {
     const { id } = req.params;
     const { name, description } = req.body;
+    const groupId = parsePositiveInt(id);
+    const groupName = optionalTrimmedString(name, 100);
+    const groupDescription = optionalTrimmedString(description, 500);
 
-    if (!name || typeof name !== 'string' || !name.trim()) {
+    if (!groupId) return res.status(400).json({ error: 'Invalid group id' });
+    if (!groupName) {
       return res.status(400).json({ error: 'Group name is required.' });
+    }
+    if (description && !groupDescription) {
+      return res.status(400).json({ error: 'Description must be under 500 characters.' });
     }
 
     await prisma.group.update({
-      where: { id: Number(id) },
-      data: { name: name.trim(), description },
+      where: { id: groupId },
+      data: { name: groupName, description: groupDescription },
     });
 
-    await logAudit(req.user.id, 'UPDATE_GROUP', 'group', id);
+    await logAudit(req.user.id, 'UPDATE_GROUP', 'group', groupId);
     res.json({ updated: 1 });
   } catch (err) {
     if (err.code === 'P2002') {
       return res.status(400).json({ error: 'Group name already exists.' });
     }
-    res.status(500).json({ error: err.message });
+    if (err.code === 'P2025') {
+      return res.status(404).json({ error: 'Group not found' });
+    }
+    return sendServerError(res, err, 'Update group error');
   }
 };
 
 const deleteGroup = async (req, res) => {
   try {
     const { id } = req.params;
+    const groupId = parsePositiveInt(id);
+
+    if (!groupId) return res.status(400).json({ error: 'Invalid group id' });
 
     // Check if group has clients
-    const clients = await prisma.client.count({ where: { groupId: Number(id) } });
+    const clients = await prisma.client.count({ where: { groupId } });
     if (clients > 0) {
       return res.status(400).json({ error: 'Cannot delete group with existing clients' });
     }
 
-    await prisma.group.delete({ where: { id: Number(id) } });
-    await logAudit(req.user.id, 'DELETE_GROUP', 'group', id);
+    await prisma.group.delete({ where: { id: groupId } });
+    await logAudit(req.user.id, 'DELETE_GROUP', 'group', groupId);
     res.json({ deleted: 1 });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    if (err.code === 'P2025') {
+      return res.status(404).json({ error: 'Group not found' });
+    }
+    return sendServerError(res, err, 'Delete group error');
   }
 };
 
@@ -97,20 +122,27 @@ const updateGroupMembers = async (req, res) => {
   try {
     const { id } = req.params;
     const { clientIds } = req.body;
+    const groupId = parsePositiveInt(id);
+
+    if (!groupId) return res.status(400).json({ error: 'Invalid group id' });
 
     if (!Array.isArray(clientIds)) {
       return res.status(400).json({ error: 'clientIds must be an array' });
     }
+    const parsedClientIds = clientIds.map(parsePositiveInt);
+    if (parsedClientIds.some((clientId) => !clientId)) {
+      return res.status(400).json({ error: 'clientIds must contain valid client ids' });
+    }
 
     if (req.user.role !== 'admin') {
       const currentGroup = await prisma.group.findUnique({
-        where: { id: Number(id) },
+        where: { id: groupId },
         include: { clients: true }
       });
       if (!currentGroup) return res.status(404).json({ error: 'Group not found' });
       
       const currentClientIds = currentGroup.clients.map(c => c.id);
-      const removingAny = currentClientIds.some(cid => !clientIds.includes(Number(cid)));
+      const removingAny = currentClientIds.some(cid => !parsedClientIds.includes(Number(cid)));
       
       if (removingAny) {
         return res.status(403).json({ error: 'Only admins can remove members from a group.' });
@@ -118,19 +150,22 @@ const updateGroupMembers = async (req, res) => {
     }
 
     const group = await prisma.group.update({
-      where: { id: Number(id) },
+      where: { id: groupId },
       data: {
         clients: {
-          set: clientIds.map((clientId) => ({ id: Number(clientId) })),
+          set: parsedClientIds.map((clientId) => ({ id: clientId })),
         },
       },
       include: { clients: true },
     });
 
-    await logAudit(req.user.id, 'UPDATE_GROUP_MEMBERS', 'group', id);
+    await logAudit(req.user.id, 'UPDATE_GROUP_MEMBERS', 'group', groupId);
     res.json(group);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    if (err.code === 'P2025') {
+      return res.status(404).json({ error: 'Group or client not found' });
+    }
+    return sendServerError(res, err, 'Update group members error');
   }
 };
 

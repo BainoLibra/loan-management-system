@@ -1,9 +1,10 @@
 const { prisma } = require('../db');
 const { logAudit } = require('../utils/hash');
+const { optionalTrimmedString, parseFiniteNumber, parsePositiveInt, sendServerError } = require('../utils/http');
 
 const getLoanById = async (id) => {
   return prisma.loan.findUnique({
-    where: { id: Number(id) },
+    where: { id },
   });
 };
 
@@ -15,33 +16,41 @@ const formatClientName = (client) => {
 const createLoan = async (req, res) => {
   try {
     const { clientId, amount, interestRate, termMonths, guarantorName, notes, documents } = req.body;
+    const parsedClientId = parsePositiveInt(clientId);
 
     // Validate required fields
-    if (!clientId || !amount || interestRate === undefined || !termMonths) {
+    if (!parsedClientId || amount === undefined || interestRate === undefined || termMonths === undefined) {
       return res.status(400).json({ error: 'clientId, amount, interestRate, and termMonths are required' });
     }
 
     // Validate amount
-    const numAmount = Number(amount);
-    if (isNaN(numAmount) || numAmount < 300000 || numAmount > 2000000) {
+    const numAmount = parseFiniteNumber(amount);
+    if (numAmount == null || numAmount < 300000 || numAmount > 2000000) {
       return res.status(400).json({ error: 'Loan amount must be a number between 300,000 and 2,000,000' });
     }
 
     // Validate interestRate
-    const numInterestRate = Number(interestRate);
-    if (isNaN(numInterestRate) || numInterestRate < 0 || numInterestRate > 50) {
+    const numInterestRate = parseFiniteNumber(interestRate);
+    if (numInterestRate == null || numInterestRate < 0 || numInterestRate > 50) {
       return res.status(400).json({ error: 'Interest rate must be a number between 0 and 50' });
     }
 
     // Validate termMonths
-    const numTermMonths = Number(termMonths);
-    if (isNaN(numTermMonths) || numTermMonths < 1 || numTermMonths > 120) {
+    const numTermMonths = parsePositiveInt(termMonths);
+    if (!numTermMonths || numTermMonths > 120) {
       return res.status(400).json({ error: 'Term months must be a number between 1 and 120' });
+    }
+
+    const sanitizedGuarantorName = optionalTrimmedString(guarantorName, 100);
+    const sanitizedNotes = optionalTrimmedString(notes, 1000);
+    const sanitizedDocuments = optionalTrimmedString(documents, 255);
+    if ((guarantorName && !sanitizedGuarantorName) || (notes && !sanitizedNotes) || (documents && !sanitizedDocuments)) {
+      return res.status(400).json({ error: 'One or more text fields are too long or invalid' });
     }
 
     // Validate client exists
     const client = await prisma.client.findUnique({
-      where: { id: Number(clientId) },
+      where: { id: parsedClientId },
     });
     if (!client) {
       return res.status(404).json({ error: 'Client not found' });
@@ -54,13 +63,13 @@ const createLoan = async (req, res) => {
 
     const loan = await prisma.loan.create({
       data: {
-        clientId: Number(clientId),
+        clientId: parsedClientId,
         amount: numAmount,
         interestRate: numInterestRate,
         termMonths: numTermMonths,
-        guarantorName,
-        notes,
-        documents,
+        guarantorName: sanitizedGuarantorName,
+        notes: sanitizedNotes,
+        documents: sanitizedDocuments,
         status,
         appliedAt,
         balance,
@@ -72,14 +81,15 @@ const createLoan = async (req, res) => {
 
     res.json({ id: loan.id });
   } catch (err) {
-    console.error('Error creating loan:', err);
-    res.status(500).json({ error: 'Failed to create loan. Please check your input and try again.' });
+    return sendServerError(res, err, 'Create loan error');
   }
 };
 
 const getLoans = async (req, res) => {
   try {
-    const where = req.user.role === 'client' ? { clientId: req.user.id } : {};
+    const where = req.user.role === 'client'
+      ? { client: { email: req.user.email || '__no_client_email__' } }
+      : {};
 
     const rows = await prisma.loan.findMany({
       where,
@@ -94,15 +104,16 @@ const getLoans = async (req, res) => {
       clientName: formatClientName(loan.client),
     })));
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Internal server error' });
+    return sendServerError(res, err, 'List loans error');
   }
 };
 
 const approveLoan = async (req, res) => {
   try {
-    const id = req.params.id;
+    const id = parsePositiveInt(req.params.id);
     const approvedBy = req.user.id;
+
+    if (!id) return res.status(400).json({ error: 'Invalid loan id' });
 
     const loan = await getLoanById(id);
 
@@ -111,15 +122,6 @@ const approveLoan = async (req, res) => {
     if (loan.status !== 'applied') return res.status(400).json({ error: 'Only applied loans can be approved' });
 
     const approvedAt = new Date();
-
-    await prisma.loan.update({
-      where: { id: Number(id) },
-      data: {
-        status: 'approved',
-        approvedBy,
-        approvedAt,
-      },
-    });
 
     // Generate schedule
     const principal = Number(loan.amount);
@@ -146,7 +148,7 @@ const approveLoan = async (req, res) => {
       dueDate.setMonth(dueDate.getMonth() + i);
 
       schedules.push({
-        loanId: Number(id),
+        loanId: id,
         month: i,
         dueDate,
         payment: Math.round(monthlyPayment * 100) / 100,
@@ -157,29 +159,41 @@ const approveLoan = async (req, res) => {
       });
     }
 
-    await prisma.schedule.createMany({
-      data: schedules,
+    await prisma.$transaction(async (tx) => {
+      await tx.loan.update({
+        where: { id },
+        data: {
+          status: 'approved',
+          approvedBy,
+          approvedAt,
+        },
+      });
+
+      await tx.schedule.createMany({
+        data: schedules,
+      });
     });
 
     await logAudit(req.user.id, 'APPROVE_LOAN', 'loan', id);
 
     res.json({ updated: 1 });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Internal server error' });
+    return sendServerError(res, err, 'Approve loan error');
   }
 };
 
 const rejectLoan = async (req, res) => {
   try {
-    const id = req.params.id;
+    const id = parsePositiveInt(req.params.id);
+
+    if (!id) return res.status(400).json({ error: 'Invalid loan id' });
 
     const loan = await getLoanById(id);
     if (!loan) return res.status(404).json({ error: 'Loan not found' });
     if (loan.status !== 'applied') return res.status(400).json({ error: 'Only applied loans can be rejected' });
 
     await prisma.loan.update({
-      where: { id: Number(id) },
+      where: { id },
       data: { status: 'rejected' },
     });
 
@@ -187,14 +201,15 @@ const rejectLoan = async (req, res) => {
 
     res.json({ updated: 1 });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Internal server error' });
+    return sendServerError(res, err, 'Reject loan error');
   }
 };
 
 const disburseLoan = async (req, res) => {
   try {
-    const id = req.params.id;
+    const id = parsePositiveInt(req.params.id);
+
+    if (!id) return res.status(400).json({ error: 'Invalid loan id' });
 
     const loan = await getLoanById(id);
 
@@ -211,7 +226,7 @@ const disburseLoan = async (req, res) => {
     const balance = Math.round(totalWithInterest * 100) / 100;
 
     await prisma.loan.update({
-      where: { id: Number(id) },
+      where: { id },
       data: {
         status: 'disbursed',
         disbursedAt,
@@ -223,14 +238,15 @@ const disburseLoan = async (req, res) => {
 
     res.json({ updated: 1 });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Internal server error' });
+    return sendServerError(res, err, 'Disburse loan error');
   }
 };
 
 const getLoanSchedule = async (req, res) => {
   try {
-    const id = req.params.id;
+    const id = parsePositiveInt(req.params.id);
+    if (!id) return res.status(400).json({ error: 'Invalid loan id' });
+
     const loan = await getLoanById(id);
     if (!loan) return res.status(404).json({ error: 'Loan not found' });
 
@@ -238,7 +254,7 @@ const getLoanSchedule = async (req, res) => {
     const today = new Date();
     await prisma.schedule.updateMany({
       where: {
-        loanId: Number(id),
+        loanId: id,
         dueDate: { lt: today },
         status: 'pending',
       },
@@ -246,14 +262,13 @@ const getLoanSchedule = async (req, res) => {
     });
 
     const schedules = await prisma.schedule.findMany({
-      where: { loanId: Number(id) },
+      where: { loanId: id },
       orderBy: { month: 'asc' },
     });
 
     res.json(schedules);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Internal server error' });
+    return sendServerError(res, err, 'Get loan schedule error');
   }
 };
 

@@ -66,7 +66,7 @@ function Clients() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [error, setError] = useState("");
-    const [submitting, setSubmitting] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const user = getUser();
 
   useEffect(() => { fetchClients(); fetchGroups(); }, []);
@@ -159,9 +159,13 @@ function Clients() {
 
   const handleDelete = async (id) => {
     if (!window.confirm("Delete this client?")) return;
-    const res = await deleteClient(id);
-    if (res.error) { alert(res.error); return; }
-    fetchClients();
+    try {
+      setError("");
+      await deleteClient(id);
+      fetchClients();
+    } catch (err) {
+      setError(err.message || "Failed to delete client");
+    }
   };
 
   const exportCSV = () => {
@@ -266,7 +270,9 @@ function Clients() {
             onChange={(e) => setForm({ ...form, identifier: sanitizeIdentifierInput(e.target.value) })}
             maxLength={14}
           />
-          <button type="submit">{editingId ? "Update" : "Save Client"}</button>
+          <button type="submit" disabled={submitting}>
+            {submitting ? "Saving..." : (editingId ? "Update" : "Save Client")}
+          </button>
         </form>
       )}
 

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { getClients } from "../services/clientService";
 
-const LoanForm = ({ onSubmit, initialData = {} }) => {
+const LoanForm = ({ onSubmit, initialData = {}, submitting = false }) => {
   const [clients, setClients] = useState([]);
+  const [error, setError] = useState("");
   const [form, setForm] = useState({
     clientId: initialData.clientId || "",
     amount: initialData.amount || "",
@@ -18,8 +19,13 @@ const LoanForm = ({ onSubmit, initialData = {} }) => {
   }, []);
 
   const fetchClients = async () => {
-    const data = await getClients();
-    if (Array.isArray(data)) setClients(data);
+    try {
+      setError("");
+      const data = await getClients();
+      if (Array.isArray(data)) setClients(data);
+    } catch (err) {
+      setError(err.message || "Failed to load clients");
+    }
   };
 
   const handleChange = (e) => {
@@ -44,9 +50,10 @@ const LoanForm = ({ onSubmit, initialData = {} }) => {
   return (
     <form onSubmit={handleSubmit} className="loan-form">
       <h3>{initialData.id ? "Edit Loan" : "New Loan Application"}</h3>
+      {error && <div className="form-error">{error}</div>}
       <div className="form-group">
         <label>Client:</label>
-        <select name="clientId" value={form.clientId} onChange={handleChange} required>
+        <select name="clientId" value={form.clientId} onChange={handleChange} required disabled={submitting}>
           <option value="">Select Client</option>
           {clients.map((c) => (
             <option key={c.id} value={c.id}>{getClientLabel(c)}</option>
@@ -63,6 +70,7 @@ const LoanForm = ({ onSubmit, initialData = {} }) => {
           min="300000"
           max="2000000"
           required
+          disabled={submitting}
         />
       </div>
       <div className="form-group">
@@ -73,6 +81,7 @@ const LoanForm = ({ onSubmit, initialData = {} }) => {
           value={form.interestRate}
           readOnly
           step="0.01"
+          disabled={submitting}
         />
       </div>
       <div className="form-group">
@@ -82,6 +91,7 @@ const LoanForm = ({ onSubmit, initialData = {} }) => {
           name="termMonths"
           value={form.termMonths}
           readOnly
+          disabled={submitting}
         />
       </div>
       <div className="form-group">
@@ -91,6 +101,7 @@ const LoanForm = ({ onSubmit, initialData = {} }) => {
           name="guarantorName"
           value={form.guarantorName}
           onChange={handleChange}
+          disabled={submitting}
         />
       </div>
       <div className="form-group">
@@ -100,6 +111,7 @@ const LoanForm = ({ onSubmit, initialData = {} }) => {
           value={form.notes}
           onChange={handleChange}
           rows="4"
+          disabled={submitting}
         />
       </div>
       <div className="form-group">
@@ -109,9 +121,12 @@ const LoanForm = ({ onSubmit, initialData = {} }) => {
           name="documents"
           onChange={handleFileChange}
           accept=".pdf,.doc,.docx,.jpg,.png"
+          disabled={submitting}
         />
       </div>
-      <button type="submit">{initialData.id ? "Update Loan" : "Submit Application"}</button>
+      <button type="submit" disabled={submitting}>
+        {submitting ? "Saving..." : (initialData.id ? "Update Loan" : "Submit Application")}
+      </button>
     </form>
   );
 };

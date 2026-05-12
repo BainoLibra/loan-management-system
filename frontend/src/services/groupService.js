@@ -1,4 +1,4 @@
-import API_BASE, { getAuthHeaders } from "./api";
+import API_BASE, { getAuthHeaders, handleApiResponse } from "./api";
 
 const API_URL = `${API_BASE}/api/groups`;
 
@@ -7,7 +7,7 @@ export const getGroups = async () => {
     headers: getAuthHeaders(),
     credentials: "include"
   });
-  return response.json();
+  return handleApiResponse(response);
 };
 
 export const getGroupById = async (id) => {
@@ -15,7 +15,7 @@ export const getGroupById = async (id) => {
     headers: getAuthHeaders(),
     credentials: "include"
   });
-  return response.json();
+  return handleApiResponse(response);
 };
 
 export const createGroup = async (group) => {
@@ -25,7 +25,7 @@ export const createGroup = async (group) => {
     credentials: "include",
     body: JSON.stringify(group),
   });
-  return response.json();
+  return handleApiResponse(response);
 };
 
 export const updateGroup = async (id, group) => {
@@ -35,7 +35,7 @@ export const updateGroup = async (id, group) => {
     credentials: "include",
     body: JSON.stringify(group),
   });
-  return response.json();
+  return handleApiResponse(response);
 };
 
 export const deleteGroup = async (id) => {
@@ -44,7 +44,7 @@ export const deleteGroup = async (id) => {
     headers: getAuthHeaders(),
     credentials: "include"
   });
-  return response.json();
+  return handleApiResponse(response);
 };
 
 export const updateGroupMembers = async (id, clientIds) => {
@@ -54,5 +54,5 @@ export const updateGroupMembers = async (id, clientIds) => {
     credentials: "include",
     body: JSON.stringify({ clientIds }),
   });
-  return response.json();
+  return handleApiResponse(response);
 };

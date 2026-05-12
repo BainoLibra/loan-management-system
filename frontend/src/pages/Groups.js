@@ -32,8 +32,14 @@ function Groups() {
   useEffect(() => { fetchGroups(); }, []);
 
   const fetchGroups = async () => {
-    const data = await getGroups();
-    if (Array.isArray(data)) setGroups(data);
+    try {
+      setError("");
+      const data = await getGroups();
+      if (Array.isArray(data)) setGroups(data);
+    } catch (err) {
+      setError(err.message || "Failed to load groups");
+      setGroups([]);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -45,22 +51,23 @@ function Groups() {
       return;
     }
 
-    const response = editingId
-      ? await updateGroup(editingId, form)
-      : await createGroup(form);
+    try {
+      const response = editingId
+        ? await updateGroup(editingId, form)
+        : await createGroup(form);
 
-    if (response.error) {
-      if (response.error.toLowerCase().includes("already exists")) {
-        alert("A group with this name already exists. Please choose a different name.");
+      if (response.error) {
+        setError(response.error);
+        return;
       }
-      setError(response.error);
-      return;
-    }
 
-    setForm({ name: "", description: "" });
-    setShowForm(false);
-    setEditingId(null);
-    fetchGroups();
+      setForm({ name: "", description: "" });
+      setShowForm(false);
+      setEditingId(null);
+      fetchGroups();
+    } catch (err) {
+      setError(err.message || "Failed to save group");
+    }
   };
 
   const handleEdit = (g) => {
@@ -72,9 +79,13 @@ function Groups() {
 
   const handleDelete = async (id) => {
     if (!window.confirm("Delete this group?")) return;
-    const res = await deleteGroup(id);
-    if (res.error) { alert(res.error); return; }
-    fetchGroups();
+    try {
+      setError("");
+      await deleteGroup(id);
+      fetchGroups();
+    } catch (err) {
+      setError(err.message || "Failed to delete group");
+    }
   };
 
   const handleManageMembers = async (g) => {
@@ -91,20 +102,22 @@ function Groups() {
         alert(clientsData.error || "Failed to load clients.");
       }
     } catch (err) {
-      alert("Failed to load clients.");
+      setError(err.message || "Failed to load clients.");
     }
   };
 
   const handleSaveMembers = async () => {
-    setIsSavingMembers(true);
-    const res = await updateGroupMembers(managingGroup.id, selectedClientIds);
-    setIsSavingMembers(false);
-    if (res.error) {
-      alert(res.error);
-    } else {
+    try {
+      setIsSavingMembers(true);
+      setError("");
+      await updateGroupMembers(managingGroup.id, selectedClientIds);
       setShowMembersModal(false);
       setManagingGroup(null);
       fetchGroups();
+    } catch (err) {
+      setError(err.message || "Failed to save members");
+    } finally {
+      setIsSavingMembers(false);
     }
   };
 
@@ -126,7 +139,7 @@ function Groups() {
         setGroupMembers([]);
       }
     } catch (err) {
-      alert("Failed to load group members.");
+      setError(err.message || "Failed to load group members.");
     }
   };
 
@@ -141,6 +154,7 @@ function Groups() {
   return (
     <Layout>
       <h2>Client Groups</h2>
+      {error && <div className="form-error">{error}</div>}
       <div className="toolbar">
         {(isAdmin || currentUser?.role === "loan_officer") && (
           <button onClick={() => { setShowForm(!showForm); setEditingId(null); setForm({ name: "", description: "" }); setError(""); }}>

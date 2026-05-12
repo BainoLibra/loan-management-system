@@ -11,13 +11,17 @@ function ClientDetail() {
   const [loans, setLoans] = useState([]);
   const [selectedLoan, setSelectedLoan] = useState(null);
   const [repayments, setRepayments] = useState([]);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const fetchClient = async () => {
-      const data = await getClientById(id);
-      if (data && !data.error) {
+      try {
+        setError("");
+        const data = await getClientById(id);
         setClient(data);
         setLoans(data.loans || []);
+      } catch (err) {
+        setError(err.message || "Failed to load client");
       }
     };
     fetchClient();
@@ -29,12 +33,18 @@ function ClientDetail() {
       setRepayments([]);
       return;
     }
-    setSelectedLoan(loan);
-    const data = await getRepayments(loan.id);
-    if (Array.isArray(data)) setRepayments(data);
+    try {
+      setError("");
+      setSelectedLoan(loan);
+      const data = await getRepayments(loan.id);
+      if (Array.isArray(data)) setRepayments(data);
+    } catch (err) {
+      setError(err.message || "Failed to load repayments");
+      setRepayments([]);
+    }
   };
 
-  if (!client) return <Layout><p>Loading...</p></Layout>;
+  if (!client) return <Layout>{error ? <div className="form-error">{error}</div> : <p>Loading...</p>}</Layout>;
 
   const totalLoaned = loans.reduce((s, l) => s + Number(l.amount), 0);
   const totalBalance = loans.reduce((s, l) => s + Number(l.balance), 0);
@@ -42,6 +52,7 @@ function ClientDetail() {
 
   return (
     <Layout>
+      {error && <div className="form-error">{error}</div>}
       <Link to="/clients" style={{ color: "#3498db", textDecoration: "none" }}>&larr; Back to Clients</Link>
       <h2 style={{ marginTop: 10 }}>{client.firstName} {client.lastName}</h2>
 

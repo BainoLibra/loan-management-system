@@ -1,4 +1,4 @@
-import API_BASE, { getAuthHeaders } from "./api";
+import API_BASE, { getAuthHeaders, handleApiResponse } from "./api";
 
 const API_URL = `${API_BASE}/api/reports`;
 
@@ -7,5 +7,5 @@ export const getAgingReport = async () => {
     headers: getAuthHeaders(),
     credentials: "include",
   });
-  return response.json();
+  return handleApiResponse(response);
 };

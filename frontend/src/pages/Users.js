@@ -10,25 +10,41 @@ function Users() {
   const [form, setForm] = useState({ name: "", email: "", password: "", role: "loan_officer" });
   const [resetPw, setResetPw] = useState({ id: null, password: "" });
   const [search, setSearch] = useState("");
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => { fetchUsers(); }, []);
 
   const fetchUsers = async () => {
-    const data = await getUsers();
-    if (Array.isArray(data)) setUsers(data);
+    try {
+      setError("");
+      const data = await getUsers();
+      if (Array.isArray(data)) setUsers(data);
+    } catch (err) {
+      setError(err.message || "Failed to load users");
+      setUsers([]);
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (editingUser) {
-      await updateUser(editingUser.id, { name: form.name, email: form.email, role: form.role, status: form.status });
-    } else {
-      await createUser(form);
+    try {
+      setSubmitting(true);
+      setError("");
+      if (editingUser) {
+        await updateUser(editingUser.id, { name: form.name, email: form.email, role: form.role, status: form.status });
+      } else {
+        await createUser(form);
+      }
+      setForm({ name: "", email: "", password: "", role: "loan_officer" });
+      setShowForm(false);
+      setEditingUser(null);
+      fetchUsers();
+    } catch (err) {
+      setError(err.message || "Failed to save user");
+    } finally {
+      setSubmitting(false);
     }
-    setForm({ name: "", email: "", password: "", role: "loan_officer" });
-    setShowForm(false);
-    setEditingUser(null);
-    fetchUsers();
   };
 
   const handleEdit = (user) => {
@@ -39,15 +55,28 @@ function Users() {
 
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this user?")) return;
-    await deleteUser(id);
-    fetchUsers();
+    try {
+      setError("");
+      await deleteUser(id);
+      fetchUsers();
+    } catch (err) {
+      setError(err.message || "Failed to delete user");
+    }
   };
 
   const handleResetPassword = async (e) => {
     e.preventDefault();
-    await resetUserPassword(resetPw.id, resetPw.password);
-    setResetPw({ id: null, password: "" });
-    alert("Password reset successfully");
+    try {
+      setSubmitting(true);
+      setError("");
+      await resetUserPassword(resetPw.id, resetPw.password);
+      setResetPw({ id: null, password: "" });
+      alert("Password reset successfully");
+    } catch (err) {
+      setError(err.message || "Failed to reset password");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const filtered = users.filter(u =>
@@ -59,6 +88,7 @@ function Users() {
   return (
     <Layout>
       <h2>User Management</h2>
+      {error && <div className="form-error">{error}</div>}
       <div className="toolbar">
         <button onClick={() => { setShowForm(!showForm); setEditingUser(null); setForm({ name: "", email: "", password: "", role: "loan_officer" }); }}>
           {showForm ? "Cancel" : "+ New User"}
@@ -89,7 +119,9 @@ function Users() {
               <option value="inactive">Inactive</option>
             </select>
           )}
-          <button type="submit">{editingUser ? "Update" : "Create User"}</button>
+          <button type="submit" disabled={submitting}>
+            {submitting ? "Saving..." : (editingUser ? "Update" : "Create User")}
+          </button>
         </form>
       )}
 
@@ -97,7 +129,7 @@ function Users() {
         <form onSubmit={handleResetPassword} className="inline-form">
           <span>Reset password for user #{resetPw.id}:</span>
           <input type="password" placeholder="New Password" value={resetPw.password} onChange={(e) => setResetPw({ ...resetPw, password: e.target.value })} required />
-          <button type="submit">Reset</button>
+          <button type="submit" disabled={submitting}>{submitting ? "Resetting..." : "Reset"}</button>
           <button type="button" className="btn-secondary" onClick={() => setResetPw({ id: null, password: "" })}>Cancel</button>
         </form>
       )}

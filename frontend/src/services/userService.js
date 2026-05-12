@@ -1,4 +1,4 @@
-import API_BASE, { getAuthHeaders } from "./api";
+import API_BASE, { getAuthHeaders, handleApiResponse } from "./api";
 
 const API_URL = `${API_BASE}/api/users`;
 
@@ -7,7 +7,7 @@ export const getUsers = async () => {
     headers: getAuthHeaders(),
     credentials: "include"
   });
-  return response.json();
+  return handleApiResponse(response);
 };
 
 export const createUser = async (user) => {
@@ -17,7 +17,7 @@ export const createUser = async (user) => {
     credentials: "include",
     body: JSON.stringify(user),
   });
-  return response.json();
+  return handleApiResponse(response);
 };
 
 export const updateUser = async (id, user) => {
@@ -27,7 +27,7 @@ export const updateUser = async (id, user) => {
     credentials: "include",
     body: JSON.stringify(user),
   });
-  return response.json();
+  return handleApiResponse(response);
 };
 
 export const resetUserPassword = async (id, password) => {
@@ -37,7 +37,7 @@ export const resetUserPassword = async (id, password) => {
     credentials: "include",
     body: JSON.stringify({ password }),
   });
-  return response.json();
+  return handleApiResponse(response);
 };
 
 export const deleteUser = async (id) => {
@@ -46,5 +46,5 @@ export const deleteUser = async (id) => {
     headers: getAuthHeaders(),
     credentials: "include"
   });
-  return response.json();
+  return handleApiResponse(response);
 };

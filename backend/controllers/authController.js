@@ -3,18 +3,13 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const sendEmail = require('../utils/sendEmail');
+const { isValidEmail, normalizeEmail, sendServerError } = require('../utils/http');
 
 const SECRET = process.env.JWT_SECRET;
 if (!SECRET) {
   throw new Error('JWT_SECRET environment variable is required');
 }
 const allowedRoles = ['admin', 'loan_officer', 'cashier'];
-
-const normalizeEmail = (value) => {
-        if (typeof value !== 'string') return null;
-        const normalized = value.trim().toLowerCase();
-        return normalized || null;
-};
 
 const loginAttempts = new Map();
 
@@ -35,8 +30,7 @@ const register = async (req, res) => {
         }
 
         // Validate email format
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(normalizedEmail)) {
+        if (!isValidEmail(normalizedEmail)) {
             return res.status(400).json({ error: 'Invalid email format' });
         }
 
@@ -45,7 +39,14 @@ const register = async (req, res) => {
             return res.status(400).json({ error: 'Password must be at least 8 characters long' });
         }
 
-        const selectedRole = allowedRoles.includes(role) ? role : 'loan_officer';
+        const assignableRoles = req.user?.role === 'admin'
+            ? allowedRoles
+            : allowedRoles.filter((allowedRole) => allowedRole !== 'admin');
+        const selectedRole = role || 'loan_officer';
+
+        if (!assignableRoles.includes(selectedRole)) {
+            return res.status(403).json({ error: 'You are not allowed to assign that role' });
+        }
 
         // hash password
         const hashedPassword = await bcrypt.hash(password, 10);
@@ -62,14 +63,12 @@ const register = async (req, res) => {
         res.json({ message: 'User registered successfully' });
 
     } catch (error) {
-        console.error('Registration error:', error);
-
         if (error.code === 'P2002') {
             return res.status(400).json({
                 error: 'Email already exists'
             });
         }
-        res.status(500).json({ error: 'Internal server error' });
+        return sendServerError(res, error, 'Registration error');
     }
 };
 
@@ -81,6 +80,10 @@ const login = async (req, res) => {
 
         if (!normalizedEmail || typeof password !== 'string') {
             return res.status(400).json({ message: 'Email and password are required' });
+        }
+
+        if (!isValidEmail(normalizedEmail)) {
+            return res.status(400).json({ message: 'Invalid email format' });
         }
 
         const ip = req.ip || req.connection.remoteAddress || 'unknown';
@@ -104,8 +107,8 @@ const login = async (req, res) => {
             where: { email: normalizedEmail },
         });
 
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
+        if (!user || user.status === 'inactive') {
+            return res.status(401).json({ message: 'Invalid credentials' });
         }
 
         // compare password
@@ -142,8 +145,7 @@ const login = async (req, res) => {
         });
 
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Internal server error' });
+        return sendServerError(res, error, 'Login error');
     }
 };
 
@@ -155,6 +157,10 @@ const changePassword = async (req, res) => {
 
         if (!currentPassword || !newPassword) {
             return res.status(400).json({ error: 'Current and new password are required' });
+        }
+
+        if (typeof newPassword !== 'string' || newPassword.length < 8) {
+            return res.status(400).json({ error: 'New password must be at least 8 characters long' });
         }
 
         const user = await prisma.user.findUnique({
@@ -183,8 +189,7 @@ const changePassword = async (req, res) => {
         res.json({ message: 'Password changed successfully' });
 
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Internal server error' });
+        return sendServerError(res, error, 'Change password error');
     }
 };
 
@@ -196,6 +201,10 @@ const forgotPassword = async (req, res) => {
 
         if (!normalizedEmail) {
             return res.status(400).json({ error: 'Email is required' });
+        }
+
+        if (!isValidEmail(normalizedEmail)) {
+            return res.status(400).json({ error: 'Invalid email format' });
         }
 
         const user = await prisma.user.findUnique({
@@ -224,7 +233,8 @@ const forgotPassword = async (req, res) => {
         });
 
         // Send email
-        const resetUrl = `http://localhost:3000/reset-password?token=${resetToken}`;
+        const frontendUrl = process.env.FRONTEND_URL || `${req.protocol}://${req.get('host')}`;
+        const resetUrl = `${frontendUrl.replace(/\/$/, '')}/reset-password?token=${resetToken}`;
         const message = `You requested a password reset. Please click the link to reset your password: \n\n ${resetUrl}`;
 
         try {
@@ -249,8 +259,7 @@ const forgotPassword = async (req, res) => {
         }
 
     } catch (error) {
-        console.error('Forgot password error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        return sendServerError(res, error, 'Forgot password error');
     }
 };
 
@@ -297,8 +306,7 @@ const resetPassword = async (req, res) => {
         res.json({ message: 'Password has been successfully reset' });
 
     } catch (error) {
-        console.error('Reset password error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        return sendServerError(res, error, 'Reset password error');
     }
 };
 

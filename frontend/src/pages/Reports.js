@@ -10,11 +10,22 @@ function Reports() {
   const [search, setSearch] = useState("");
   const [bucketFilter, setBucketFilter] = useState("all");
   const [page, setPage] = useState(1);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchReport = async () => {
-      const data = await getAgingReport();
-      if (Array.isArray(data)) setReport(data.filter(Boolean));
+      try {
+        setLoading(true);
+        setError("");
+        const data = await getAgingReport();
+        if (Array.isArray(data)) setReport(data.filter(Boolean));
+      } catch (err) {
+        setError(err.message || "Failed to load report");
+        setReport([]);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchReport();
   }, []);
@@ -45,6 +56,8 @@ function Reports() {
   return (
     <Layout>
       <h2>Aging Report</h2>
+      {error && <div className="form-error">{error}</div>}
+      {loading && <p style={{ color: '#666', textAlign: 'center', padding: '20px' }}>Loading report...</p>}
       <div className="toolbar">
         <input
           className="search-input"

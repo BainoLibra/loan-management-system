@@ -1,4 +1,5 @@
 const { prisma } = require('../db');
+const { sendServerError } = require('../utils/http');
 
 const getAuditLogs = async (req, res) => {
   try {
@@ -14,7 +15,7 @@ const getAuditLogs = async (req, res) => {
       userName: log.user?.name || null,
     })));
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    return sendServerError(res, err, 'List audit logs error');
   }
 };
 

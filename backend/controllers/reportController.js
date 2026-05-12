@@ -1,4 +1,5 @@
 const { prisma } = require('../db');
+const { sendServerError } = require('../utils/http');
 
 const formatClientName = (client) => {
   if (!client) return null;
@@ -50,7 +51,7 @@ const getAgingReport = async (req, res) => {
 
     res.json(result);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    return sendServerError(res, err, 'Aging report error');
   }
 };
 

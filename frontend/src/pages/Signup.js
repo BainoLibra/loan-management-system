@@ -37,8 +37,8 @@ function Signup() {
       } else {
         setError("Signup failed. Please try again.");
       }
-    } catch {
-      setError("Unable to connect to server.");
+    } catch (err) {
+      setError(err.message || "Unable to connect to server.");
     } finally {
       setLoading(false);
     }

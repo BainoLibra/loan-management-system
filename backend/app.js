@@ -100,8 +100,11 @@ app.use((_req, res) => {
 // Error handler - must be last middleware
 app.use((err, _req, res, _next) => {
   console.error('Server Error:', err);
+  const message = process.env.NODE_ENV === 'production'
+    ? 'Internal Server Error'
+    : (err.message || 'Internal Server Error');
   res.status(err.status || 500).json({
-    error: err.message || 'Internal Server Error',
+    error: message,
   });
 });
 

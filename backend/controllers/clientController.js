@@ -1,5 +1,6 @@
 const { prisma } = require('../db');
 const { logAudit } = require('../utils/hash');
+const { normalizeEmail, parsePositiveInt, sendServerError } = require('../utils/http');
 
 const titleCaseName = (value) => {
   return String(value || "")
@@ -41,11 +42,15 @@ const createClient = async (req, res) => {
     const formattedGuarantorName = titleCaseName(guarantorName);
     const normalizedPhone = normalizePhoneNumber(phone);
     const normalizedGuarantorPhone = normalizePhoneNumber(guarantorPhone);
+    const normalizedEmail = normalizeEmail(email);
+    const parsedGroupId = groupId ? parsePositiveInt(groupId) : null;
+    if (groupId && !parsedGroupId) return res.status(400).json({ error: 'Invalid group id.' });
+
     const validationError = validateClientPayload({
       firstName: formattedFirstName,
       lastName: formattedLastName,
       phone: normalizedPhone,
-      email,
+      email: normalizedEmail,
       identifier,
       guarantorName: formattedGuarantorName,
       guarantorPhone: normalizedGuarantorPhone,
@@ -54,15 +59,20 @@ const createClient = async (req, res) => {
     });
     if (validationError) return res.status(400).json({ error: validationError });
 
+    if (parsedGroupId) {
+      const group = await prisma.group.findUnique({ where: { id: parsedGroupId } });
+      if (!group) return res.status(404).json({ error: 'Group not found' });
+    }
+
     const client = await prisma.client.create({
       data: {
         firstName: formattedFirstName,
         lastName: formattedLastName,
         phone: normalizedPhone || null,
-        email,
+        email: normalizedEmail,
         identifier,
         address,
-        groupId: groupId ? Number(groupId) : null,
+        groupId: parsedGroupId,
         guarantorName: formattedGuarantorName,
         guarantorPhone: normalizedGuarantorPhone || null,
         guarantorId,
@@ -73,8 +83,7 @@ const createClient = async (req, res) => {
 
     res.json({ id: client.id });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Internal server error' });
+    return sendServerError(res, err, 'Create client error');
   }
 };
 
@@ -85,16 +94,18 @@ const getClients = async (req, res) => {
     });
     res.json(rows);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Internal server error' });
+    return sendServerError(res, err, 'List clients error');
   }
 };
 
 const getClientById = async (req, res) => {
   try {
     const { id } = req.params;
+    const clientId = parsePositiveInt(id);
+    if (!clientId) return res.status(400).json({ error: 'Invalid client id' });
+
     const client = await prisma.client.findUnique({
-      where: { id: Number(id) },
+      where: { id: clientId },
       include: {
         loans: {
           orderBy: { createdAt: 'desc' },
@@ -106,8 +117,7 @@ const getClientById = async (req, res) => {
 
     res.json(client);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Internal server error' });
+    return sendServerError(res, err, 'Get client error');
   }
 };
 
@@ -120,11 +130,18 @@ const updateClient = async (req, res) => {
     const formattedGuarantorName = titleCaseName(guarantorName);
     const normalizedPhone = normalizePhoneNumber(phone);
     const normalizedGuarantorPhone = normalizePhoneNumber(guarantorPhone);
+    const clientId = parsePositiveInt(id);
+    const normalizedEmail = normalizeEmail(email);
+    const parsedGroupId = groupId ? parsePositiveInt(groupId) : null;
+
+    if (!clientId) return res.status(400).json({ error: 'Invalid client id' });
+    if (groupId && !parsedGroupId) return res.status(400).json({ error: 'Invalid group id.' });
+
     const validationError = validateClientPayload({
       firstName: formattedFirstName,
       lastName: formattedLastName,
       phone: normalizedPhone,
-      email,
+      email: normalizedEmail,
       identifier,
       guarantorName: formattedGuarantorName,
       guarantorPhone: normalizedGuarantorPhone,
@@ -133,46 +150,58 @@ const updateClient = async (req, res) => {
     });
     if (validationError) return res.status(400).json({ error: validationError });
 
+    if (parsedGroupId) {
+      const group = await prisma.group.findUnique({ where: { id: parsedGroupId } });
+      if (!group) return res.status(404).json({ error: 'Group not found' });
+    }
+
     await prisma.client.update({
-      where: { id: Number(id) },
+      where: { id: clientId },
       data: {
         firstName: formattedFirstName,
         lastName: formattedLastName,
         phone: normalizedPhone || null,
-        email,
+        email: normalizedEmail,
         identifier,
         address,
-        groupId: groupId ? Number(groupId) : null,
+        groupId: parsedGroupId,
         guarantorName: formattedGuarantorName,
         guarantorPhone: normalizedGuarantorPhone || null,
         guarantorId,
       },
     });
 
-    await logAudit(req.user.id, 'UPDATE_CLIENT', 'client', id);
+    await logAudit(req.user.id, 'UPDATE_CLIENT', 'client', clientId);
     res.json({ updated: 1 });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Internal server error' });
+    if (err.code === 'P2025') {
+      return res.status(404).json({ error: 'Client not found' });
+    }
+    return sendServerError(res, err, 'Update client error');
   }
 };
 
 const deleteClient = async (req, res) => {
   try {
     const { id } = req.params;
+    const clientId = parsePositiveInt(id);
+
+    if (!clientId) return res.status(400).json({ error: 'Invalid client id' });
 
     // Check if client has loans
-    const loans = await prisma.loan.count({ where: { clientId: Number(id) } });
+    const loans = await prisma.loan.count({ where: { clientId } });
     if (loans > 0) {
       return res.status(400).json({ error: 'Cannot delete client with existing loans' });
     }
 
-    await prisma.client.delete({ where: { id: Number(id) } });
-    await logAudit(req.user.id, 'DELETE_CLIENT', 'client', id);
+    await prisma.client.delete({ where: { id: clientId } });
+    await logAudit(req.user.id, 'DELETE_CLIENT', 'client', clientId);
     res.json({ deleted: 1 });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Internal server error' });
+    if (err.code === 'P2025') {
+      return res.status(404).json({ error: 'Client not found' });
+    }
+    return sendServerError(res, err, 'Delete client error');
   }
 };
 
