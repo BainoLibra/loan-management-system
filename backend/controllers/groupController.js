@@ -32,7 +32,20 @@ const createGroup = async (req, res) => {
 
 const getGroups = async (req, res) => {
   try {
+    if (req.user.role === 'admin') {
+      const rows = await prisma.group.findMany({ orderBy: { createdAt: 'desc' } });
+      return res.json(rows);
+    }
+
+    // Non-admin: only groups the user created (based on audit logs)
+    const logs = await prisma.auditLog.findMany({
+      where: { userId: req.user.id, entity: 'group', action: 'CREATE_GROUP' },
+    });
+    const groupIds = logs.map((l) => l.entityId).filter(Boolean);
+    if (groupIds.length === 0) return res.json([]);
+
     const rows = await prisma.group.findMany({
+      where: { id: { in: groupIds } },
       orderBy: { createdAt: 'desc' },
     });
     res.json(rows);
@@ -54,6 +67,15 @@ const getGroupById = async (req, res) => {
 
     if (!group) return res.status(404).json({ error: 'Group not found' });
 
+    if (req.user.role !== 'admin') {
+      const createdLog = await prisma.auditLog.findFirst({
+        where: { userId: req.user.id, entity: 'group', action: 'CREATE_GROUP', entityId: groupId },
+      });
+      if (!createdLog) {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+    }
+
     res.json(group);
   } catch (err) {
     return sendServerError(res, err, 'Get group error');
@@ -74,6 +96,13 @@ const updateGroup = async (req, res) => {
     }
     if (description && !groupDescription) {
       return res.status(400).json({ error: 'Description must be under 500 characters.' });
+    }
+
+    if (req.user.role !== 'admin') {
+      const createdLog = await prisma.auditLog.findFirst({
+        where: { userId: req.user.id, entity: 'group', action: 'CREATE_GROUP', entityId: groupId },
+      });
+      if (!createdLog) return res.status(403).json({ error: 'Forbidden' });
     }
 
     await prisma.group.update({
@@ -105,6 +134,13 @@ const deleteGroup = async (req, res) => {
     const clients = await prisma.client.count({ where: { groupId } });
     if (clients > 0) {
       return res.status(400).json({ error: 'Cannot delete group with existing clients' });
+    }
+
+    if (req.user.role !== 'admin') {
+      const createdLog = await prisma.auditLog.findFirst({
+        where: { userId: req.user.id, entity: 'group', action: 'CREATE_GROUP', entityId: groupId },
+      });
+      if (!createdLog) return res.status(403).json({ error: 'Forbidden' });
     }
 
     await prisma.group.delete({ where: { id: groupId } });
@@ -147,6 +183,11 @@ const updateGroupMembers = async (req, res) => {
       if (removingAny) {
         return res.status(403).json({ error: 'Only admins can remove members from a group.' });
       }
+      // Additionally ensure non-admins only modify groups they created
+      const createdLog = await prisma.auditLog.findFirst({
+        where: { userId: req.user.id, entity: 'group', action: 'CREATE_GROUP', entityId: groupId },
+      });
+      if (!createdLog) return res.status(403).json({ error: 'Forbidden' });
     }
 
     const group = await prisma.group.update({

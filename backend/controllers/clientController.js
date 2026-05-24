@@ -89,9 +89,29 @@ const createClient = async (req, res) => {
 
 const getClients = async (req, res) => {
   try {
-    const rows = await prisma.client.findMany({
-      orderBy: { createdAt: 'desc' },
+    if (req.user.role === 'admin') {
+      const rows = await prisma.client.findMany({ orderBy: { createdAt: 'desc' } });
+      return res.json(rows);
+    }
+
+    // Non-admin: clients they created OR clients belonging to groups they created
+    const clientLogs = await prisma.auditLog.findMany({
+      where: { userId: req.user.id, entity: 'client', action: 'CREATE_CLIENT' },
     });
+    const clientIds = clientLogs.map((l) => l.entityId).filter(Boolean);
+
+    const groupLogs = await prisma.auditLog.findMany({
+      where: { userId: req.user.id, entity: 'group', action: 'CREATE_GROUP' },
+    });
+    const groupIds = groupLogs.map((l) => l.entityId).filter(Boolean);
+
+    const where = { OR: [] };
+    if (clientIds.length > 0) where.OR.push({ id: { in: clientIds } });
+    if (groupIds.length > 0) where.OR.push({ groupId: { in: groupIds } });
+
+    if (where.OR.length === 0) return res.json([]);
+
+    const rows = await prisma.client.findMany({ where, orderBy: { createdAt: 'desc' } });
     res.json(rows);
   } catch (err) {
     return sendServerError(res, err, 'List clients error');
