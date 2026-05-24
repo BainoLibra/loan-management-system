@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Layout from "../components/Layout";
 import { getGroups, getGroupById, createGroup, updateGroup, deleteGroup, updateGroupMembers } from "../services/groupService";
-import { getClients } from "../services/clientService";
+import { getClients, createClient } from "../services/clientService";
 import { getUser } from "../services/authService";
 import "../styles/table.css";
 
@@ -25,6 +25,9 @@ function Groups() {
 
   const [viewingGroup, setViewingGroup] = useState(null);
   const [groupMembers, setGroupMembers] = useState([]);
+  const [newClientForm, setNewClientForm] = useState({ firstName: "", lastName: "", phone: "", identifier: "", guarantorName: "", guarantorPhone: "" });
+  const [newClientError, setNewClientError] = useState("");
+  const [isAddingClient, setIsAddingClient] = useState(false);
 
   const currentUser = getUser();
   const isAdmin = currentUser?.role === "admin";
@@ -135,6 +138,7 @@ function Groups() {
 
   const handleViewGroup = async (g) => {
     setViewingGroup(g);
+    resetNewClientForm();
     try {
       const data = await getGroupById(g.id);
       if (data && data.clients) {
@@ -144,6 +148,44 @@ function Groups() {
       }
     } catch (err) {
       setError(err.message || "Failed to load group members.");
+    }
+  };
+
+  const resetNewClientForm = () => {
+    setNewClientForm({ firstName: "", lastName: "", phone: "", identifier: "", guarantorName: "", guarantorPhone: "" });
+    setNewClientError("");
+  };
+
+  const handleAddClientToGroup = async (e) => {
+    e.preventDefault();
+    if (!viewingGroup) return;
+
+    const trimmedFirstName = newClientForm.firstName.trim();
+    const trimmedLastName = newClientForm.lastName.trim();
+
+    if (!trimmedFirstName || !trimmedLastName) {
+      setNewClientError("First name and last name are required.");
+      return;
+    }
+
+    try {
+      setNewClientError("");
+      setIsAddingClient(true);
+      await createClient({
+        firstName: trimmedFirstName,
+        lastName: trimmedLastName,
+        identifier: newClientForm.identifier.trim() || null,
+        phone: newClientForm.phone.trim() || null,
+        guarantorName: newClientForm.guarantorName.trim() || null,
+        guarantorPhone: newClientForm.guarantorPhone.trim() || null,
+        groupId: viewingGroup.id,
+      });
+      await handleViewGroup(viewingGroup);
+      resetNewClientForm();
+    } catch (err) {
+      setNewClientError(err.message || "Failed to add client to group.");
+    } finally {
+      setIsAddingClient(false);
     }
   };
 
@@ -270,7 +312,7 @@ function Groups() {
         <div className="modal-overlay">
           <div className="modal-content">
             <h3>Members in Group: {viewingGroup.name}</h3>
-            <div className="members-list" style={{ maxHeight: "300px", overflowY: "auto", margin: "1rem 0", textAlign: "left" }}>
+            <div className="members-list" style={{ maxHeight: "220px", overflowY: "auto", margin: "1rem 0", textAlign: "left" }}>
               {groupMembers.length === 0 ? (
                 <p>No members in this group.</p>
               ) : (
@@ -286,8 +328,52 @@ function Groups() {
                 </ul>
               )}
             </div>
-            <div className="modal-actions" style={{ display: "flex", justifyContent: "flex-end" }}>
-              <button className="btn-secondary" onClick={() => { setViewingGroup(null); setGroupMembers([]); }}>Close</button>
+
+            <div style={{ marginTop: "1rem", borderTop: "1px solid #e0e0e0", paddingTop: "1rem" }}>
+              <h4>Add New Client to {viewingGroup.name}</h4>
+              {newClientError && <div className="form-error">{newClientError}</div>}
+              <form onSubmit={handleAddClientToGroup} style={{ display: "grid", gap: "0.75rem", marginTop: "0.5rem" }}>
+                <input
+                  placeholder="First Name"
+                  value={newClientForm.firstName}
+                  onChange={(e) => setNewClientForm({ ...newClientForm, firstName: e.target.value })}
+                  required
+                />
+                <input
+                  placeholder="Last Name"
+                  value={newClientForm.lastName}
+                  onChange={(e) => setNewClientForm({ ...newClientForm, lastName: e.target.value })}
+                  required
+                />
+                <input
+                  placeholder="NIN / Identifier"
+                  value={newClientForm.identifier}
+                  onChange={(e) => setNewClientForm({ ...newClientForm, identifier: e.target.value.toUpperCase() })}
+                />
+                <input
+                  placeholder="Phone"
+                  value={newClientForm.phone}
+                  onChange={(e) => setNewClientForm({ ...newClientForm, phone: e.target.value })}
+                />
+                <input
+                  placeholder="Guarantor Name"
+                  value={newClientForm.guarantorName}
+                  onChange={(e) => setNewClientForm({ ...newClientForm, guarantorName: e.target.value })}
+                />
+                <input
+                  placeholder="Guarantor Phone"
+                  value={newClientForm.guarantorPhone}
+                  onChange={(e) => setNewClientForm({ ...newClientForm, guarantorPhone: e.target.value })}
+                />
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem", marginTop: "0.5rem" }}>
+                  <button className="btn-secondary" type="button" onClick={resetNewClientForm}>Clear</button>
+                  <button type="submit" disabled={isAddingClient}>{isAddingClient ? "Adding..." : "Add Client"}</button>
+                </div>
+              </form>
+            </div>
+
+            <div className="modal-actions" style={{ display: "flex", justifyContent: "flex-end", marginTop: "1rem" }}>
+              <button className="btn-secondary" onClick={() => { setViewingGroup(null); setGroupMembers([]); resetNewClientForm(); }}>Close</button>
             </div>
           </div>
         </div>
