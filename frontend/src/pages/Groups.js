@@ -93,7 +93,11 @@ function Groups() {
     try {
       const clientsData = await getClients();
       if (Array.isArray(clientsData)) {
-        setAllClients(clientsData);
+        const availableClients = isAdmin
+          ? clientsData
+          : clientsData.filter(c => c.groupId === null || c.groupId === g.id);
+
+        setAllClients(availableClients);
         const currentMemberIds = clientsData.filter(c => c.groupId === g.id).map(c => c.id);
         setSelectedClientIds(currentMemberIds);
         setInitialSelectedClientIds(currentMemberIds);
