@@ -233,7 +233,7 @@ function Groups() {
 
       {showMembersModal && (
         <div className="modal-overlay">
-          <div className="modal">
+          <div className="modal-content">
             <h3>Manage Members for: {managingGroup?.name}</h3>
             <div className="members-list" style={{ maxHeight: "300px", overflowY: "auto", margin: "1rem 0", textAlign: "left" }}>
               {allClients.length === 0 ? (
@@ -264,7 +264,7 @@ function Groups() {
 
       {viewingGroup && (
         <div className="modal-overlay">
-          <div className="modal">
+          <div className="modal-content">
             <h3>Members in Group: {viewingGroup.name}</h3>
             <div className="members-list" style={{ maxHeight: "300px", overflowY: "auto", margin: "1rem 0", textAlign: "left" }}>
               {groupMembers.length === 0 ? (
