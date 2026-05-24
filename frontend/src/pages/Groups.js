@@ -254,7 +254,9 @@ function Groups() {
                 </td>
                 <td>{g.description || "N/A"}</td>
                 <td>
-                  <button className="btn-sm" onClick={() => handleManageMembers(g)}>Members</button>{" "}
+                  {!isAdmin && (
+                    <button className="btn-sm" onClick={() => handleManageMembers(g)}>Members</button>
+                  )}{" "}
                   {(isAdmin || currentUser?.role === "loan_officer") && (
                     <button className="btn-sm" onClick={() => handleEdit(g)}>Edit</button>
                   )}
@@ -329,10 +331,11 @@ function Groups() {
               )}
             </div>
 
-            <div style={{ marginTop: "1rem", borderTop: "1px solid #e0e0e0", paddingTop: "1rem" }}>
-              <h4>Add New Client to {viewingGroup.name}</h4>
-              {newClientError && <div className="form-error">{newClientError}</div>}
-              <form onSubmit={handleAddClientToGroup} style={{ display: "grid", gap: "0.75rem", marginTop: "0.5rem" }}>
+            {!isAdmin && (
+              <div style={{ marginTop: "1rem", borderTop: "1px solid #e0e0e0", paddingTop: "1rem" }}>
+                <h4>Add New Client to {viewingGroup.name}</h4>
+                {newClientError && <div className="form-error">{newClientError}</div>}
+                <form onSubmit={handleAddClientToGroup} style={{ display: "grid", gap: "0.75rem", marginTop: "0.5rem" }}>
                 <input
                   placeholder="First Name"
                   value={newClientForm.firstName}
@@ -371,6 +374,7 @@ function Groups() {
                 </div>
               </form>
             </div>
+            )}
 
             <div className="modal-actions" style={{ display: "flex", justifyContent: "flex-end", marginTop: "1rem" }}>
               <button className="btn-secondary" onClick={() => { setViewingGroup(null); setGroupMembers([]); resetNewClientForm(); }}>Close</button>

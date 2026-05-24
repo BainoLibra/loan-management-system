@@ -68,6 +68,7 @@ function Clients() {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const user = getUser();
+  const isAdmin = user?.role === 'admin';
 
   useEffect(() => { fetchClients(); fetchGroups(); }, []);
 
@@ -218,12 +219,14 @@ function Clients() {
             value={form.firstName}
             onChange={(e) => setForm({ ...form, firstName: titleCaseName(e.target.value) })}
             required
+            readOnly={!isAdmin && !!editingId}
           />
           <input
             placeholder="Last Name"
             value={form.lastName}
             onChange={(e) => setForm({ ...form, lastName: titleCaseName(e.target.value) })}
             required
+            readOnly={!isAdmin && !!editingId}
           />
           <select value={form.groupId} onChange={(e) => setForm({ ...form, groupId: e.target.value })}>
             <option value="">Select Group</option>
@@ -269,6 +272,7 @@ function Clients() {
             value={form.identifier}
             onChange={(e) => setForm({ ...form, identifier: sanitizeIdentifierInput(e.target.value) })}
             maxLength={14}
+            readOnly={!isAdmin && !!editingId}
           />
           <button type="submit" disabled={submitting}>
             {submitting ? "Saving..." : (editingId ? "Update" : "Save Client")}

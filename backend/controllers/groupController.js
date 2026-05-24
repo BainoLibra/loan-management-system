@@ -169,25 +169,14 @@ const updateGroupMembers = async (req, res) => {
     if (parsedClientIds.some((clientId) => !clientId)) {
       return res.status(400).json({ error: 'clientIds must contain valid client ids' });
     }
-
-    if (req.user.role !== 'admin') {
-      const currentGroup = await prisma.group.findUnique({
-        where: { id: groupId },
-        include: { clients: true }
-      });
-      if (!currentGroup) return res.status(404).json({ error: 'Group not found' });
-      
-      const currentClientIds = currentGroup.clients.map(c => c.id);
-      const removingAny = currentClientIds.some(cid => !parsedClientIds.includes(Number(cid)));
-      
-      if (removingAny) {
-        return res.status(403).json({ error: 'Only admins can remove members from a group.' });
-      }
-      // Additionally ensure non-admins only modify groups they created
-      const createdLog = await prisma.auditLog.findFirst({
-        where: { userId: req.user.id, entity: 'group', action: 'CREATE_GROUP', entityId: groupId },
-      });
-      if (!createdLog) return res.status(403).json({ error: 'Forbidden' });
+    // Only the user who created the group (owner) may modify membership.
+    // This prevents other loan officers and admins from adding/removing members arbitrarily.
+    const createdLog = await prisma.auditLog.findFirst({
+      where: { entity: 'group', action: 'CREATE_GROUP', entityId: groupId },
+    });
+    if (!createdLog) return res.status(404).json({ error: 'Group not found' });
+    if (createdLog.userId !== req.user.id) {
+      return res.status(403).json({ error: 'Only the group owner can modify members.' });
     }
 
     const group = await prisma.group.update({
