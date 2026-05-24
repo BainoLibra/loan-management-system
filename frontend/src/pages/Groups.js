@@ -191,16 +191,16 @@ function Groups() {
         <table>
           <thead>
             <tr>
-              <th>ID</th>
+              <th>No.</th>
               <th>Name</th>
               <th>Description</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {paginated.map((g) => (
+            {paginated.map((g, index) => (
               <tr key={g.id}>
-                <td>{g.id}</td>
+                <td>{(page - 1) * PAGE_SIZE + index + 1}</td>
                 <td>
                   <span style={{ color: "#3498db", cursor: "pointer", textDecoration: "underline" }} onClick={() => handleViewGroup(g)}>
                     {g.name}
