@@ -55,6 +55,11 @@ function Groups() {
     }
 
     try {
+      if (!editingId && isAdmin) {
+        setError('Admins are not permitted to create groups.');
+        return;
+      }
+
       const response = editingId
         ? await updateGroup(editingId, form)
         : await createGroup(form);
@@ -202,7 +207,7 @@ function Groups() {
       <h2>Client Groups</h2>
       {error && <div className="form-error">{error}</div>}
       <div className="toolbar">
-        {(isAdmin || currentUser?.role === "loan_officer") && (
+        {currentUser?.role === "loan_officer" && (
           <button onClick={() => { setShowForm(!showForm); setEditingId(null); setForm({ name: "", description: "" }); setError(""); }}>
             {showForm ? "Cancel" : "+ New Group"}
           </button>
