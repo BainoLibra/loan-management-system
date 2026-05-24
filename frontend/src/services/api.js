@@ -3,16 +3,42 @@ const API_BASE = process.env.NODE_ENV === "production"
   : (process.env.REACT_APP_API_URL || "http://localhost:4000");
 
 export const getAuthHeaders = ({ json = true } = {}) => {
-  const token = localStorage.getItem("token");
+  const activeId = localStorage.getItem("activeSessionId");
+  let token = null;
+  try {
+    const sessionsRaw = localStorage.getItem("sessions");
+    const sessions = sessionsRaw ? JSON.parse(sessionsRaw) : {};
+    if (activeId && sessions[activeId]) token = sessions[activeId].token;
+  } catch (e) {
+    token = null;
+  }
+
   return {
     ...(json ? { "Content-Type": "application/json" } : {}),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 };
 
+// Remove only the active session from storage (used when token expires)
 export const clearAuthSession = () => {
-  localStorage.removeItem("token");
-  localStorage.removeItem("user");
+  try {
+    const activeId = localStorage.getItem("activeSessionId");
+    if (!activeId) return;
+    const sessionsRaw = localStorage.getItem("sessions");
+    const sessions = sessionsRaw ? JSON.parse(sessionsRaw) : {};
+    delete sessions[activeId];
+    localStorage.setItem("sessions", JSON.stringify(sessions));
+    // pick another session as active if available
+    const remainingIds = Object.keys(sessions);
+    if (remainingIds.length > 0) {
+      localStorage.setItem("activeSessionId", remainingIds[0]);
+    } else {
+      localStorage.removeItem("activeSessionId");
+    }
+  } catch (e) {
+    localStorage.removeItem("sessions");
+    localStorage.removeItem("activeSessionId");
+  }
 };
 
 export const isTokenExpired = (token = localStorage.getItem("token")) => {
