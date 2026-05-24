@@ -259,9 +259,9 @@ function Groups() {
                 </td>
                 <td>{g.description || "N/A"}</td>
                 <td>
-                  {!isAdmin && (
+                  {(isAdmin || currentUser?.role === "loan_officer") && (
                     <button className="btn-sm" onClick={() => handleManageMembers(g)}>Members</button>
-                  )}{" "}
+                  )} {" "}
                   {(isAdmin || currentUser?.role === "loan_officer") && (
                     <button className="btn-sm" onClick={() => handleEdit(g)}>Edit</button>
                   )}

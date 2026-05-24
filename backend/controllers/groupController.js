@@ -179,8 +179,9 @@ const updateGroupMembers = async (req, res) => {
       where: { entity: 'group', action: 'CREATE_GROUP', entityId: groupId },
     });
     if (!createdLog) return res.status(404).json({ error: 'Group not found' });
-    if (createdLog.userId !== req.user.id) {
-      return res.status(403).json({ error: 'Only the group owner can modify members.' });
+    // Allow the group owner or admins to modify membership
+    if (req.user.role !== 'admin' && createdLog.userId !== req.user.id) {
+      return res.status(403).json({ error: 'Only the group owner or admin can modify members.' });
     }
 
     const group = await prisma.group.update({
