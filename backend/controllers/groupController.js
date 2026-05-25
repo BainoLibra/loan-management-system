@@ -173,29 +173,37 @@ const updateGroupMembers = async (req, res) => {
     if (parsedClientIds.some((clientId) => !clientId)) {
       return res.status(400).json({ error: 'clientIds must contain valid client ids' });
     }
-    // Only the user who created the group (owner) may modify membership.
-    // This prevents other loan officers and admins from adding/removing members arbitrarily.
-    const createdLog = await prisma.auditLog.findFirst({
-      where: { entity: 'group', action: 'CREATE_GROUP', entityId: groupId },
-    });
-    if (!createdLog) return res.status(404).json({ error: 'Group not found' });
-    // Allow the group owner or admins to modify membership
-    if (req.user.role !== 'admin' && createdLog.userId !== req.user.id) {
-      return res.status(403).json({ error: 'Only the group owner or admin can modify members.' });
+    // Verify group exists first
+    const group = await prisma.group.findUnique({ where: { id: groupId } });
+    if (!group) return res.status(404).json({ error: 'Group not found' });
+
+    // Only the user who created the group (owner) may modify membership, except admins.
+    if (req.user.role !== 'admin') {
+      const createdLog = await prisma.auditLog.findFirst({
+        where: { entity: 'group', action: 'CREATE_GROUP', entityId: groupId },
+      });
+      if (!createdLog || createdLog.userId !== req.user.id) {
+        return res.status(403).json({ error: 'Only the group owner or admin can modify members.' });
+      }
     }
 
-    const group = await prisma.group.update({
-      where: { id: groupId },
-      data: {
-        clients: {
-          set: parsedClientIds.map((clientId) => ({ id: clientId })),
-        },
-      },
-      include: { clients: true },
-    });
+    // Ensure all client ids exist
+    const existingClients = await prisma.client.findMany({ where: { id: { in: parsedClientIds } } });
+    if (existingClients.length !== parsedClientIds.length) {
+      return res.status(404).json({ error: 'One or more clients not found' });
+    }
 
+    // Update membership by setting groupId on the provided clients and clearing it for others
+    await prisma.$transaction([
+      // Clear groupId for clients currently in this group but not in the new list
+      prisma.client.updateMany({ where: { groupId, id: { notIn: parsedClientIds } }, data: { groupId: null } }),
+      // Assign this groupId to the provided clients
+      prisma.client.updateMany({ where: { id: { in: parsedClientIds } }, data: { groupId } }),
+    ]);
+
+    const updated = await prisma.group.findUnique({ where: { id: groupId }, include: { clients: true } });
     await logAudit(req.user.id, 'UPDATE_GROUP_MEMBERS', 'group', groupId);
-    res.json(group);
+    res.json(updated);
   } catch (err) {
     if (err.code === 'P2025') {
       return res.status(404).json({ error: 'Group or client not found' });
