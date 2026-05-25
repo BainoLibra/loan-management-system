@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Layout from "../components/Layout";
 import { getGroups, getGroupById, createGroup, updateGroup, deleteGroup, updateGroupMembers } from "../services/groupService";
-import { getClients, createClient } from "../services/clientService";
+import { getClients } from "../services/clientService";
 import { getUser } from "../services/authService";
 import "../styles/table.css";
 
@@ -25,7 +25,6 @@ function Groups() {
 
   const [viewingGroup, setViewingGroup] = useState(null);
   const [groupMembers, setGroupMembers] = useState([]);
-  const [newClientForm, setNewClientForm] = useState({ firstName: "", lastName: "", phone: "", identifier: "", guarantorName: "", guarantorPhone: "" });
 
   const currentUser = getUser();
   const isAdmin = currentUser?.role === "admin";
@@ -141,7 +140,6 @@ function Groups() {
 
   const handleViewGroup = async (g) => {
     setViewingGroup(g);
-    resetNewClientForm();
     try {
       const data = await getGroupById(g.id);
       if (data && data.clients) {
@@ -152,10 +150,6 @@ function Groups() {
     } catch (err) {
       setError(err.message || "Failed to load group members.");
     }
-  };
-
-  const resetNewClientForm = () => {
-    setNewClientForm({ firstName: "", lastName: "", phone: "", identifier: "", guarantorName: "", guarantorPhone: "" });
   };
 
   
@@ -305,7 +299,7 @@ function Groups() {
             {/* Inline add-client-from-group removed — client creation should use the Clients page with group dropdown. */}
 
             <div className="modal-actions" style={{ display: "flex", justifyContent: "flex-end", marginTop: "1rem" }}>
-              <button className="btn-secondary" onClick={() => { setViewingGroup(null); setGroupMembers([]); resetNewClientForm(); }}>Close</button>
+              <button className="btn-secondary" onClick={() => { setViewingGroup(null); setGroupMembers([]); }}>Close</button>
             </div>
           </div>
         </div>
