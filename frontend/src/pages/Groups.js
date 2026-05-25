@@ -26,8 +26,6 @@ function Groups() {
   const [viewingGroup, setViewingGroup] = useState(null);
   const [groupMembers, setGroupMembers] = useState([]);
   const [newClientForm, setNewClientForm] = useState({ firstName: "", lastName: "", phone: "", identifier: "", guarantorName: "", guarantorPhone: "" });
-  const [newClientError, setNewClientError] = useState("");
-  const [isAddingClient, setIsAddingClient] = useState(false);
 
   const currentUser = getUser();
   const isAdmin = currentUser?.role === "admin";
@@ -158,41 +156,9 @@ function Groups() {
 
   const resetNewClientForm = () => {
     setNewClientForm({ firstName: "", lastName: "", phone: "", identifier: "", guarantorName: "", guarantorPhone: "" });
-    setNewClientError("");
   };
 
-  const handleAddClientToGroup = async (e) => {
-    e.preventDefault();
-    if (!viewingGroup) return;
-
-    const trimmedFirstName = newClientForm.firstName.trim();
-    const trimmedLastName = newClientForm.lastName.trim();
-
-    if (!trimmedFirstName || !trimmedLastName) {
-      setNewClientError("First name and last name are required.");
-      return;
-    }
-
-    try {
-      setNewClientError("");
-      setIsAddingClient(true);
-      await createClient({
-        firstName: trimmedFirstName,
-        lastName: trimmedLastName,
-        identifier: newClientForm.identifier.trim() || null,
-        phone: newClientForm.phone.trim() || null,
-        guarantorName: newClientForm.guarantorName.trim() || null,
-        guarantorPhone: newClientForm.guarantorPhone.trim() || null,
-        groupId: viewingGroup.id,
-      });
-      await handleViewGroup(viewingGroup);
-      resetNewClientForm();
-    } catch (err) {
-      setNewClientError(err.message || "Failed to add client to group.");
-    } finally {
-      setIsAddingClient(false);
-    }
-  };
+  
 
   const filtered = groups.filter(g =>
     g.name.toLowerCase().includes(search.toLowerCase()) ||
