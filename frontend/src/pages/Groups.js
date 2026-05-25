@@ -259,12 +259,12 @@ function Groups() {
                 </td>
                 <td>{g.description || "N/A"}</td>
                 <td>
-                  {(isAdmin || currentUser?.role === "loan_officer") && (
-                    <button className="btn-sm" onClick={() => handleManageMembers(g)}>Members</button>
-                  )} {" "}
-                  {(isAdmin || currentUser?.role === "loan_officer") && (
-                    <button className="btn-sm" onClick={() => handleEdit(g)}>Edit</button>
-                  )}
+                  {isAdmin && (
+                      <>
+                        <button className="btn-sm" onClick={() => handleManageMembers(g)}>Members</button> {' '}
+                        <button className="btn-sm" onClick={() => handleEdit(g)}>Edit</button>
+                      </>
+                    )}
                   {" "}
                   {isAdmin && (
                     <button className="btn-sm btn-danger" onClick={() => handleDelete(g.id)}>Delete</button>
@@ -336,50 +336,7 @@ function Groups() {
               )}
             </div>
 
-            {!isAdmin && (
-              <div style={{ marginTop: "1rem", borderTop: "1px solid #e0e0e0", paddingTop: "1rem" }}>
-                <h4>Add New Client to {viewingGroup.name}</h4>
-                {newClientError && <div className="form-error">{newClientError}</div>}
-                <form onSubmit={handleAddClientToGroup} style={{ display: "grid", gap: "0.75rem", marginTop: "0.5rem" }}>
-                <input
-                  placeholder="First Name"
-                  value={newClientForm.firstName}
-                  onChange={(e) => setNewClientForm({ ...newClientForm, firstName: e.target.value })}
-                  required
-                />
-                <input
-                  placeholder="Last Name"
-                  value={newClientForm.lastName}
-                  onChange={(e) => setNewClientForm({ ...newClientForm, lastName: e.target.value })}
-                  required
-                />
-                <input
-                  placeholder="NIN / Identifier"
-                  value={newClientForm.identifier}
-                  onChange={(e) => setNewClientForm({ ...newClientForm, identifier: e.target.value.toUpperCase() })}
-                />
-                <input
-                  placeholder="Phone"
-                  value={newClientForm.phone}
-                  onChange={(e) => setNewClientForm({ ...newClientForm, phone: e.target.value })}
-                />
-                <input
-                  placeholder="Guarantor Name"
-                  value={newClientForm.guarantorName}
-                  onChange={(e) => setNewClientForm({ ...newClientForm, guarantorName: e.target.value })}
-                />
-                <input
-                  placeholder="Guarantor Phone"
-                  value={newClientForm.guarantorPhone}
-                  onChange={(e) => setNewClientForm({ ...newClientForm, guarantorPhone: e.target.value })}
-                />
-                <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem", marginTop: "0.5rem" }}>
-                  <button className="btn-secondary" type="button" onClick={resetNewClientForm}>Clear</button>
-                  <button type="submit" disabled={isAddingClient}>{isAddingClient ? "Adding..." : "Add Client"}</button>
-                </div>
-              </form>
-            </div>
-            )}
+            {/* Inline add-client-from-group removed — client creation should use the Clients page with group dropdown. */}
 
             <div className="modal-actions" style={{ display: "flex", justifyContent: "flex-end", marginTop: "1rem" }}>
               <button className="btn-secondary" onClick={() => { setViewingGroup(null); setGroupMembers([]); resetNewClientForm(); }}>Close</button>

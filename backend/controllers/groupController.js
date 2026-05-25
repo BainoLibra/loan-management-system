@@ -102,11 +102,9 @@ const updateGroup = async (req, res) => {
       return res.status(400).json({ error: 'Description must be under 500 characters.' });
     }
 
+    // Only admins may update group details
     if (req.user.role !== 'admin') {
-      const createdLog = await prisma.auditLog.findFirst({
-        where: { userId: req.user.id, entity: 'group', action: 'CREATE_GROUP', entityId: groupId },
-      });
-      if (!createdLog) return res.status(403).json({ error: 'Forbidden' });
+      return res.status(403).json({ error: 'Only admins can update groups.' });
     }
 
     await prisma.group.update({
@@ -140,11 +138,9 @@ const deleteGroup = async (req, res) => {
       return res.status(400).json({ error: 'Cannot delete group with existing clients' });
     }
 
+    // Only admins may delete groups
     if (req.user.role !== 'admin') {
-      const createdLog = await prisma.auditLog.findFirst({
-        where: { userId: req.user.id, entity: 'group', action: 'CREATE_GROUP', entityId: groupId },
-      });
-      if (!createdLog) return res.status(403).json({ error: 'Forbidden' });
+      return res.status(403).json({ error: 'Only admins can delete groups.' });
     }
 
     await prisma.group.delete({ where: { id: groupId } });
@@ -178,13 +174,9 @@ const updateGroupMembers = async (req, res) => {
     if (!group) return res.status(404).json({ error: 'Group not found' });
 
     // Only the user who created the group (owner) may modify membership, except admins.
+    // Only admins may modify group membership via this endpoint
     if (req.user.role !== 'admin') {
-      const createdLog = await prisma.auditLog.findFirst({
-        where: { entity: 'group', action: 'CREATE_GROUP', entityId: groupId },
-      });
-      if (!createdLog || createdLog.userId !== req.user.id) {
-        return res.status(403).json({ error: 'Only the group owner or admin can modify members.' });
-      }
+      return res.status(403).json({ error: 'Only admins can modify group membership.' });
     }
 
     // Ensure all client ids exist
