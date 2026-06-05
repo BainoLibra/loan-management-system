@@ -29,7 +29,10 @@ const optionalTrimmedString = (value, maxLength) => {
 
 const sendServerError = (res, error, context = 'Request failed') => {
   console.error(`${context}:`, error);
-  return res.status(500).json({ error: INTERNAL_ERROR });
+  const message = process.env.NODE_ENV === 'production'
+    ? INTERNAL_ERROR
+    : (error?.message || INTERNAL_ERROR);
+  return res.status(500).json({ error: message });
 };
 
 module.exports = {
