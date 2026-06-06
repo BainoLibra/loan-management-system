@@ -28,17 +28,34 @@ function Dashboard() {
       try {
         setLoading(true);
         setError("");
-        const [loans, clients] = await Promise.all([getLoans(), getClients()]);
-        const loansArr = Array.isArray(loans) ? loans : [];
-        const clientsArr = Array.isArray(clients) ? clients : [];
-        const dashboardSummary = await getDashboardSummary();
+
+        const [loansResult, clientsResult, summaryResult] = await Promise.allSettled([
+          getLoans(),
+          getClients(),
+          getDashboardSummary(),
+        ]);
+
+        if (loansResult.status === 'rejected' || clientsResult.status === 'rejected') {
+          throw new Error('Failed to load core dashboard data');
+        }
+
+        const loansArr = Array.isArray(loansResult.value) ? loansResult.value : [];
+        const clientsArr = Array.isArray(clientsResult.value) ? clientsResult.value : [];
+        const dashboardSummary = summaryResult.status === 'fulfilled' ? summaryResult.value : null;
+
+        const defaultDisbursed = loansArr.filter((l) => l.status === 'disbursed').length;
+        const defaultBalance = loansArr.reduce((sum, l) => sum + Number(l.balance || 0), 0);
 
         setStats({
           loans: loansArr.length,
           clients: clientsArr.length,
-          disbursed: dashboardSummary.totalActiveLoans,
-          totalBalance: dashboardSummary.portfolioOutstanding,
+          disbursed: dashboardSummary?.totalActiveLoans ?? defaultDisbursed,
+          totalBalance: dashboardSummary?.portfolioOutstanding ?? defaultBalance,
         });
+
+        if (summaryResult.status === 'rejected') {
+          console.warn('Dashboard summary failed, showing core loan data instead:', summaryResult.reason);
+        }
 
         // Loan status breakdown for pie chart
         const counts = {};
