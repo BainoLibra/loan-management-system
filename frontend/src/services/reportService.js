@@ -9,3 +9,11 @@ export const getAgingReport = async () => {
   });
   return handleApiResponse(response);
 };
+
+export const getDashboardSummary = async () => {
+  const response = await fetch(`${API_URL}/summary`, {
+    headers: getAuthHeaders(),
+    credentials: "include",
+  });
+  return handleApiResponse(response);
+};
