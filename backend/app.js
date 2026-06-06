@@ -38,6 +38,7 @@ app.options('*', cors(corsOptions)); // Handle preflight requests
 app.use(bodyParser.json());
 
 const ready = init();
+ready.catch(() => {});
 
 app.use(async (_req, _res, next) => {
   try {

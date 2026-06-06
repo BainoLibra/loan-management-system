@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { createLoan, getLoans, approveLoan, rejectLoan, disburseLoan, getLoanSchedule } = require('../controllers/loanController');
+const { createLoan, getLoans, approveLoan, rejectLoan, disburseLoan, getLoanSchedule, requestRevisionLoan } = require('../controllers/loanController');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
 
 router.post('/', authenticateToken, authorizeRole('admin', 'loan_officer'), createLoan);
