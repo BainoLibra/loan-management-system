@@ -13,6 +13,14 @@ const formatClientName = (client) => {
   return [client.firstName, client.lastName].filter(Boolean).join(' ') || null;
 };
 
+const getArrearsCategory = (daysOverdue) => {
+  if (daysOverdue > 90) return 'Loss';
+  if (daysOverdue > 60) return 'Doubtful';
+  if (daysOverdue > 30) return 'Substandard';
+  if (daysOverdue > 0) return 'Watch';
+  return 'Current';
+};
+
 const createLoan = async (req, res) => {
   try {
     const { clientId, amount, interestRate, termMonths, guarantorName, notes, documents } = req.body;
@@ -178,6 +186,7 @@ const approveLoan = async (req, res) => {
         principal: principalPortion,
         interest: interestPortion,
         balance: remainingBalance,
+        paidAmount: 0,
         status: 'pending',
       });
     }
@@ -309,7 +318,6 @@ const getLoanSchedule = async (req, res) => {
     const loan = await getLoanById(id);
     if (!loan) return res.status(404).json({ error: 'Loan not found' });
 
-    // Update overdue
     const today = new Date();
     await prisma.schedule.updateMany({
       where: {
@@ -325,7 +333,24 @@ const getLoanSchedule = async (req, res) => {
       orderBy: { month: 'asc' },
     });
 
-    res.json(schedules);
+    const enrichedSchedules = schedules.map((schedule) => {
+      const paidAmount = Number(schedule.paidAmount || 0);
+      const paymentAmount = Number(schedule.payment || 0);
+      const amountDue = Math.max(0, paymentAmount - paidAmount);
+      const dueDate = new Date(schedule.dueDate);
+      const daysOverdue = schedule.status !== 'paid' && dueDate < today
+        ? Math.floor((today - dueDate) / (1000 * 60 * 60 * 24))
+        : 0;
+      return {
+        ...schedule,
+        amountDue,
+        paidAmount,
+        daysOverdue,
+        arrearsCategory: getArrearsCategory(daysOverdue),
+      };
+    });
+
+    res.json(enrichedSchedules);
   } catch (err) {
     return sendServerError(res, err, 'Get loan schedule error');
   }

@@ -127,10 +127,10 @@ function Loans() {
       setSubmitting(false);
     }
   };
-  const handlePayInstallment = async (scheduleId, payment, status) => {
-    let amount = payment;
+  const handlePayInstallment = async (scheduleId, amountDue, status) => {
+    let amount = amountDue;
     if (status === 'overdue') {
-      amount = payment + (payment * 0.02);
+      amount = amountDue + (amountDue * 0.02);
     }
     if (!window.confirm(`Pay installment of ${amount.toFixed(2)}?`)) return;
     try {
@@ -250,8 +250,12 @@ function Loans() {
                   <div>{schedule.reduce((sum, s) => sum + Number(s.payment), 0).toLocaleString()}</div>
                 </div>
                 <div style={{ padding: '12px', background: '#f4f4f4', borderRadius: '6px' }}>
-                  <strong>Monthly installment</strong>
-                  <div>{schedule[0] ? Number(schedule[0].payment).toLocaleString() : 'N/A'}</div>
+                  <strong>Total paid</strong>
+                  <div>{schedule.reduce((sum, s) => sum + Number(s.paidAmount || 0), 0).toLocaleString()}</div>
+                </div>
+                <div style={{ padding: '12px', background: '#f4f4f4', borderRadius: '6px' }}>
+                  <strong>Total amount due</strong>
+                  <div>{schedule.reduce((sum, s) => sum + Number(s.amountDue || 0), 0).toLocaleString()}</div>
                 </div>
                 <div style={{ padding: '12px', background: '#f4f4f4', borderRadius: '6px' }}>
                   <strong>Installments</strong>
@@ -265,10 +269,14 @@ function Loans() {
                       <th>Month</th>
                       <th>Due Date</th>
                       <th>Payment</th>
+                      <th>Paid</th>
+                      <th>Amount Due</th>
                       <th>Principal</th>
                       <th>Interest</th>
                       <th>Balance</th>
                       <th>Status</th>
+                      <th>Days Overdue</th>
+                      <th>Category</th>
                       <th>Action</th>
                     </tr>
                   </thead>
@@ -278,13 +286,17 @@ function Loans() {
                         <td>{s.month}</td>
                         <td>{new Date(s.dueDate).toLocaleDateString()}</td>
                         <td>{Number(s.payment).toLocaleString()}</td>
+                        <td>{Number(s.paidAmount || 0).toLocaleString()}</td>
+                        <td>{Number(s.amountDue || 0).toLocaleString()}</td>
                         <td>{Number(s.principal).toLocaleString()}</td>
                         <td>{Number(s.interest).toLocaleString()}</td>
                         <td>{Number(s.balance).toLocaleString()}</td>
                         <td>{s.status}</td>
+                        <td>{s.daysOverdue || 0}</td>
+                        <td>{s.arrearsCategory}</td>
                         <td>
                           {s.status !== 'paid' && (
-                            <button className="btn-sm btn-primary" onClick={() => handlePayInstallment(s.id, s.payment, s.status)} disabled={submitting}>
+                            <button className="btn-sm btn-primary" onClick={() => handlePayInstallment(s.id, Number(s.amountDue || s.payment), s.status)} disabled={submitting}>
                               Pay Installment
                             </button>
                           )}

@@ -64,9 +64,19 @@ const repayLoan = async (req, res) => {
       });
 
       if (schedule) {
+        const currentPaidAmount = Number(schedule.paidAmount || 0);
+        const paymentAmount = Number(schedule.payment || 0);
+        const updatedPaidAmount = Math.min(paymentAmount, currentPaidAmount + repaymentAmount);
+        const nextStatus = updatedPaidAmount >= paymentAmount
+          ? 'paid'
+          : (new Date(schedule.dueDate) < date ? 'overdue' : 'pending');
+
         await tx.schedule.update({
           where: { id: schedule.id },
-          data: { status: 'paid' },
+          data: {
+            paidAmount: updatedPaidAmount,
+            status: nextStatus,
+          },
         });
       }
 
