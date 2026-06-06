@@ -244,6 +244,20 @@ function Loans() {
           {schedule && (
             <div style={{ marginTop: 20 }}>
               <h3>Repayment Schedule - Loan #{scheduleLoanId}</h3>
+              <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+                <div style={{ padding: '12px', background: '#f4f4f4', borderRadius: '6px' }}>
+                  <strong>Total repayment</strong>
+                  <div>{schedule.reduce((sum, s) => sum + Number(s.payment), 0).toLocaleString()}</div>
+                </div>
+                <div style={{ padding: '12px', background: '#f4f4f4', borderRadius: '6px' }}>
+                  <strong>Monthly installment</strong>
+                  <div>{schedule[0] ? Number(schedule[0].payment).toLocaleString() : 'N/A'}</div>
+                </div>
+                <div style={{ padding: '12px', background: '#f4f4f4', borderRadius: '6px' }}>
+                  <strong>Installments</strong>
+                  <div>{schedule.length}</div>
+                </div>
+              </div>
               <div className="table-container">
                 <table>
                   <thead>

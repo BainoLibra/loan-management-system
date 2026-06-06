@@ -139,24 +139,33 @@ const approveLoan = async (req, res) => {
 
     const approvedAt = new Date();
     const principal = numApprovedAmount;
-    const rate = Number(loan.interestRate) / 100 / 12; // monthly rate
+    const monthlyRate = Number(loan.interestRate) / 100; // flat monthly rate
     const n = loan.termMonths;
 
-    let monthlyPayment;
-    if (rate === 0) {
-      monthlyPayment = principal / n;
-    } else {
-      monthlyPayment = principal * (rate * Math.pow(1 + rate, n)) / (Math.pow(1 + rate, n) - 1);
-    }
+    const totalInterest = principal * monthlyRate * n;
+    const totalRepayment = principal + totalInterest;
+    const roundedTotalInterest = Math.round(totalInterest * 100) / 100;
+    const roundedTotalRepayment = Math.round(totalRepayment * 100) / 100;
+    const monthlyPayment = Math.round((roundedTotalRepayment / n) * 100) / 100;
+    const monthlyInterest = Math.round((principal * monthlyRate) * 100) / 100;
 
     const schedules = [];
-    let remaining = principal;
+    let remainingBalance = principal;
+    let accumulatedPayment = 0;
+    let accumulatedInterest = 0;
     const startDate = approvedAt;
 
     for (let i = 1; i <= n; i++) {
-      const interestPortion = remaining * rate;
-      const principalPortion = monthlyPayment - interestPortion;
-      remaining = Math.max(0, remaining - principalPortion);
+      let interestPortion = monthlyInterest;
+      let payment = monthlyPayment;
+      if (i === n) {
+        interestPortion = Math.round((roundedTotalInterest - accumulatedInterest) * 100) / 100;
+        payment = Math.round((roundedTotalRepayment - accumulatedPayment) * 100) / 100;
+      }
+      const principalPortion = Math.round((payment - interestPortion) * 100) / 100;
+      remainingBalance = Math.max(0, Math.round((remainingBalance - principalPortion) * 100) / 100);
+      accumulatedPayment = Math.round((accumulatedPayment + payment) * 100) / 100;
+      accumulatedInterest = Math.round((accumulatedInterest + interestPortion) * 100) / 100;
 
       const dueDate = new Date(startDate);
       dueDate.setMonth(dueDate.getMonth() + i);
@@ -165,10 +174,10 @@ const approveLoan = async (req, res) => {
         loanId: id,
         month: i,
         dueDate,
-        payment: Math.round(monthlyPayment * 100) / 100,
-        principal: Math.round(principalPortion * 100) / 100,
-        interest: Math.round(interestPortion * 100) / 100,
-        balance: Math.round(remaining * 100) / 100,
+        payment,
+        principal: principalPortion,
+        interest: interestPortion,
+        balance: remainingBalance,
         status: 'pending',
       });
     }
