@@ -17,14 +17,6 @@ const STATUS_COLORS = {
 
 function Dashboard() {
   const [stats, setStats] = useState({ loans: 0, clients: 0, disbursed: 0, totalBalance: 0 });
-  const [summary, setSummary] = useState({
-    totalActiveLoans: 0,
-    portfolioOutstanding: 0,
-    loansInArrears: 0,
-    parAbove30Days: 0,
-    dueToday: 0,
-    collectionsToday: 0,
-  });
   const [statusData, setStatusData] = useState([]);
   const [monthlyData, setMonthlyData] = useState([]);
   const [error, setError] = useState("");
@@ -44,10 +36,9 @@ function Dashboard() {
         setStats({
           loans: loansArr.length,
           clients: clientsArr.length,
-          disbursed: loansArr.filter((l) => l.status === "disbursed").length,
-          totalBalance: loansArr.reduce((sum, l) => sum + Number(l.balance || 0), 0),
+          disbursed: dashboardSummary.totalActiveLoans,
+          totalBalance: dashboardSummary.portfolioOutstanding,
         });
-        setSummary(dashboardSummary);
 
         // Loan status breakdown for pie chart
         const counts = {};
@@ -102,12 +93,10 @@ function Dashboard() {
       {!loading && (
         <>
           <div className="stat-cards">
-            <div className="stat-card"><h3>{summary.totalActiveLoans}</h3><p>Total Active Loans</p></div>
-            <div className="stat-card"><h3>UGX {Number(summary.portfolioOutstanding).toLocaleString()}</h3><p>Portfolio Outstanding</p></div>
-            <div className="stat-card"><h3>UGX {Number(summary.loansInArrears).toLocaleString()}</h3><p>Loans in Arrears</p></div>
-            <div className="stat-card"><h3>{Number(summary.parAbove30Days).toFixed(1)}%</h3><p>PAR &gt; 30 Days</p></div>
-            <div className="stat-card"><h3>UGX {Number(summary.dueToday).toLocaleString()}</h3><p>Due Today</p></div>
-            <div className="stat-card"><h3>UGX {Number(summary.collectionsToday).toLocaleString()}</h3><p>Collections Today</p></div>
+            <div className="stat-card"><h3>{stats.clients}</h3><p>Clients</p></div>
+            <div className="stat-card"><h3>{stats.loans}</h3><p>Total Loans</p></div>
+            <div className="stat-card"><h3>{stats.disbursed}</h3><p>Active (Disbursed)</p></div>
+            <div className="stat-card"><h3>{stats.totalBalance.toLocaleString()}</h3><p>Outstanding Balance</p></div>
           </div>
 
           <div className="chart-row">
