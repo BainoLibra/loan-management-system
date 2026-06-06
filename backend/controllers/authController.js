@@ -5,10 +5,13 @@ const crypto = require('crypto');
 const sendEmail = require('../utils/sendEmail');
 const { isValidEmail, normalizeEmail, sendServerError } = require('../utils/http');
 
-const SECRET = process.env.JWT_SECRET;
-if (!SECRET) {
-  throw new Error('JWT_SECRET environment variable is required');
-}
+const getJwtSecret = () => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error('JWT_SECRET environment variable is required');
+  }
+  return secret;
+};
 const allowedRoles = ['admin', 'loan_officer', 'cashier', 'branch_manager'];
 
 const loginAttempts = new Map();
@@ -195,7 +198,7 @@ const login = async (req, res) => {
                 email: user.email,
                 role: user.role
             },
-            SECRET,
+            getJwtSecret(),
             { expiresIn: '1d' }
         );
 

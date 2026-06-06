@@ -1,9 +1,12 @@
 const jwt = require('jsonwebtoken');
 
-const SECRET = process.env.JWT_SECRET;
-if (!SECRET) {
-  throw new Error('JWT_SECRET environment variable is required');
-}
+const getJwtSecret = () => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error('JWT_SECRET environment variable is required');
+  }
+  return secret;
+};
 
 // Verify token
 function authenticateToken(req, res, next) {
@@ -20,7 +23,7 @@ function authenticateToken(req, res, next) {
   }
 
   try {
-    const user = jwt.verify(token, SECRET);
+    const user = jwt.verify(token, getJwtSecret());
     req.user = user; // attach user to request
     next();
   } catch (err) {

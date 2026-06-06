@@ -19,17 +19,17 @@ const app = express();
 // Security: Disable X-Powered-By header
 app.disable('x-powered-by');
 
-const origin = process.env.FRONTEND_URL || 'http://localhost:3000';
-if (process.env.NODE_ENV === 'production' && origin === 'http://localhost:3000') {
-  console.warn('WARNING: FRONTEND_URL is not set in production. CORS will default to localhost.');
+const origin = process.env.FRONTEND_URL;
+if (process.env.NODE_ENV === 'production' && !origin) {
+  console.warn('WARNING: FRONTEND_URL is not set in production. CORS will allow the request origin to avoid blocking valid frontend requests.');
 }
 
 // CORS Configuration
 const corsOptions = {
-  origin,
+  origin: origin || true,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization',],
+  allowedHeaders: ['Content-Type', 'Authorization'],
   maxAge: 86400, // 24 hours
 };
 
