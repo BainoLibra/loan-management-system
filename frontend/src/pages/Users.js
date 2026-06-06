@@ -111,6 +111,7 @@ function Users() {
           <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
             <option value="admin">Admin</option>
             <option value="loan_officer">Loan Officer</option>
+            <option value="branch_manager">Branch Manager</option>
             <option value="cashier">Cashier</option>
           </select>
           {editingUser && (

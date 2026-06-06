@@ -10,6 +10,7 @@ enum UserRole {
   admin
   loan_officer
   cashier
+  branch_manager
   client
 }
 
@@ -25,6 +26,7 @@ enum ClientStatus {
 
 enum LoanStatus {
   applied
+  revision_requested
   approved
   disbursed
   closed
@@ -101,6 +103,9 @@ model Loan {
   appliedAt    DateTime?
   approvedBy   Int?
   approvedAt   DateTime?
+  approvedAmount Decimal?   @db.Decimal(15, 2)
+  approvalReason String?
+  revisionReason String?
   disbursedAt  DateTime?
   balance      Decimal     @db.Decimal(15, 2)
   createdBy    Int

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import Layout from "../components/Layout";
 import LoanForm from "../components/LoanForm";
 import LoanTable from "../components/LoanTable";
-import { getLoans, createLoan, approveLoan, rejectLoan, disburseLoan, getLoanSchedule, repayLoan } from "../services/loanService";
+import { getLoans, createLoan, approveLoan, rejectLoan, requestLoanRevision, disburseLoan, getLoanSchedule, repayLoan } from "../services/loanService";
 import { getUser } from "../services/authService";
 import "../styles/table.css";
 
@@ -60,11 +60,20 @@ function Loans() {
     }
   };
 
-  const handleApprove = async (id) => { 
+  const handleApprove = async (id) => {
+    const approvedAmountInput = window.prompt('Enter approved amount or leave blank to approve full requested amount:');
+    if (approvedAmountInput === null) return;
+    const amount = approvedAmountInput.trim() ? Number(approvedAmountInput.replace(/,/g, '')) : undefined;
+    if (approvedAmountInput.trim() && (Number.isNaN(amount) || amount <= 0)) {
+      setError('Approved amount must be a valid positive number');
+      return;
+    }
+    const approvalReason = window.prompt('Enter approval note or reason (optional):') || undefined;
+
     try {
       setSubmitting(true);
       setError("");
-      await approveLoan(id); 
+      await approveLoan(id, amount, approvalReason);
       await fetchLoans();
     } catch (err) {
       setError(err.message || 'Failed to approve loan');
@@ -72,6 +81,27 @@ function Loans() {
       setSubmitting(false);
     }
   };
+
+  const handleRequestRevision = async (id) => {
+    const revisionReason = window.prompt('Enter revision request reason:');
+    if (revisionReason === null) return;
+    if (!revisionReason.trim()) {
+      setError('Revision reason is required');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      setError("");
+      await requestLoanRevision(id, revisionReason);
+      await fetchLoans();
+    } catch (err) {
+      setError(err.message || 'Failed to request loan revision');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleReject = async (id) => {
     if (!window.confirm("Reject this loan application?")) return;
     try {
@@ -132,9 +162,9 @@ function Loans() {
   };
 
   const exportCSV = () => {
-    const header = "ID,Client,Amount,Interest,Term,Balance,Status\n";
+    const header = "ID,Client,Amount,Approved Amount,Interest,Term,Balance,Status,Note\n";
     const rows = filtered.map(l =>
-      `${l.id},"${l.clientName}",${l.amount},${l.interestRate}%,${l.termMonths},${l.balance},${l.status}`
+      `${l.id},"${l.clientName}",${l.amount},${l.approvedAmount || ''},${l.interestRate}%,${l.termMonths},${l.balance},${l.status},"${(l.approvalReason || l.revisionReason || '').replace(/"/g, '""')}"`
     ).join("\n");
     const blob = new Blob([header + rows], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -180,6 +210,7 @@ function Loans() {
             <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }} className="filter-select" disabled={submitting}>
               <option value="all">All Status</option>
               <option value="applied">Applied</option>
+              <option value="revision_requested">Pending Revision</option>
               <option value="approved">Approved</option>
               <option value="disbursed">Disbursed</option>
               <option value="closed">Closed</option>
@@ -196,6 +227,7 @@ function Loans() {
             loans={paginated}
             onViewSchedule={viewSchedule}
             onApprove={handleApprove}
+            onRequestRevision={handleRequestRevision}
             onReject={handleReject}
             onDisburse={handleDisburse}
             user={user}

@@ -9,7 +9,7 @@ const SECRET = process.env.JWT_SECRET;
 if (!SECRET) {
   throw new Error('JWT_SECRET environment variable is required');
 }
-const allowedRoles = ['admin', 'loan_officer', 'cashier'];
+const allowedRoles = ['admin', 'loan_officer', 'cashier', 'branch_manager'];
 
 const loginAttempts = new Map();
 
@@ -66,7 +66,7 @@ const register = async (req, res) => {
 
         const assignableRoles = req.user?.role === 'admin'
             ? allowedRoles
-            : allowedRoles.filter((allowedRole) => allowedRole !== 'admin');
+            : allowedRoles.filter((allowedRole) => !['admin', 'branch_manager'].includes(allowedRole));
         const selectedRole = role || 'loan_officer';
 
         if (!assignableRoles.includes(selectedRole)) {

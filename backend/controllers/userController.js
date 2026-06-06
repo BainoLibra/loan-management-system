@@ -3,7 +3,7 @@ const bcrypt = require('bcrypt');
 const { logAudit } = require('../utils/hash');
 const { isValidEmail, normalizeEmail, parsePositiveInt, sendServerError } = require('../utils/http');
 
-const allowedRoles = ['admin', 'loan_officer', 'cashier', 'client'];
+const allowedRoles = ['admin', 'loan_officer', 'cashier', 'branch_manager', 'client'];
 const allowedStatuses = ['active', 'inactive'];
 
 const getUsers = async (req, res) => {

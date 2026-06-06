@@ -112,6 +112,7 @@ const approveLoan = async (req, res) => {
   try {
     const id = parsePositiveInt(req.params.id);
     const approvedBy = req.user.id;
+    const { approvedAmount, approvalReason } = req.body;
 
     if (!id) return res.status(400).json({ error: 'Invalid loan id' });
 
@@ -119,12 +120,25 @@ const approveLoan = async (req, res) => {
 
     if (!loan) return res.status(404).json({ error: 'Loan not found' });
 
-    if (loan.status !== 'applied') return res.status(400).json({ error: 'Only applied loans can be approved' });
+    if (!['applied', 'revision_requested'].includes(loan.status)) {
+      return res.status(400).json({ error: 'Only applied or revision requested loans can be approved' });
+    }
+
+    const numApprovedAmount = approvedAmount === undefined || approvedAmount === null
+      ? Number(loan.amount)
+      : parseFiniteNumber(approvedAmount);
+
+    if (numApprovedAmount == null || numApprovedAmount <= 0 || numApprovedAmount > Number(loan.amount)) {
+      return res.status(400).json({ error: 'Approved amount must be a positive number and no greater than requested amount' });
+    }
+
+    const sanitizedApprovalReason = optionalTrimmedString(approvalReason, 1000);
+    if (approvalReason && !sanitizedApprovalReason) {
+      return res.status(400).json({ error: 'Approval reason is too long or invalid' });
+    }
 
     const approvedAt = new Date();
-
-    // Generate schedule
-    const principal = Number(loan.amount);
+    const principal = numApprovedAmount;
     const rate = Number(loan.interestRate) / 100 / 12; // monthly rate
     const n = loan.termMonths;
 
@@ -166,6 +180,8 @@ const approveLoan = async (req, res) => {
           status: 'approved',
           approvedBy,
           approvedAt,
+          approvedAmount: numApprovedAmount,
+          approvalReason: sanitizedApprovalReason,
         },
       });
 
@@ -190,7 +206,9 @@ const rejectLoan = async (req, res) => {
 
     const loan = await getLoanById(id);
     if (!loan) return res.status(404).json({ error: 'Loan not found' });
-    if (loan.status !== 'applied') return res.status(400).json({ error: 'Only applied loans can be rejected' });
+    if (!['applied', 'revision_requested'].includes(loan.status)) {
+      return res.status(400).json({ error: 'Only applied or revision requested loans can be rejected' });
+    }
 
     await prisma.loan.update({
       where: { id },
@@ -220,7 +238,7 @@ const disburseLoan = async (req, res) => {
     const disbursedAt = new Date();
 
     // Apply interest to balance on disbursement
-    const principal = Number(loan.amount);
+    const principal = Number(loan.approvedAmount ?? loan.amount);
     const rate = Number(loan.interestRate) / 100; // monthly rate
     const totalWithInterest = principal + (principal * rate * loan.termMonths);
     const balance = Math.round(totalWithInterest * 100) / 100;
@@ -239,6 +257,38 @@ const disburseLoan = async (req, res) => {
     res.json({ updated: 1 });
   } catch (err) {
     return sendServerError(res, err, 'Disburse loan error');
+  }
+};
+
+const requestRevisionLoan = async (req, res) => {
+  try {
+    const id = parsePositiveInt(req.params.id);
+    const { revisionReason } = req.body;
+
+    if (!id) return res.status(400).json({ error: 'Invalid loan id' });
+
+    const loan = await getLoanById(id);
+    if (!loan) return res.status(404).json({ error: 'Loan not found' });
+    if (loan.status !== 'applied') return res.status(400).json({ error: 'Only applied loans can be marked for revision' });
+
+    const sanitizedRevisionReason = optionalTrimmedString(revisionReason, 1000);
+    if (!sanitizedRevisionReason) {
+      return res.status(400).json({ error: 'Revision reason is required and must be valid' });
+    }
+
+    await prisma.loan.update({
+      where: { id },
+      data: {
+        status: 'revision_requested',
+        revisionReason: sanitizedRevisionReason,
+      },
+    });
+
+    await logAudit(req.user.id, 'REQUEST_REVISION', 'loan', id);
+
+    res.json({ updated: 1 });
+  } catch (err) {
+    return sendServerError(res, err, 'Request loan revision error');
   }
 };
 
@@ -272,4 +322,4 @@ const getLoanSchedule = async (req, res) => {
   }
 };
 
-module.exports = { createLoan, getLoans, approveLoan, rejectLoan, disburseLoan, getLoanSchedule };
+module.exports = { createLoan, getLoans, approveLoan, rejectLoan, requestRevisionLoan, disburseLoan, getLoanSchedule };

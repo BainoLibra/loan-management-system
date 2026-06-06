@@ -1,8 +1,9 @@
 import React from "react";
 
-const LoanTable = ({ loans, onViewSchedule, onApprove, onReject, onDisburse, user }) => {
+const LoanTable = ({ loans, onViewSchedule, onApprove, onRequestRevision, onReject, onDisburse, user }) => {
   const statusColors = {
     applied: "#3498db",
+    revision_requested: "#9b59b6",
     approved: "#f39c12",
     disbursed: "#27ae60",
     closed: "#95a5a6",
@@ -23,6 +24,8 @@ const LoanTable = ({ loans, onViewSchedule, onApprove, onReject, onDisburse, use
             <th>Notes</th>
             <th>Balance</th>
             <th>Status</th>
+            <th>Approved Amount</th>
+            <th>Decision / Revision Note</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -38,11 +41,14 @@ const LoanTable = ({ loans, onViewSchedule, onApprove, onReject, onDisburse, use
               <td>{l.notes ? l.notes.substring(0, 20) + "..." : "N/A"}</td>
               <td>{Number(l.balance).toLocaleString()}</td>
               <td><span className="badge" style={{ background: statusColors[l.status] || "#999" }}>{l.status}</span></td>
+              <td>{l.approvedAmount ? Number(l.approvedAmount).toLocaleString() : "N/A"}</td>
+              <td>{l.approvalReason || l.revisionReason || "N/A"}</td>
               <td>
-                {l.status === "applied" && user && user.role === "admin" && (
+                {['applied', 'revision_requested'].includes(l.status) && user && (user.role === "admin" || user.role === "branch_manager") && (
                   <>
                     <button className="btn-sm btn-success" onClick={() => onApprove(l.id)}>Approve</button>{" "}
                     <button className="btn-sm btn-danger" onClick={() => onReject(l.id)}>Reject</button>{" "}
+                    <button className="btn-sm btn-warning" onClick={() => onRequestRevision(l.id)}>Request Revision</button>{" "}
                   </>
                 )}
                 {l.status === "approved" && user && (user.role === "admin" || user.role === "cashier") && (

@@ -28,16 +28,31 @@ export const createLoan = async (loan) => {
   }
 };
 
-export const approveLoan = async (id) => {
+export const approveLoan = async (id, approvedAmount, approvalReason) => {
   try {
     const response = await fetch(`${API_URL}/${id}/approve`, {
       method: "POST",
       headers: getAuthHeaders(),
       credentials: "include",
+      body: JSON.stringify({ approvedAmount, approvalReason }),
     });
     return await handleApiResponse(response);
   } catch (error) {
     throw new Error(error.message || 'Failed to approve loan');
+  }
+};
+
+export const requestLoanRevision = async (id, revisionReason) => {
+  try {
+    const response = await fetch(`${API_URL}/${id}/request-revision`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      credentials: "include",
+      body: JSON.stringify({ revisionReason }),
+    });
+    return await handleApiResponse(response);
+  } catch (error) {
+    throw new Error(error.message || 'Failed to request loan revision');
   }
 };
 
