@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Layout from "../components/Layout";
 import { getLoans, getRepayments, repayLoan } from "../services/loanService";
+import { getUser } from "../services/authService";
 import "../styles/table.css";
 
 const PAGE_SIZE = 10;
@@ -15,6 +16,8 @@ function Repayments() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const user = getUser();
+  const canViewRepayments = user && ["admin", "cashier", "loan_officer"].includes(user.role);
 
   useEffect(() => {
     fetchLoans();
@@ -91,6 +94,17 @@ function Repayments() {
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  if (!canViewRepayments) {
+    return (
+      <Layout>
+        <h2>Repayments</h2>
+        <div className="form-error">
+          You are not authorized to view repayments. Please contact a cashier or loan officer.
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>

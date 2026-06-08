@@ -35,13 +35,25 @@ function Dashboard() {
           getDashboardSummary(),
         ]);
 
-        if (loansResult.status === 'rejected' || clientsResult.status === 'rejected') {
-          throw new Error('Failed to load core dashboard data');
-        }
-
-        const loansArr = Array.isArray(loansResult.value) ? loansResult.value : [];
-        const clientsArr = Array.isArray(clientsResult.value) ? clientsResult.value : [];
+        const loansArr = loansResult.status === 'fulfilled' && Array.isArray(loansResult.value) ? loansResult.value : [];
+        const clientsArr = clientsResult.status === 'fulfilled' && Array.isArray(clientsResult.value) ? clientsResult.value : [];
         const dashboardSummary = summaryResult.status === 'fulfilled' ? summaryResult.value : null;
+
+        const errors = [];
+        if (loansResult.status === 'rejected') errors.push('loan data');
+        if (clientsResult.status === 'rejected') errors.push('client data');
+        if (summaryResult.status === 'rejected') errors.push('dashboard summary');
+
+        if (errors.length > 0) {
+          console.warn('Dashboard fetch partial failure:', {
+            loans: loansResult.status === 'rejected' ? loansResult.reason : null,
+            clients: clientsResult.status === 'rejected' ? clientsResult.reason : null,
+            summary: summaryResult.status === 'rejected' ? summaryResult.reason : null,
+          });
+          setError(`Unable to load ${errors.join(' and ')}. Some dashboard numbers may be incomplete.`);
+        } else {
+          setError('');
+        }
 
         const defaultDisbursed = loansArr.filter((l) => l.status === 'disbursed').length;
         const defaultBalance = loansArr.reduce((sum, l) => sum + Number(l.balance || 0), 0);
@@ -100,6 +112,9 @@ function Dashboard() {
     <Layout>
       <h2>Dashboard</h2>
       <p>Welcome, {user ? user.name : "User"}!</p>
+      <p style={{ color: '#555', marginTop: 0, marginBottom: 20 }}>
+        To apply for a loan, go to the Loans page. If there are no clients yet, create clients first under Clients.
+      </p>
 
       {error && <div style={{ padding: '15px', backgroundColor: '#fee', color: '#c33', borderRadius: '4px', marginBottom: '20px' }}>
         ⚠️ {error}

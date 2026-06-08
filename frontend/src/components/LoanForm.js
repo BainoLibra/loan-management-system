@@ -53,12 +53,18 @@ const LoanForm = ({ onSubmit, initialData = {}, submitting = false }) => {
       {error && <div className="form-error">{error}</div>}
       <div className="form-group">
         <label>Client:</label>
-        <select name="clientId" value={form.clientId} onChange={handleChange} required disabled={submitting}>
-          <option value="">Select Client</option>
-          {clients.map((c) => (
-            <option key={c.id} value={c.id}>{getClientLabel(c)}</option>
-          ))}
-        </select>
+        {clients.length > 0 ? (
+          <select name="clientId" value={form.clientId} onChange={handleChange} required disabled={submitting}>
+            <option value="">Select Client</option>
+            {clients.map((c) => (
+              <option key={c.id} value={c.id}>{getClientLabel(c)}</option>
+            ))}
+          </select>
+        ) : (
+          <div className="form-warning">
+            No clients available. Add clients in the Clients section before creating a loan application.
+          </div>
+        )}
       </div>
       <div className="form-group">
         <label>Loan Amount:</label>
@@ -124,7 +130,7 @@ const LoanForm = ({ onSubmit, initialData = {}, submitting = false }) => {
           disabled={submitting}
         />
       </div>
-      <button type="submit" disabled={submitting}>
+      <button type="submit" disabled={submitting || clients.length === 0}>
         {submitting ? "Saving..." : (initialData.id ? "Update Loan" : "Submit Application")}
       </button>
     </form>

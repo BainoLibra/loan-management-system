@@ -20,6 +20,7 @@ function Loans() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const user = getUser();
+  const canCreateLoan = user && (user.role === "loan_officer" || user.role === "admin");
 
   useEffect(() => { fetchLoans(); }, []);
 
@@ -185,6 +186,11 @@ function Loans() {
   return (
     <Layout>
       <h2>Loans</h2>
+      <p style={{ color: '#555', marginTop: 0, marginBottom: 16 }}>
+        {canCreateLoan
+          ? "Click + New Loan to submit a loan application for an existing client."
+          : "Loan applications are handled by loan officers and administrators. Please ask them to create your application from this page."}
+      </p>
 
       {error && <div style={{ padding: '15px', backgroundColor: '#fee', color: '#c33', borderRadius: '4px', marginBottom: '20px' }}>
         ⚠️ {error}
@@ -221,6 +227,12 @@ function Loans() {
 
           {showForm && (
             <LoanForm onSubmit={handleCreate} submitting={submitting} />
+          )}
+
+          {!loading && loans.length === 0 && (
+            <div style={{ padding: '20px', backgroundColor: '#f6f8fa', borderRadius: '8px', marginBottom: '20px', color: '#555' }}>
+              No loan applications exist yet. Use + New Loan to create an application for an existing client.
+            </div>
           )}
 
           <LoanTable

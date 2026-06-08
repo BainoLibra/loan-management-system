@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Layout from "../components/Layout";
 import { getAgingReport } from "../services/reportService";
+import { getUser } from "../services/authService";
 import "../styles/table.css";
 
 const PAGE_SIZE = 10;
@@ -12,6 +13,8 @@ function Reports() {
   const [page, setPage] = useState(1);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const user = getUser();
+  const canViewReports = user && ["admin", "cashier", "loan_officer", "branch_manager"].includes(user.role);
 
   useEffect(() => {
     const fetchReport = async () => {
@@ -53,6 +56,17 @@ function Reports() {
 
   const bucketColors = { CURRENT: "#27ae60", "PAR 30": "#f39c12", "PAR 60": "#e67e22", "PAR 90": "#e74c3c" };
 
+  if (!canViewReports) {
+    return (
+      <Layout>
+        <h2>Aging Report</h2>
+        <div className="form-error">
+          You are not authorized to view aging reports. Please contact a loan officer or manager.
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
       <h2>Aging Report</h2>
@@ -89,7 +103,13 @@ function Reports() {
             </tr>
           </thead>
           <tbody>
-            {paginated.map((r) => (
+            {paginated.length === 0 && !loading ? (
+              <tr>
+                <td colSpan="8" style={{ textAlign: 'center', color: '#999', padding: '20px' }}>
+                  No report data available yet. Disburse loans to populate the aging report.
+                </td>
+              </tr>
+            ) : paginated.map((r) => (
               <tr key={r.id}>
                 <td>{r.id}</td>
                 <td>{r.clientName}</td>
