@@ -141,6 +141,7 @@ function Signup() {
               disabled={loading || !!success}
             >
               <option value="loan_officer">Loan Officer</option>
+              <option value="branch_manager">Branch Manager</option>
               <option value="cashier">Cashier</option>
             </select>
           </div>

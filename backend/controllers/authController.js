@@ -67,9 +67,12 @@ const register = async (req, res) => {
             return res.status(400).json({ error: 'Password must be at least 8 characters long' });
         }
 
+        // Determine allowed roles
+        // Self-signup (no req.user): can register as loan_officer, branch_manager, or cashier
+        // Admin-created (req.user.role === 'admin'): can assign any role
         const assignableRoles = req.user?.role === 'admin'
             ? allowedRoles
-            : allowedRoles.filter((allowedRole) => !['admin', 'branch_manager'].includes(allowedRole));
+            : allowedRoles.filter((allowedRole) => allowedRole !== 'admin');
         const selectedRole = role || 'loan_officer';
 
         if (!assignableRoles.includes(selectedRole)) {
