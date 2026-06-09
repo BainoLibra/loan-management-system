@@ -1,16 +1,30 @@
 require('dotenv').config();
-const { app, prisma } = require('./app');
+const { app, prisma, ready } = require('./app');
 
 const port = process.env.PORT || 4000;
+let server;
 
-const server = app.listen(port, '0.0.0.0', () => {
-  console.log(`Backend listening on port ${port}`);
-});
+(async () => {
+  try {
+    await ready;
+    server = app.listen(port, '0.0.0.0', () => {
+      console.log(`Backend listening on port ${port}`);
+    });
+  } catch (err) {
+    console.error('Failed to initialize database. Server not started.', err);
+    process.exit(1);
+  }
+})();
 
 // Graceful shutdown
 async function gracefulShutdown() {
   console.log('Received shutdown signal. Closing server gracefully...');
   
+  if (!server) {
+    console.log('Server was not running. Exiting.');
+    process.exit(1);
+  }
+
   // Stop accepting new connections
   server.close(async () => {
     console.log('HTTP server closed');
