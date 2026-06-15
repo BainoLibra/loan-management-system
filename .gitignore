@@ -34,3 +34,5 @@ Thumbs.db
 *.json
 *.json
 *.json
+.vercel
+.env*.local
