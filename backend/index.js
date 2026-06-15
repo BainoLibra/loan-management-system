@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { app, prisma, ready } = require('./app');
+const { app, disconnect, ready } = require('./app');
 
 const port = process.env.PORT || 4000;
 let server;
@@ -22,7 +22,8 @@ async function gracefulShutdown() {
   
   if (!server) {
     console.log('Server was not running. Exiting.');
-    process.exit(1);
+    await disconnect().catch((err) => console.error('Error disconnecting database:', err));
+    process.exit(0);
   }
 
   // Stop accepting new connections
@@ -31,7 +32,7 @@ async function gracefulShutdown() {
     
     // Close database connection
     try {
-      await prisma.$disconnect();
+      await disconnect();
       console.log('Database disconnected');
     } catch (err) {
       console.error('Error disconnecting database:', err);
@@ -44,7 +45,7 @@ async function gracefulShutdown() {
   setTimeout(() => {
     console.error('Graceful shutdown timeout. Forcing exit.');
     process.exit(1);
-  }, 30000);
+  }, 30000).unref();
 }
 
 // Handle shutdown signals

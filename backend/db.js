@@ -6,6 +6,7 @@ const { PrismaClient } = require('@prisma/client');
 const runtimeDatasourceUrl = process.env.DATABASE_URL || process.env.DIRECT_URL;
 let prisma;
 let init;
+let pgPool;
 
 if (!runtimeDatasourceUrl) {
   const dbInitError = new Error('DATABASE_URL (or DIRECT_URL) is required to initialize Prisma.');
@@ -16,7 +17,7 @@ if (!runtimeDatasourceUrl) {
   };
   init = async () => { throw dbInitError; };
 } else {
-  const pgPool = global.__prismaPgPool || new Pool({
+  pgPool = global.__prismaPgPool || new Pool({
     connectionString: runtimeDatasourceUrl,
     max: 20,
     idleTimeoutMillis: 30000,
@@ -58,4 +59,14 @@ if (!runtimeDatasourceUrl) {
   };
 }
 
-module.exports = { prisma, init };
+const disconnect = async () => {
+  if (prisma?.$disconnect) {
+    await prisma.$disconnect();
+  }
+
+  if (pgPool?.end) {
+    await pgPool.end();
+  }
+};
+
+module.exports = { prisma, init, disconnect };

@@ -1,9 +1,9 @@
-import API_BASE, { getAuthHeaders, handleApiResponse } from "./api";
+import API_BASE, { apiFetch, getAuthHeaders, handleApiResponse } from "./api";
 
 const API_URL = `${API_BASE}/api/clients`;
 
 export const getClients = async () => {
-  const response = await fetch(API_URL, { 
+  const response = await apiFetch(API_URL, { 
     headers: getAuthHeaders(),
     credentials: "include"
   });
@@ -11,7 +11,7 @@ export const getClients = async () => {
 };
 
 export const getClientById = async (id) => {
-  const response = await fetch(`${API_URL}/${id}`, { 
+  const response = await apiFetch(`${API_URL}/${id}`, { 
     headers: getAuthHeaders(),
     credentials: "include"
   });
@@ -19,7 +19,7 @@ export const getClientById = async (id) => {
 };
 
 export const createClient = async (client) => {
-  const response = await fetch(API_URL, {
+  const response = await apiFetch(API_URL, {
     method: "POST",
     headers: getAuthHeaders(),
     credentials: "include",
@@ -29,7 +29,7 @@ export const createClient = async (client) => {
 };
 
 export const updateClient = async (id, client) => {
-  const response = await fetch(`${API_URL}/${id}`, {
+  const response = await apiFetch(`${API_URL}/${id}`, {
     method: "PUT",
     headers: getAuthHeaders(),
     credentials: "include",
@@ -39,7 +39,7 @@ export const updateClient = async (id, client) => {
 };
 
 export const deleteClient = async (id) => {
-  const response = await fetch(`${API_URL}/${id}`, {
+  const response = await apiFetch(`${API_URL}/${id}`, {
     method: "DELETE",
     headers: getAuthHeaders(),
     credentials: "include"

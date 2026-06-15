@@ -1,10 +1,10 @@
-import API_BASE, { clearAuthSession, handleApiResponse } from "./api";
+import API_BASE, { apiFetch, clearAuthSession, getActiveToken, handleApiResponse } from "./api";
 
 const API_URL = `${API_BASE}/api/auth`;
 
 export const loginUser = async (email, password) => {
   try {
-    const response = await fetch(`${API_URL}/login`, {
+    const response = await apiFetch(`${API_URL}/login`, {
       method: "POST",
       headers: { 
         "Content-Type": "application/json",
@@ -39,7 +39,7 @@ export const loginUser = async (email, password) => {
 
 export const registerUser = async (name, email, password, role) => {
   try {
-    const response = await fetch(`${API_URL}/register`, {
+    const response = await apiFetch(`${API_URL}/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
@@ -63,25 +63,18 @@ export const getUser = () => {
     const user = localStorage.getItem("user");
     return user ? JSON.parse(user) : null;
   }
-  return null;
+  const user = localStorage.getItem("user");
+  return user ? JSON.parse(user) : null;
 };
 
 export const getToken = () => {
-  try {
-    const activeId = localStorage.getItem('activeSessionId');
-    const sessionsRaw = localStorage.getItem('sessions');
-    const sessions = sessionsRaw ? JSON.parse(sessionsRaw) : {};
-    if (activeId && sessions[activeId]) return sessions[activeId].token;
-  } catch (e) {
-    return localStorage.getItem('token');
-  }
-  return null;
+  return getActiveToken();
 };
 
 export const changePassword = async (currentPassword, newPassword) => {
   try {
     const token = getToken();
-    const response = await fetch(`${API_URL}/change-password`, {
+    const response = await apiFetch(`${API_URL}/change-password`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -99,7 +92,7 @@ export const changePassword = async (currentPassword, newPassword) => {
 
 export const forgotPassword = async (email) => {
   try {
-    const response = await fetch(`${API_URL}/forgot-password`, {
+    const response = await apiFetch(`${API_URL}/forgot-password`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email }),
@@ -113,7 +106,7 @@ export const forgotPassword = async (email) => {
 
 export const resetPassword = async (token, newPassword) => {
   try {
-    const response = await fetch(`${API_URL}/reset-password`, {
+    const response = await apiFetch(`${API_URL}/reset-password`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token, newPassword }),
@@ -127,7 +120,7 @@ export const resetPassword = async (token, newPassword) => {
 
 export const verifyEmail = async (token) => {
   try {
-    const response = await fetch(`${API_URL}/verify-email`, {
+    const response = await apiFetch(`${API_URL}/verify-email`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token }),

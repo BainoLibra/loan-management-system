@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
-const { prisma, init } = require('./db');
+const { prisma, init, disconnect } = require('./db');
 
 // Routes
 const authRoutes = require('./routes/authRoutes');
@@ -18,23 +18,51 @@ const app = express();
 
 // Security: Disable X-Powered-By header
 app.disable('x-powered-by');
+app.set('trust proxy', 1);
 
-const origin = process.env.FRONTEND_URL;
-if (process.env.NODE_ENV === 'production' && !origin) {
-  console.warn('WARNING: FRONTEND_URL is not set in production. CORS will allow the request origin to avoid blocking valid frontend requests.');
+const configuredOrigins = (process.env.FRONTEND_URL || '')
+  .split(',')
+  .map((origin) => origin.trim().replace(/\/$/, ''))
+  .filter(Boolean);
+
+if (process.env.NODE_ENV === 'production' && configuredOrigins.length === 0) {
+  console.warn('WARNING: FRONTEND_URL is not set in production. CORS will allow same-origin requests only.');
 }
 
-// CORS Configuration
-const corsOptions = {
-  origin: origin || true,
+const isLocalDevOrigin = (origin) => /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+
+const getSameOrigin = (req) => {
+  const forwardedProto = req.get('x-forwarded-proto')?.split(',')[0]?.trim();
+  const forwardedHost = req.get('x-forwarded-host')?.split(',')[0]?.trim();
+  const protocol = forwardedProto || req.protocol;
+  const host = forwardedHost || req.get('host');
+  return host ? `${protocol}://${host}`.replace(/\/$/, '') : null;
+};
+
+const createCorsOptions = (req) => ({
+  origin: (requestOrigin, callback) => {
+    if (!requestOrigin) return callback(null, true);
+
+    const normalizedOrigin = requestOrigin.replace(/\/$/, '');
+    const allowed =
+      configuredOrigins.includes(normalizedOrigin) ||
+      normalizedOrigin === getSameOrigin(req) ||
+      (process.env.NODE_ENV !== 'production' && isLocalDevOrigin(normalizedOrigin));
+
+    if (allowed) return callback(null, true);
+
+    const error = new Error('Not allowed by CORS');
+    error.status = 403;
+    return callback(error, false);
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   maxAge: 86400, // 24 hours
-};
+});
 
-app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // Handle preflight requests
+app.use((req, res, next) => cors(createCorsOptions(req))(req, res, next));
+app.options('*', (req, res, next) => cors(createCorsOptions(req))(req, res, next)); // Handle preflight requests
 app.use(bodyParser.json());
 
 const ready = init();
@@ -101,7 +129,9 @@ app.use((_req, res) => {
 // Error handler - must be last middleware
 app.use((err, _req, res, _next) => {
   console.error('Server Error:', err);
-  const message = err.status === 503
+  const message = err.status && err.status < 500
+    ? (err.message || 'Request failed')
+    : err.status === 503
     ? (err.message || 'Service unavailable')
     : (process.env.NODE_ENV === 'production'
       ? 'Internal Server Error'
@@ -111,4 +141,4 @@ app.use((err, _req, res, _next) => {
   });
 });
 
-module.exports = { app, prisma, ready };
+module.exports = { app, prisma, ready, disconnect };

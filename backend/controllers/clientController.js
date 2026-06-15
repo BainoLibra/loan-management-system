@@ -1,5 +1,6 @@
 const { prisma } = require('../db');
 const { logAudit } = require('../utils/hash');
+const { canAccessClient, canManageGroup, getClientAccessWhere } = require('../utils/accessControl');
 const { normalizeEmail, parsePositiveInt, sendServerError } = require('../utils/http');
 
 const titleCaseName = (value) => {
@@ -59,28 +60,11 @@ const createClient = async (req, res) => {
     });
     if (validationError) return res.status(400).json({ error: validationError });
 
-    // Fetch existing client to enforce field-level permissions
-    const existingClient = await prisma.client.findUnique({ where: { id: clientId } });
-    if (!existingClient) return res.status(404).json({ error: 'Client not found' });
-
-    // Non-admins are not allowed to change client names or identifier (NIN)
-    if (req.user.role !== 'admin') {
-      if ((formattedFirstName && formattedFirstName !== existingClient.firstName) ||
-          (formattedLastName && formattedLastName !== existingClient.lastName) ||
-          (identifier && identifier !== existingClient.identifier)) {
-        return res.status(403).json({ error: 'Only admins can edit client names or identifier.' });
-      }
-    }
-
     if (parsedGroupId) {
       const group = await prisma.group.findUnique({ where: { id: parsedGroupId } });
       if (!group) return res.status(404).json({ error: 'Group not found' });
-      // If assigning to a group, non-admins may only assign to groups they created
-      if (req.user.role !== 'admin') {
-        const createdLog = await prisma.auditLog.findFirst({
-          where: { userId: req.user.id, entity: 'group', action: 'CREATE_GROUP', entityId: parsedGroupId },
-        });
-        if (!createdLog) return res.status(403).json({ error: 'Cannot assign client to a group you do not own.' });
+      if (!await canManageGroup(req.user, parsedGroupId)) {
+        return res.status(403).json({ error: 'Cannot assign client to a group you do not manage.' });
       }
     }
 
@@ -109,28 +93,7 @@ const createClient = async (req, res) => {
 
 const getClients = async (req, res) => {
   try {
-    if (req.user.role === 'admin') {
-      const rows = await prisma.client.findMany({ orderBy: { createdAt: 'desc' } });
-      return res.json(rows);
-    }
-
-    // Non-admin: clients they created OR clients belonging to groups they created
-    const clientLogs = await prisma.auditLog.findMany({
-      where: { userId: req.user.id, entity: 'client', action: 'CREATE_CLIENT' },
-    });
-    const clientIds = clientLogs.map((l) => l.entityId).filter(Boolean);
-
-    const groupLogs = await prisma.auditLog.findMany({
-      where: { userId: req.user.id, entity: 'group', action: 'CREATE_GROUP' },
-    });
-    const groupIds = groupLogs.map((l) => l.entityId).filter(Boolean);
-
-    const where = { OR: [] };
-    if (clientIds.length > 0) where.OR.push({ id: { in: clientIds } });
-    if (groupIds.length > 0) where.OR.push({ groupId: { in: groupIds } });
-
-    if (where.OR.length === 0) return res.json([]);
-
+    const where = await getClientAccessWhere(req.user);
     const rows = await prisma.client.findMany({ where, orderBy: { createdAt: 'desc' } });
     res.json(rows);
   } catch (err) {
@@ -154,6 +117,9 @@ const getClientById = async (req, res) => {
     });
 
     if (!client) return res.status(404).json({ error: 'Client not found' });
+    if (!await canAccessClient(req.user, clientId)) {
+      return res.status(403).json({ error: 'You do not have access to this client' });
+    }
 
     res.json(client);
   } catch (err) {
@@ -190,15 +156,28 @@ const updateClient = async (req, res) => {
     });
     if (validationError) return res.status(400).json({ error: validationError });
 
+    const existingClient = await prisma.client.findUnique({ where: { id: clientId } });
+    if (!existingClient) return res.status(404).json({ error: 'Client not found' });
+    if (!await canAccessClient(req.user, clientId)) {
+      return res.status(403).json({ error: 'You do not have access to this client' });
+    }
+
+    if (req.user.role !== 'admin') {
+      const nameOrIdentifierChanged =
+        formattedFirstName !== existingClient.firstName ||
+        formattedLastName !== existingClient.lastName ||
+        String(identifier || '') !== String(existingClient.identifier || '');
+
+      if (nameOrIdentifierChanged) {
+        return res.status(403).json({ error: 'Only admins can edit client names or identifier.' });
+      }
+    }
+
     if (parsedGroupId) {
       const group = await prisma.group.findUnique({ where: { id: parsedGroupId } });
       if (!group) return res.status(404).json({ error: 'Group not found' });
-      // Non-admins may only assign clients to groups they created
-      if (req.user.role !== 'admin') {
-        const createdLog = await prisma.auditLog.findFirst({
-          where: { userId: req.user.id, entity: 'group', action: 'CREATE_GROUP', entityId: parsedGroupId },
-        });
-        if (!createdLog) return res.status(403).json({ error: 'Cannot assign client to a group you do not own.' });
+      if (!await canManageGroup(req.user, parsedGroupId)) {
+        return res.status(403).json({ error: 'Cannot assign client to a group you do not manage.' });
       }
     }
 

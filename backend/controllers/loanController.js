@@ -1,5 +1,6 @@
 const { prisma } = require('../db');
 const { logAudit } = require('../utils/hash');
+const { canAccessClient } = require('../utils/accessControl');
 const { optionalTrimmedString, parseFiniteNumber, parsePositiveInt, sendServerError } = require('../utils/http');
 
 const getLoanById = async (id) => {
@@ -62,6 +63,9 @@ const createLoan = async (req, res) => {
     });
     if (!client) {
       return res.status(404).json({ error: 'Client not found' });
+    }
+    if (!await canAccessClient(req.user, parsedClientId)) {
+      return res.status(403).json({ error: 'You do not have access to create loans for this client' });
     }
 
     const createdBy = req.user.id;
@@ -192,8 +196,8 @@ const approveLoan = async (req, res) => {
     }
 
     await prisma.$transaction(async (tx) => {
-      await tx.loan.update({
-        where: { id },
+      const updatedLoan = await tx.loan.updateMany({
+        where: { id, status: { in: ['applied', 'revision_requested'] } },
         data: {
           status: 'approved',
           approvedBy,
@@ -203,6 +207,14 @@ const approveLoan = async (req, res) => {
         },
       });
 
+      if (updatedLoan.count !== 1) {
+        const error = new Error('Loan has already been reviewed. Refresh and try again.');
+        error.status = 409;
+        error.expose = true;
+        throw error;
+      }
+
+      await tx.schedule.deleteMany({ where: { loanId: id } });
       await tx.schedule.createMany({
         data: schedules,
       });

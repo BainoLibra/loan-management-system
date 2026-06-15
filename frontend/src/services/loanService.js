@@ -1,10 +1,10 @@
-import API_BASE, { getAuthHeaders, handleApiResponse } from "./api";
+import API_BASE, { apiFetch, getAuthHeaders, handleApiResponse } from "./api";
 
 const API_URL = `${API_BASE}/api/loans`;
 
 export const getLoans = async () => {
   try {
-    const response = await fetch(API_URL, { 
+    const response = await apiFetch(API_URL, { 
       headers: getAuthHeaders(),
       credentials: "include"
     });
@@ -16,7 +16,7 @@ export const getLoans = async () => {
 
 export const createLoan = async (loan) => {
   try {
-    const response = await fetch(API_URL, {
+    const response = await apiFetch(API_URL, {
       method: "POST",
       headers: getAuthHeaders(),
       credentials: "include",
@@ -30,7 +30,7 @@ export const createLoan = async (loan) => {
 
 export const approveLoan = async (id, approvedAmount, approvalReason) => {
   try {
-    const response = await fetch(`${API_URL}/${id}/approve`, {
+    const response = await apiFetch(`${API_URL}/${id}/approve`, {
       method: "POST",
       headers: getAuthHeaders(),
       credentials: "include",
@@ -44,7 +44,7 @@ export const approveLoan = async (id, approvedAmount, approvalReason) => {
 
 export const requestLoanRevision = async (id, revisionReason) => {
   try {
-    const response = await fetch(`${API_URL}/${id}/request-revision`, {
+    const response = await apiFetch(`${API_URL}/${id}/request-revision`, {
       method: "POST",
       headers: getAuthHeaders(),
       credentials: "include",
@@ -58,7 +58,7 @@ export const requestLoanRevision = async (id, revisionReason) => {
 
 export const rejectLoan = async (id) => {
   try {
-    const response = await fetch(`${API_URL}/${id}/reject`, {
+    const response = await apiFetch(`${API_URL}/${id}/reject`, {
       method: "POST",
       headers: getAuthHeaders(),
       credentials: "include",
@@ -71,7 +71,7 @@ export const rejectLoan = async (id) => {
 
 export const disburseLoan = async (id) => {
   try {
-    const response = await fetch(`${API_URL}/${id}/disburse`, {
+    const response = await apiFetch(`${API_URL}/${id}/disburse`, {
       method: "POST",
       headers: getAuthHeaders(),
       credentials: "include",
@@ -83,7 +83,7 @@ export const disburseLoan = async (id) => {
 };
 
 export const getLoanSchedule = async (id) => {
-  const response = await fetch(`${API_URL}/${id}/schedule`, {
+  const response = await apiFetch(`${API_URL}/${id}/schedule`, {
     headers: getAuthHeaders(),
     credentials: "include",
   });
@@ -91,7 +91,7 @@ export const getLoanSchedule = async (id) => {
 };
 
 export const getRepayments = async (loanId) => {
-  const response = await fetch(`${API_URL}/${loanId}`, {
+  const response = await apiFetch(`${API_URL}/${loanId}`, {
     headers: getAuthHeaders(),
     credentials: "include",
   });
@@ -99,7 +99,7 @@ export const getRepayments = async (loanId) => {
 };
 
 export const repayLoan = async (loanId, amount, scheduleId) => {
-  const response = await fetch(`${API_URL}/${loanId}/repay`, {
+  const response = await apiFetch(`${API_URL}/${loanId}/repay`, {
     method: "POST",
     headers: getAuthHeaders(),
     credentials: "include",

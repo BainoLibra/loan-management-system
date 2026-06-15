@@ -29,6 +29,11 @@ const optionalTrimmedString = (value, maxLength) => {
 
 const sendServerError = (res, error, context = 'Request failed') => {
   console.error(`${context}:`, error);
+  const status = Number(error?.status || error?.statusCode);
+  if (error?.expose && status >= 400 && status < 500) {
+    return res.status(status).json({ error: error.message || 'Request failed' });
+  }
+
   const message = process.env.NODE_ENV === 'production'
     ? INTERNAL_ERROR
     : (error?.message || INTERNAL_ERROR);

@@ -2,16 +2,21 @@ const API_BASE = process.env.NODE_ENV === "production"
   ? ""
   : (process.env.REACT_APP_API_URL || "http://localhost:4000");
 
-export const getAuthHeaders = ({ json = true } = {}) => {
-  const activeId = localStorage.getItem("activeSessionId");
-  let token = null;
+export const getActiveToken = () => {
   try {
+    const activeId = localStorage.getItem("activeSessionId");
     const sessionsRaw = localStorage.getItem("sessions");
     const sessions = sessionsRaw ? JSON.parse(sessionsRaw) : {};
-    if (activeId && sessions[activeId]) token = sessions[activeId].token;
+    if (activeId && sessions[activeId]) return sessions[activeId].token;
   } catch (e) {
-    token = null;
+    return localStorage.getItem("token");
   }
+
+  return localStorage.getItem("token");
+};
+
+export const getAuthHeaders = ({ json = true } = {}) => {
+  const token = getActiveToken();
 
   return {
     ...(json ? { "Content-Type": "application/json" } : {}),
@@ -23,10 +28,9 @@ export const getAuthHeaders = ({ json = true } = {}) => {
 export const clearAuthSession = () => {
   try {
     const activeId = localStorage.getItem("activeSessionId");
-    if (!activeId) return;
     const sessionsRaw = localStorage.getItem("sessions");
     const sessions = sessionsRaw ? JSON.parse(sessionsRaw) : {};
-    delete sessions[activeId];
+    if (activeId) delete sessions[activeId];
     localStorage.setItem("sessions", JSON.stringify(sessions));
     // pick another session as active if available
     const remainingIds = Object.keys(sessions);
@@ -35,19 +39,42 @@ export const clearAuthSession = () => {
     } else {
       localStorage.removeItem("activeSessionId");
     }
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
   } catch (e) {
     localStorage.removeItem("sessions");
     localStorage.removeItem("activeSessionId");
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
   }
 };
 
-export const isTokenExpired = (token = localStorage.getItem("token")) => {
+export const isTokenExpired = (token = getActiveToken()) => {
   if (!token) return true;
   try {
     const payload = JSON.parse(atob(token.split(".")[1]));
     return typeof payload.exp === "number" && payload.exp * 1000 <= Date.now();
   } catch {
     return true;
+  }
+};
+
+export const apiFetch = async (url, options = {}, timeoutMs = 20000) => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(url, {
+      ...options,
+      signal: options.signal || controller.signal,
+    });
+  } catch (error) {
+    if (error.name === "AbortError") {
+      throw new Error("Request timed out. Please check your connection and try again.");
+    }
+    throw new Error(error.message || "Unable to connect to server.");
+  } finally {
+    clearTimeout(timeoutId);
   }
 };
 

@@ -89,11 +89,14 @@ async function main() {
       "principal" numeric(15,2) NOT NULL,
       "interest" numeric(15,2) NOT NULL,
       "balance" numeric(15,2) NOT NULL,
+      "paidAmount" numeric(15,2) NOT NULL DEFAULT 0,
       "status" text NOT NULL DEFAULT 'pending',
       "penalty" numeric(15,2) NOT NULL DEFAULT 0,
       "createdAt" timestamp(3) without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
       CONSTRAINT "schedules_loanId_fkey" FOREIGN KEY ("loanId") REFERENCES "loans"("id") ON DELETE CASCADE
     )`);
+    await client.query(`ALTER TABLE "schedules"
+      ADD COLUMN IF NOT EXISTS "paidAmount" numeric(15,2) NOT NULL DEFAULT 0`);
     await client.query(`CREATE INDEX IF NOT EXISTS "schedules_loanId_idx" ON "schedules" ("loanId")`);
 
     await client.query(`ALTER TABLE "repayments" DROP CONSTRAINT IF EXISTS "repayments_loanId_fkey"`);
