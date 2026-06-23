@@ -28,6 +28,7 @@ function Groups() {
 
   const currentUser = getUser();
   const isAdmin = currentUser?.role === "admin";
+  const canCreateGroup = isAdmin || currentUser?.role === "loan_officer";
 
   useEffect(() => { fetchGroups(); }, []);
 
@@ -52,11 +53,6 @@ function Groups() {
     }
 
     try {
-      if (!editingId && isAdmin) {
-        setError('Admins are not permitted to create groups.');
-        return;
-      }
-
       const response = editingId
         ? await updateGroup(editingId, form)
         : await createGroup(form);
@@ -167,7 +163,7 @@ function Groups() {
       <h2>Client Groups</h2>
       {error && <div className="form-error">{error}</div>}
       <div className="toolbar">
-        {currentUser?.role === "loan_officer" && (
+        {canCreateGroup && (
           <button onClick={() => { setShowForm(!showForm); setEditingId(null); setForm({ name: "", description: "" }); setError(""); }}>
             {showForm ? "Cancel" : "+ New Group"}
           </button>

@@ -4,10 +4,6 @@ const { optionalTrimmedString, parsePositiveInt, sendServerError } = require('..
 
 const createGroup = async (req, res) => {
   try {
-    // Admins are not allowed to create groups — groups are created by loan officers only
-    if (req.user.role === 'admin') {
-      return res.status(403).json({ error: 'Admins are not permitted to create groups.' });
-    }
     const { name, description } = req.body;
     const groupName = optionalTrimmedString(name, 100);
     const groupDescription = optionalTrimmedString(description, 500);
