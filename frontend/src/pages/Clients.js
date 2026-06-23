@@ -217,14 +217,14 @@ function Clients() {
           <input
             placeholder="First Name"
             value={form.firstName}
-            onChange={(e) => setForm({ ...form, firstName: titleCaseName(e.target.value) })}
+            onChange={(e) => setForm({ ...form, firstName: e.target.value })}
             required
             readOnly={!isAdmin && !!editingId}
           />
           <input
             placeholder="Last Name"
             value={form.lastName}
-            onChange={(e) => setForm({ ...form, lastName: titleCaseName(e.target.value) })}
+            onChange={(e) => setForm({ ...form, lastName: e.target.value })}
             required
             readOnly={!isAdmin && !!editingId}
           />
@@ -243,7 +243,7 @@ function Clients() {
           <input
             placeholder="Guarantor Name"
             value={form.guarantorName}
-            onChange={(e) => setForm({ ...form, guarantorName: titleCaseName(e.target.value) })}
+            onChange={(e) => setForm({ ...form, guarantorName: e.target.value })}
           />
           <input
             placeholder="Guarantor Phone"
