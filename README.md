@@ -213,3 +213,31 @@ Change this password immediately in non-local environments.
 - Frontend requests use `REACT_APP_API_URL` as base URL.
 - Backend CORS allows the single origin in `FRONTEND_URL` with credentials enabled.
 - Prisma is configured for PostgreSQL via Supabase connection strings.
+
+## Troubleshooting Common Errors
+
+### 1. `MODULE_NOT_FOUND` for `.prisma/client/default`
+
+**Symptom:** During deployment or when running the server, the app crashes with an error stating `Cannot find module '.prisma/client/default'`.
+
+**Cause:** The Prisma Client has not been generated for your environment. Starting from Prisma 7, relying purely on default generation scripts can sometimes fail in environments using `--ignore-scripts` or custom module loaders.
+
+**Fix:** Ensure your `package.json` contains a `postinstall` script to explicitly generate the client:
+```json
+"scripts": {
+  "postinstall": "prisma generate"
+}
+```
+If developing locally, simply run `npx prisma generate` in the `backend/` folder.
+
+### 2. `503 Service Unavailable` on Vercel Serverless Functions
+
+**Symptom:** API endpoints like `/api/auth/login` return a `503` error despite environment variables being correctly configured and the database being reachable locally.
+
+**Cause:** Vercel serverless functions implement warm-start caching. If the app boots up and fails to connect to the database (e.g., because environment variables were wrong or the database was paused), Vercel caches that "failed" state across the container lifecycle. Updating environment variables via the Vercel Dashboard does not always flush the runtime cache for already-deployed functions.
+
+**Fix:** You must trigger a **completely fresh production deployment** to clear the serverless cache and force Vercel to rebuild and reconnect to the database using the new credentials:
+```bash
+vercel deploy --prod
+```
+If the issue persists, perform a hard refresh (`Ctrl + F5`) in your browser to clear local client caches.

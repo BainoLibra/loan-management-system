@@ -65,7 +65,7 @@ app.use((req, res, next) => cors(createCorsOptions(req))(req, res, next));
 app.options('*', (req, res, next) => cors(createCorsOptions(req))(req, res, next)); // Handle preflight requests
 app.use(bodyParser.json());
 
-const ready = init();
+let ready = init();
 ready.catch(() => {});
 
 app.use(async (_req, _res, next) => {
@@ -74,9 +74,17 @@ app.use(async (_req, _res, next) => {
     next();
   } catch (error) {
     console.error('Database initialization failed:', error);
-    const err = new Error('Database connection failed');
-    err.status = 503; // Service Unavailable
-    next(err);
+    try {
+      console.log('Retrying database initialization...');
+      ready = init();
+      await ready;
+      next();
+    } catch (retryError) {
+      console.error('Database retry failed:', retryError);
+      const err = new Error('Database connection failed: ' + error.message + ' | Retry: ' + retryError.message);
+      err.status = 503;
+      next(err);
+    }
   }
 });
 
