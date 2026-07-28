@@ -54,12 +54,17 @@ npm install
 Create `backend/.env` from `backend/.env.example` and set:
 
 ```dotenv
-DATABASE_URL=postgresql://...
-DIRECT_URL=postgresql://...
+DATABASE_URL=postgresql://postgres.lujvlbvpbzkqejdvzcel:hqoC7NML7B5qFVRK@aws-0-eu-west-1.pooler.supabase.com:6543/postgres
+DIRECT_URL=postgresql://postgres.lujvlbvpbzkqejdvzcel:hqoC7NML7B5qFVRK@aws-0-eu-west-1.pooler.supabase.com:5432/postgres
 PORT=4000
-JWT_SECRET=your_strong_secret
+JWT_SECRET=super_secret_local_key_84y839hf8
 FRONTEND_URL=http://localhost:3000
 SEED_DEFAULT_ADMIN=true
+```
+
+**Important:** Before starting the backend for the first time, you must push the database schema to Supabase to create the tables:
+```bash
+npx prisma db push --accept-data-loss
 ```
 
 Run backend:
@@ -127,17 +132,25 @@ Your Vercel deployment requires the Supabase connection strings to talk to the d
 
 If using the CLI, run the following commands and paste the respective values when prompted:
 ```bash
-vercel env add DATABASE_URL
-# Value: postgresql://postgres.lujvlbvpbzkqejdvzcel:[YOUR-PASSWORD]@aws-0-eu-west-1.pooler.supabase.com:6543/postgres
+vercel env add DATABASE_URL production
+# Value: postgresql://postgres.lujvlbvpbzkqejdvzcel:hqoC7NML7B5qFVRK@aws-0-eu-west-1.pooler.supabase.com:6543/postgres
 
-vercel env add DIRECT_URL
-# Value: postgresql://postgres.lujvlbvpbzkqejdvzcel:[YOUR-PASSWORD]@aws-0-eu-west-1.pooler.supabase.com:5432/postgres
+vercel env add DIRECT_URL production
+# Value: postgresql://postgres.lujvlbvpbzkqejdvzcel:hqoC7NML7B5qFVRK@aws-0-eu-west-1.pooler.supabase.com:5432/postgres
 
-vercel env add JWT_SECRET
-# Value: (A secure random string, e.g. run `openssl rand -base64 32`)
+vercel env add JWT_SECRET production
+# Value: r4nd0m_s3cr3t_f0r_pr0duct10n_9x8
 
-vercel env add FRONTEND_URL
-# Value: (Your Vercel project URL, e.g. https://your-project.vercel.app)
+vercel env add FRONTEND_URL production
+# Value: https://libra1.healthlinks.ug
+```
+
+### 3.1) Push Database Schema
+
+If this is your first time deploying to a fresh database, make sure to push the schema from your local environment to the remote database so that the tables are created (and the `ready` state is successful when Vercel boots up):
+```bash
+cd backend
+npx prisma db push --accept-data-loss
 ```
 
 ### 4) Deploy
