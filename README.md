@@ -95,23 +95,59 @@ npm start
 
 Open `http://localhost:3000`.
 
-## Vercel Deployment (Current Recommended Setup)
+## Vercel Deployment & Supabase Connection (Recommended Setup)
 
-Deploy as **one Vercel project from repository root**:
+To deploy this project to Vercel and connect it to your live Supabase database, follow these steps:
 
-1. Create a Vercel project from this repository.
-2. Set Root Directory to `./`.
-3. Use the root `vercel.json` in this repository.
-4. Add required environment variables:
-  - `DATABASE_URL`
-  - `DIRECT_URL`
-  - `JWT_SECRET`
-  - `FRONTEND_URL` (set to your project URL, e.g. `https://your-project.vercel.app`)
-  - `NODE_ENV=production`
+### 1) Authenticate with Vercel and Supabase
 
-Frontend will call backend APIs on the same domain using `/api/*` in production by default.
+First, ensure you are logged into the correct accounts via the CLI:
+```bash
+# Log in to Vercel (if you need to switch accounts, run `vercel logout` first)
+vercel login
 
-Detailed steps: see `VERCEL_DEPLOYMENT.md`.
+# Log in to Supabase CLI
+supabase login
+```
+
+### 2) Link the Project
+
+Link your local repository to the Vercel project and the Supabase project:
+```bash
+# Link to Vercel
+vercel link
+
+# Link to Supabase
+supabase link --project-ref lujvlbvpbzkqejdvzcel
+```
+
+### 3) Set Up Environment Variables
+
+Your Vercel deployment requires the Supabase connection strings to talk to the database. You can add them via the Vercel CLI or Dashboard.
+
+If using the CLI, run the following commands and paste the respective values when prompted:
+```bash
+vercel env add DATABASE_URL
+# Value: postgresql://postgres.lujvlbvpbzkqejdvzcel:[YOUR-PASSWORD]@aws-0-eu-west-1.pooler.supabase.com:6543/postgres
+
+vercel env add DIRECT_URL
+# Value: postgresql://postgres.lujvlbvpbzkqejdvzcel:[YOUR-PASSWORD]@aws-0-eu-west-1.pooler.supabase.com:5432/postgres
+
+vercel env add JWT_SECRET
+# Value: (A secure random string, e.g. run `openssl rand -base64 32`)
+
+vercel env add FRONTEND_URL
+# Value: (Your Vercel project URL, e.g. https://your-project.vercel.app)
+```
+
+### 4) Deploy
+
+Once the environment variables are set, deploy your code:
+```bash
+vercel deploy --prod
+```
+
+Your frontend will automatically route API requests to the backend using the `vercel.json` configuration, and the backend will securely connect to Supabase!
 
 ## API Summary
 
