@@ -4,6 +4,7 @@ import Layout from "../components/Layout";
 import { getLoans } from "../services/loanService";
 import { getClients } from "../services/clientService";
 import { getUser } from "../services/authService";
+import { formatShillings } from "../utils/format";
 import { getDashboardSummary } from "../services/reportService";
 import {
   IconClients,
@@ -195,7 +196,7 @@ function Dashboard() {
                   <IconRepayments size={22} />
                 </div>
               </div>
-              <h3>${stats.totalBalance.toLocaleString()}</h3>
+              <h3>{formatShillings(stats.totalBalance)}</h3>
             </div>
           </div>
 
@@ -237,7 +238,7 @@ function Dashboard() {
                     <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                     <XAxis dataKey="month" stroke="#64748b" />
                     <YAxis stroke="#64748b" />
-                    <Tooltip formatter={(v) => `$${Number(v).toLocaleString()}`} />
+                    <Tooltip formatter={(v) => formatShillings(v)} />
                     <Bar dataKey="amount" fill="#3b82f6" radius={[6, 6, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>

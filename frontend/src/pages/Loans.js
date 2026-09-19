@@ -317,18 +317,18 @@ function Loans() {
               <div className="detail-cards" style={{ marginBottom: "20px" }}>
                 <div className="detail-card">
                   <label>Total Repayment</label>
-                  <span>${schedule.reduce((sum, s) => sum + Number(s.payment), 0).toLocaleString()}</span>
+                  <span>{formatShillings(schedule.reduce((sum, s) => sum + Number(s.payment), 0))}</span>
                 </div>
                 <div className="detail-card">
                   <label>Total Paid</label>
                   <span style={{ color: "var(--status-disbursed)" }}>
-                    ${schedule.reduce((sum, s) => sum + Number(s.paidAmount || 0), 0).toLocaleString()}
+                    {formatShillings(schedule.reduce((sum, s) => sum + Number(s.paidAmount || 0), 0))}
                   </span>
                 </div>
                 <div className="detail-card">
                   <label>Amount Due</label>
                   <span style={{ color: "var(--status-approved)" }}>
-                    ${schedule.reduce((sum, s) => sum + Number(s.amountDue || 0), 0).toLocaleString()}
+                    {formatShillings(schedule.reduce((sum, s) => sum + Number(s.amountDue || 0), 0))}
                   </span>
                 </div>
                 <div className="detail-card">
@@ -359,12 +359,12 @@ function Loans() {
                         <tr key={s.month}>
                           <td>Month {s.month}</td>
                           <td>{new Date(s.dueDate).toLocaleDateString()}</td>
-                          <td style={{ fontWeight: 600 }}>${Number(s.payment).toLocaleString()}</td>
-                          <td>${Number(s.paidAmount || 0).toLocaleString()}</td>
-                          <td style={{ fontWeight: 600 }}>${Number(s.amountDue || 0).toLocaleString()}</td>
-                          <td>${Number(s.principal).toLocaleString()}</td>
-                          <td>${Number(s.interest).toLocaleString()}</td>
-                          <td>${Number(s.balance).toLocaleString()}</td>
+                          <td style={{ fontWeight: 600 }}>{formatShillings(s.payment)}</td>
+                          <td>{formatShillings(s.paidAmount || 0)}</td>
+                          <td style={{ fontWeight: 600 }}>{formatShillings(s.amountDue || 0)}</td>
+                          <td>{formatShillings(s.principal)}</td>
+                          <td>{formatShillings(s.interest)}</td>
+                          <td>{formatShillings(s.balance)}</td>
                           <td>
                             <span className={`status-badge ${s.status === "paid" ? "disbursed" : s.status === "overdue" ? "rejected" : "applied"}`}>
                               {s.status}

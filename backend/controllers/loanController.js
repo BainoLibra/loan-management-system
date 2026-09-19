@@ -34,8 +34,8 @@ const createLoan = async (req, res) => {
 
     // Validate amount
     const numAmount = parseFiniteNumber(amount);
-    if (numAmount == null || numAmount < 300000 || numAmount > 2000000) {
-      return res.status(400).json({ error: 'Loan amount must be a number between 300,000 and 2,000,000' });
+    if (numAmount == null || numAmount < 200000 || numAmount > 10000000) {
+      return res.status(400).json({ error: 'Loan amount must be a number between 200,000 Shs and 10,000,000 Shs' });
     }
 
     // Validate interestRate
@@ -131,6 +131,16 @@ const approveLoan = async (req, res) => {
     const loan = await getLoanById(id);
 
     if (!loan) return res.status(404).json({ error: 'Loan not found' });
+
+    // Dual Control: Block creator from self-approving (unless Admin)
+    if (loan.createdBy === req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Dual control policy: You cannot approve a loan that you created. Another manager must review it.' });
+    }
+
+    // Branch Manager Limit: Maximum 5,000,000 Shs
+    if (req.user.role === 'branch_manager' && Number(loan.amount) > 5000000) {
+      return res.status(403).json({ error: 'Branch Managers can only approve loans up to 5,000,000 Shs. Loans above 5,000,000 Shs require Administrator approval.' });
+    }
 
     if (!['applied', 'revision_requested'].includes(loan.status)) {
       return res.status(400).json({ error: 'Only applied or revision requested loans can be approved' });
@@ -236,6 +246,11 @@ const rejectLoan = async (req, res) => {
 
     const loan = await getLoanById(id);
     if (!loan) return res.status(404).json({ error: 'Loan not found' });
+
+    if (loan.createdBy === req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Dual control policy: You cannot reject a loan that you created.' });
+    }
+
     if (!['applied', 'revision_requested'].includes(loan.status)) {
       return res.status(400).json({ error: 'Only applied or revision requested loans can be rejected' });
     }
@@ -262,6 +277,10 @@ const disburseLoan = async (req, res) => {
     const loan = await getLoanById(id);
 
     if (!loan) return res.status(404).json({ error: 'Loan not found' });
+
+    if (loan.createdBy === req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Dual control policy: You cannot disburse a loan that you created.' });
+    }
 
     if (loan.status !== 'approved') return res.status(400).json({ error: 'Loan must be approved before disbursement' });
 
@@ -299,6 +318,10 @@ const requestRevisionLoan = async (req, res) => {
 
     const loan = await getLoanById(id);
     if (!loan) return res.status(404).json({ error: 'Loan not found' });
+
+    if (loan.createdBy === req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Dual control policy: You cannot mark for revision a loan that you created.' });
+    }
     if (loan.status !== 'applied') return res.status(400).json({ error: 'Only applied loans can be marked for revision' });
 
     const sanitizedRevisionReason = optionalTrimmedString(revisionReason, 1000);

@@ -11,7 +11,7 @@ const getLoanById = async (id) => {
 const repayLoan = async (req, res) => {
   try {
     const loanId = parsePositiveInt(req.params.loanId);
-    const { amount, scheduleId } = req.body;
+    const { amount, scheduleId, paymentMethod, reference } = req.body;
 
     const paidBy = req.user.id;
     const repaymentAmount = parseFiniteNumber(amount);
@@ -20,6 +20,10 @@ const repayLoan = async (req, res) => {
     if (repaymentAmount == null || repaymentAmount <= 0) {
       return res.status(400).json({ error: 'Repayment amount must be greater than zero' });
     }
+
+    const validMethods = ['cash', 'mobile_money', 'bank_transfer', 'cheque'];
+    const selectedMethod = validMethods.includes(paymentMethod) ? paymentMethod : 'cash';
+    const sanitizedReference = typeof reference === 'string' ? reference.trim().slice(0, 100) : null;
 
     const loan = await getLoanById(loanId);
 
@@ -48,6 +52,8 @@ const repayLoan = async (req, res) => {
         data: {
           loanId,
           amount: repaymentAmount,
+          paymentMethod: selectedMethod,
+          reference: sanitizedReference,
           date,
           paidBy,
         },
@@ -100,9 +106,15 @@ const getRepayments = async (req, res) => {
     const rows = await prisma.repayment.findMany({
       where: { loanId },
       orderBy: { date: 'desc' },
+      include: {
+        paidByUser: { select: { name: true } },
+      },
     });
 
-    res.json(rows);
+    res.json(rows.map((r) => ({
+      ...r,
+      paidByName: r.paidByUser?.name || 'Staff',
+    })));
   } catch (err) {
     return sendServerError(res, err, 'List repayments error');
   }

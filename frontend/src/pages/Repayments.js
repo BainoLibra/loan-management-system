@@ -3,6 +3,7 @@ import Layout from "../components/Layout";
 import { getLoans, getRepayments, repayLoan } from "../services/loanService";
 import { getUser } from "../services/authService";
 import { IconSearch, IconAlert } from "../components/Icons";
+import { formatShillings } from "../utils/format";
 import "../styles/table.css";
 
 const PAGE_SIZE = 10;
@@ -12,6 +13,9 @@ function Repayments() {
   const [selectedLoan, setSelectedLoan] = useState(null);
   const [repayments, setRepayments] = useState([]);
   const [amount, setAmount] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("cash");
+  const [reference, setReference] = useState("");
+  const [receiptModalData, setReceiptModalData] = useState(null);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [error, setError] = useState("");
@@ -65,10 +69,23 @@ function Repayments() {
     try {
       setSubmitting(true);
       setError("");
-      await repayLoan(selectedLoan.id, repaymentAmount);
+      const result = await repayLoan(selectedLoan.id, repaymentAmount, paymentMethod, reference);
       setAmount("");
+      setReference("");
       await selectLoan(selectedLoan);
       await fetchLoans();
+
+      // Show receipt modal for the new payment
+      setReceiptModalData({
+        receiptId: result?.repaymentId || "NEW",
+        loanId: selectedLoan.id,
+        clientName: selectedLoan.clientName,
+        amount: repaymentAmount,
+        paymentMethod,
+        reference,
+        date: new Date().toISOString(),
+        paidByName: user?.name || "Staff",
+      });
     } catch (err) {
       setError(err.message || "Failed to record repayment");
     } finally {
@@ -78,8 +95,8 @@ function Repayments() {
 
   const exportCSV = () => {
     if (!repayments.length) return;
-    const header = "ID,Amount,Date\n";
-    const rows = repayments.map((r) => `${r.id},${r.amount},"${new Date(r.date).toLocaleDateString()}"`).join("\n");
+    const header = "Receipt ID,Amount,Method,Reference,Date,Recorded By\n";
+    const rows = repayments.map((r) => `${r.id},${r.amount},"${r.paymentMethod || 'cash'}","${r.reference || ''}","${new Date(r.date).toLocaleDateString()}","${r.paidByName || ''}"`).join("\n");
     const blob = new Blob([header + rows], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -115,7 +132,7 @@ function Repayments() {
       <div className="page-header">
         <div className="page-title-group">
           <h2>Loan Repayments & Teller Desk</h2>
-          <p>Record installment collections, inspect client ledger balances, and print payment history.</p>
+          <p>Record installment collections in Shillings, track payment channels, and print official receipts.</p>
         </div>
       </div>
 
@@ -171,8 +188,8 @@ function Repayments() {
                   <tr key={l.id} style={selectedLoan && selectedLoan.id === l.id ? { background: "var(--primary-light)" } : {}}>
                     <td>#{l.id}</td>
                     <td style={{ fontWeight: 600 }}>{l.clientName}</td>
-                    <td>${Number(l.amount).toLocaleString()}</td>
-                    <td style={{ fontWeight: 700, color: "var(--primary)" }}>${Number(l.balance).toLocaleString()}</td>
+                    <td>{formatShillings(l.amount)}</td>
+                    <td style={{ fontWeight: 700, color: "var(--primary)" }}>{formatShillings(l.balance)}</td>
                     <td>
                       <button className="btn-sm btn-primary" onClick={() => selectLoan(l)} disabled={submitting}>
                         Select Loan
@@ -220,11 +237,11 @@ function Repayments() {
           <div className="detail-cards" style={{ marginBottom: "20px" }}>
             <div className="detail-card">
               <label>Original Disbursed</label>
-              <span>${Number(selectedLoan.amount).toLocaleString()}</span>
+              <span>{formatShillings(selectedLoan.amount)}</span>
             </div>
             <div className="detail-card">
               <label>Current Outstanding Balance</label>
-              <span style={{ color: "var(--primary)", fontWeight: 800 }}>${Number(selectedLoan.balance).toLocaleString()}</span>
+              <span style={{ color: "var(--primary)", fontWeight: 800 }}>{formatShillings(selectedLoan.balance)}</span>
             </div>
             <div className="detail-card">
               <label>Payments Recorded</label>
@@ -232,17 +249,36 @@ function Repayments() {
             </div>
           </div>
 
-          <form onSubmit={handleRepay} className="inline-form" style={{ marginBottom: "28px" }}>
+          <form onSubmit={handleRepay} className="inline-form" style={{ marginBottom: "28px", flexWrap: "wrap", gap: "10px" }}>
             <input
               type="number"
-              placeholder="Enter payment amount ($)..."
+              placeholder="Amount (Shs)..."
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               required
               disabled={submitting}
-              min="0.01"
-              step="0.01"
-              style={{ minWidth: "260px" }}
+              min="1"
+              step="1"
+              style={{ minWidth: "200px" }}
+            />
+            <select
+              value={paymentMethod}
+              onChange={(e) => setPaymentMethod(e.target.value)}
+              disabled={submitting}
+              style={{ minWidth: "160px" }}
+            >
+              <option value="cash">Cash Collection</option>
+              <option value="mobile_money">Mobile Money (M-Pesa/MTN)</option>
+              <option value="bank_transfer">Bank Transfer</option>
+              <option value="cheque">Cheque</option>
+            </select>
+            <input
+              type="text"
+              placeholder="Ref Code / Trans ID (optional)..."
+              value={reference}
+              onChange={(e) => setReference(e.target.value)}
+              disabled={submitting}
+              style={{ minWidth: "220px" }}
             />
             <button className="btn btn-success" type="submit" disabled={submitting}>
               {submitting ? "Processing..." : "Submit Collection"}
@@ -262,13 +298,17 @@ function Repayments() {
                   <tr>
                     <th>Receipt ID</th>
                     <th>Payment Amount</th>
+                    <th>Payment Method</th>
+                    <th>Reference Code</th>
                     <th>Date Recorded</th>
+                    <th>Collected By</th>
+                    <th>Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   {repayments.length === 0 ? (
                     <tr>
-                      <td colSpan="3" style={{ textAlign: "center", padding: "24px", color: "var(--text-muted)" }}>
+                      <td colSpan="7" style={{ textAlign: "center", padding: "24px", color: "var(--text-muted)" }}>
                         No payments recorded for this loan yet.
                       </td>
                     </tr>
@@ -276,13 +316,93 @@ function Repayments() {
                     repayments.map((r) => (
                       <tr key={r.id}>
                         <td>#{r.id}</td>
-                        <td style={{ fontWeight: 700, color: "var(--status-disbursed)" }}>${Number(r.amount).toLocaleString()}</td>
+                        <td style={{ fontWeight: 700, color: "var(--status-disbursed)" }}>{formatShillings(r.amount)}</td>
+                        <td style={{ textTransform: "capitalize" }}>{(r.paymentMethod || "cash").replace("_", " ")}</td>
+                        <td>{r.reference || "—"}</td>
                         <td>{new Date(r.date).toLocaleDateString()}</td>
+                        <td>{r.paidByName || "Staff"}</td>
+                        <td>
+                          <button
+                            className="btn-sm btn-secondary"
+                            onClick={() =>
+                              setReceiptModalData({
+                                receiptId: r.id,
+                                loanId: selectedLoan.id,
+                                clientName: selectedLoan.clientName,
+                                amount: r.amount,
+                                paymentMethod: r.paymentMethod || "cash",
+                                reference: r.reference || "",
+                                date: r.date,
+                                paidByName: r.paidByName || "Staff",
+                              })
+                            }
+                          >
+                            Print Receipt
+                          </button>
+                        </td>
                       </tr>
                     ))
                   )}
                 </tbody>
               </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Printable Official Receipt Modal */}
+      {receiptModalData && (
+        <div className="modal-overlay" style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000 }}>
+          <div className="modal-card" style={{ background: "#ffffff", padding: "32px", borderRadius: "12px", maxWidth: "480px", width: "90%", boxShadow: "0 10px 25px rgba(0,0,0,0.2)" }}>
+            <div style={{ borderBottom: "2px solid var(--primary)", paddingBottom: "12px", marginBottom: "20px", textAlign: "center" }}>
+              <h2 style={{ margin: 0, color: "var(--primary)" }}>LIBRA LOAN MANAGEMENT</h2>
+              <p style={{ margin: "4px 0 0 0", color: "var(--text-muted)", fontSize: "0.9rem" }}>Official Payment Receipt</p>
+            </div>
+
+            <div style={{ display: "grid", gap: "10px", fontSize: "0.95rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ color: "var(--text-muted)" }}>Receipt #:</span>
+                <span style={{ fontWeight: 700 }}>#{receiptModalData.receiptId}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ color: "var(--text-muted)" }}>Loan ID:</span>
+                <span>#{receiptModalData.loanId}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ color: "var(--text-muted)" }}>Borrower Name:</span>
+                <span style={{ fontWeight: 600 }}>{receiptModalData.clientName}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ color: "var(--text-muted)" }}>Amount Paid:</span>
+                <span style={{ fontWeight: 800, color: "var(--primary)", fontSize: "1.1rem" }}>{formatShillings(receiptModalData.amount)}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ color: "var(--text-muted)" }}>Payment Method:</span>
+                <span style={{ textTransform: "capitalize" }}>{receiptModalData.paymentMethod.replace("_", " ")}</span>
+              </div>
+              {receiptModalData.reference && (
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "var(--text-muted)" }}>Reference Code:</span>
+                  <span style={{ fontWeight: 600 }}>{receiptModalData.reference}</span>
+                </div>
+              )}
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ color: "var(--text-muted)" }}>Date & Time:</span>
+                <span>{new Date(receiptModalData.date).toLocaleString()}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ color: "var(--text-muted)" }}>Processed By:</span>
+                <span>{receiptModalData.paidByName}</span>
+              </div>
+            </div>
+
+            <div style={{ marginTop: "28px", display: "flex", gap: "12px", justifyContent: "flex-end" }}>
+              <button className="btn btn-secondary" onClick={() => setReceiptModalData(null)}>
+                Close
+              </button>
+              <button className="btn btn-primary" onClick={() => window.print()}>
+                Print Receipt
+              </button>
             </div>
           </div>
         </div>

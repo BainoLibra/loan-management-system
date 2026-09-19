@@ -1,4 +1,5 @@
 import React from "react";
+import { formatShillings } from "../utils/format";
 
 const LoanTable = ({ loans, onViewSchedule, onApprove, onRequestRevision, onReject, onDisburse, user }) => {
   return (
@@ -30,11 +31,11 @@ const LoanTable = ({ loans, onViewSchedule, onApprove, onRequestRevision, onReje
                 <tr key={l.id}>
                   <td>#{l.id}</td>
                   <td style={{ fontWeight: 600 }}>{l.clientName}</td>
-                  <td style={{ fontWeight: 700 }}>${Number(l.amount).toLocaleString()}</td>
+                  <td style={{ fontWeight: 700 }}>{formatShillings(l.amount)}</td>
                   <td>{l.interestRate}%</td>
                   <td>{l.termMonths} mos</td>
                   <td style={{ fontWeight: 600, color: "var(--text-main)" }}>
-                    ${Number(l.balance).toLocaleString()}
+                    {formatShillings(l.balance)}
                   </td>
                   <td>
                     <span className={`status-badge ${l.status}`}>
@@ -45,7 +46,7 @@ const LoanTable = ({ loans, onViewSchedule, onApprove, onRequestRevision, onReje
                     <div style={{ fontSize: "0.82rem" }}>
                       {l.approvedAmount && (
                         <div style={{ fontWeight: 600, color: "var(--status-approved)" }}>
-                          Appr: ${Number(l.approvedAmount).toLocaleString()}
+                          Appr: {formatShillings(l.approvedAmount)}
                         </div>
                       )}
                       <span style={{ color: "var(--text-muted)" }}>

@@ -103,6 +103,9 @@ async function main() {
     await client.query(`ALTER TABLE "repayments"
       ADD CONSTRAINT "repayments_loanId_fkey"
       FOREIGN KEY ("loanId") REFERENCES "loans"("id") ON DELETE CASCADE`);
+    await client.query(`ALTER TABLE "repayments"
+      ADD COLUMN IF NOT EXISTS "paymentMethod" text NOT NULL DEFAULT 'cash',
+      ADD COLUMN IF NOT EXISTS "reference" text`);
 
     await client.query('COMMIT');
     console.log('Legacy schema migration applied successfully.');

@@ -124,14 +124,16 @@ model Loan {
 }
 
 model Repayment {
-  id         Int      @id @default(autoincrement())
-  loanId     Int
-  amount     Decimal  @db.Decimal(15, 2)
-  paidBy     Int
-  date       DateTime
-  createdAt  DateTime @default(now())
-  loan       Loan     @relation(fields: [loanId], references: [id], onDelete: Cascade)
-  paidByUser User     @relation(fields: [paidBy], references: [id], onDelete: Restrict)
+  id            Int      @id @default(autoincrement())
+  loanId        Int
+  amount        Decimal  @db.Decimal(15, 2)
+  paidBy        Int
+  paymentMethod String   @default("cash")
+  reference     String?
+  date          DateTime
+  createdAt     DateTime @default(now())
+  loan          Loan     @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  paidByUser    User     @relation(fields: [paidBy], references: [id], onDelete: Restrict)
 
   @@index([loanId])
   @@index([paidBy])
