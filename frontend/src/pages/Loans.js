@@ -14,6 +14,7 @@ import {
 } from "../services/loanService";
 import { getUser } from "../services/authService";
 import { IconSearch, IconPlus, IconAlert } from "../components/Icons";
+import { formatShillings } from "../utils/format";
 import "../styles/table.css";
 
 const PAGE_SIZE = 10;
