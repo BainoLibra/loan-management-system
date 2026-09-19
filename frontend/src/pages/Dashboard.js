@@ -1,18 +1,39 @@
 import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import Layout from "../components/Layout";
 import { getLoans } from "../services/loanService";
 import { getClients } from "../services/clientService";
 import { getUser } from "../services/authService";
 import { getDashboardSummary } from "../services/reportService";
-import { PieChart, Pie, Cell, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
+import {
+  IconClients,
+  IconLoans,
+  IconRepayments,
+  IconPlus,
+  IconAlert,
+  IconScale
+} from "../components/Icons";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  Legend,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  ResponsiveContainer
+} from "recharts";
 import "../styles/table.css";
 
 const STATUS_COLORS = {
-  applied: "#3498db",
-  approved: "#f39c12",
-  disbursed: "#27ae60",
-  closed: "#95a5a6",
-  rejected: "#e74c3c",
+  applied: "#2563eb",
+  approved: "#d97706",
+  disbursed: "#059669",
+  closed: "#475569",
+  rejected: "#dc2626",
 };
 
 function Dashboard() {
@@ -65,10 +86,6 @@ function Dashboard() {
           totalBalance: dashboardSummary?.portfolioOutstanding ?? defaultBalance,
         });
 
-        if (summaryResult.status === 'rejected') {
-          console.warn('Dashboard summary failed, showing core loan data instead:', summaryResult.reason);
-        }
-
         // Loan status breakdown for pie chart
         const counts = {};
         loansArr.forEach((l) => {
@@ -110,25 +127,76 @@ function Dashboard() {
 
   return (
     <Layout>
-      <h2>Dashboard</h2>
-      <p>Welcome, {user ? user.name : "User"}!</p>
-      <p style={{ color: '#555', marginTop: 0, marginBottom: 20 }}>
-        To apply for a loan, go to the Loans page. If there are no clients yet, create clients first under Clients.
-      </p>
+      <div className="page-header">
+        <div className="page-title-group">
+          <h2>Dashboard Overview</h2>
+          <p>Welcome back, <strong>{user ? user.name : "User"}</strong>! Here is your loan portfolio performance summary.</p>
+        </div>
+        <div className="page-actions">
+          <Link to="/loans" className="btn btn-sm">
+            <IconPlus size={16} />
+            <span>Apply for Loan</span>
+          </Link>
+          <Link to="/clients" className="btn btn-secondary btn-sm">
+            <IconPlus size={16} />
+            <span>New Client</span>
+          </Link>
+        </div>
+      </div>
 
-      {error && <div style={{ padding: '15px', backgroundColor: '#fee', color: '#c33', borderRadius: '4px', marginBottom: '20px' }}>
-        ⚠️ {error}
-      </div>}
+      {error && (
+        <div className="form-error">
+          <IconAlert size={18} />
+          <span>{error}</span>
+        </div>
+      )}
 
-      {loading && <p style={{ color: '#666', textAlign: 'center', padding: '20px' }}>Loading dashboard...</p>}
-
-      {!loading && (
+      {loading ? (
+        <div style={{ textAlign: "center", padding: "60px 20px", color: "var(--text-muted)" }}>
+          <p>Loading portfolio analytics...</p>
+        </div>
+      ) : (
         <>
           <div className="stat-cards">
-            <div className="stat-card"><h3>{stats.clients}</h3><p>Clients</p></div>
-            <div className="stat-card"><h3>{stats.loans}</h3><p>Total Loans</p></div>
-            <div className="stat-card"><h3>{stats.disbursed}</h3><p>Active (Disbursed)</p></div>
-            <div className="stat-card"><h3>{stats.totalBalance.toLocaleString()}</h3><p>Outstanding Balance</p></div>
+            <div className="stat-card">
+              <div className="stat-card-header">
+                <p>Total Clients</p>
+                <div className="stat-card-icon blue">
+                  <IconClients size={22} />
+                </div>
+              </div>
+              <h3>{stats.clients.toLocaleString()}</h3>
+            </div>
+
+            <div className="stat-card">
+              <div className="stat-card-header">
+                <p>Total Applications</p>
+                <div className="stat-card-icon purple">
+                  <IconLoans size={22} />
+                </div>
+              </div>
+              <h3>{stats.loans.toLocaleString()}</h3>
+            </div>
+
+            <div className="stat-card">
+              <div className="stat-card-header">
+                <p>Active Loans (Disbursed)</p>
+                <div className="stat-card-icon emerald">
+                  <IconScale size={22} />
+                </div>
+              </div>
+              <h3>{stats.disbursed.toLocaleString()}</h3>
+            </div>
+
+            <div className="stat-card">
+              <div className="stat-card-header">
+                <p>Outstanding Balance</p>
+                <div className="stat-card-icon amber">
+                  <IconRepayments size={22} />
+                </div>
+              </div>
+              <h3>${stats.totalBalance.toLocaleString()}</h3>
+            </div>
           </div>
 
           <div className="chart-row">
@@ -137,9 +205,19 @@ function Dashboard() {
               {statusData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={280}>
                   <PieChart>
-                    <Pie data={statusData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
+                    <Pie
+                      data={statusData}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={90}
+                      innerRadius={45}
+                      paddingAngle={4}
+                      label
+                    >
                       {statusData.map((entry) => (
-                        <Cell key={entry.name} fill={STATUS_COLORS[entry.name] || "#999"} />
+                        <Cell key={entry.name} fill={STATUS_COLORS[entry.name] || "#94a3b8"} />
                       ))}
                     </Pie>
                     <Tooltip />
@@ -147,7 +225,7 @@ function Dashboard() {
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
-                <p style={{ color: "#999" }}>No loan data yet</p>
+                <p style={{ color: "var(--text-subtle)", textAlign: "center", padding: "40px 0" }}>No loan data recorded yet</p>
               )}
             </div>
 
@@ -156,15 +234,15 @@ function Dashboard() {
               {monthlyData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={280}>
                   <BarChart data={monthlyData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <Tooltip formatter={(v) => Number(v).toLocaleString()} />
-                    <Bar dataKey="amount" fill="#3498db" radius={[4, 4, 0, 0]} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis dataKey="month" stroke="#64748b" />
+                    <YAxis stroke="#64748b" />
+                    <Tooltip formatter={(v) => `$${Number(v).toLocaleString()}`} />
+                    <Bar dataKey="amount" fill="#3b82f6" radius={[6, 6, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <p style={{ color: "#999" }}>No disbursement data yet</p>
+                <p style={{ color: "var(--text-subtle)", textAlign: "center", padding: "40px 0" }}>No disbursement history yet</p>
               )}
             </div>
           </div>

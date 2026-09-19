@@ -2,8 +2,18 @@ import React, { useEffect, useState } from "react";
 import Layout from "../components/Layout";
 import LoanForm from "../components/LoanForm";
 import LoanTable from "../components/LoanTable";
-import { getLoans, createLoan, approveLoan, rejectLoan, requestLoanRevision, disburseLoan, getLoanSchedule, repayLoan } from "../services/loanService";
+import {
+  getLoans,
+  createLoan,
+  approveLoan,
+  rejectLoan,
+  requestLoanRevision,
+  disburseLoan,
+  getLoanSchedule,
+  repayLoan
+} from "../services/loanService";
 import { getUser } from "../services/authService";
+import { IconSearch, IconPlus, IconAlert } from "../components/Icons";
 import "../styles/table.css";
 
 const PAGE_SIZE = 10;
@@ -22,7 +32,9 @@ function Loans() {
   const user = getUser();
   const canCreateLoan = user && (user.role === "loan_officer" || user.role === "admin");
 
-  useEffect(() => { fetchLoans(); }, []);
+  useEffect(() => {
+    fetchLoans();
+  }, []);
 
   const fetchLoans = async () => {
     try {
@@ -31,7 +43,7 @@ function Loans() {
       const data = await getLoans();
       if (Array.isArray(data)) setLoans(data);
     } catch (err) {
-      setError(err.message || 'Failed to fetch loans');
+      setError(err.message || "Failed to fetch loans");
       setLoans([]);
     } finally {
       setLoading(false);
@@ -55,21 +67,21 @@ function Loans() {
       setShowForm(false);
       await fetchLoans();
     } catch (err) {
-      setError(err.message || 'Failed to create loan');
+      setError(err.message || "Failed to create loan");
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleApprove = async (id) => {
-    const approvedAmountInput = window.prompt('Enter approved amount or leave blank to approve full requested amount:');
+    const approvedAmountInput = window.prompt("Enter approved amount or leave blank to approve full requested amount:");
     if (approvedAmountInput === null) return;
-    const amount = approvedAmountInput.trim() ? Number(approvedAmountInput.replace(/,/g, '')) : undefined;
+    const amount = approvedAmountInput.trim() ? Number(approvedAmountInput.replace(/,/g, "")) : undefined;
     if (approvedAmountInput.trim() && (Number.isNaN(amount) || amount <= 0)) {
-      setError('Approved amount must be a valid positive number');
+      setError("Approved amount must be a valid positive number");
       return;
     }
-    const approvalReason = window.prompt('Enter approval note or reason (optional):') || undefined;
+    const approvalReason = window.prompt("Enter approval note or reason (optional):") || undefined;
 
     try {
       setSubmitting(true);
@@ -77,17 +89,17 @@ function Loans() {
       await approveLoan(id, amount, approvalReason);
       await fetchLoans();
     } catch (err) {
-      setError(err.message || 'Failed to approve loan');
+      setError(err.message || "Failed to approve loan");
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleRequestRevision = async (id) => {
-    const revisionReason = window.prompt('Enter revision request reason:');
+    const revisionReason = window.prompt("Enter revision request reason:");
     if (revisionReason === null) return;
     if (!revisionReason.trim()) {
-      setError('Revision reason is required');
+      setError("Revision reason is required");
       return;
     }
 
@@ -97,7 +109,7 @@ function Loans() {
       await requestLoanRevision(id, revisionReason);
       await fetchLoans();
     } catch (err) {
-      setError(err.message || 'Failed to request loan revision');
+      setError(err.message || "Failed to request loan revision");
     } finally {
       setSubmitting(false);
     }
@@ -108,32 +120,34 @@ function Loans() {
     try {
       setSubmitting(true);
       setError("");
-      await rejectLoan(id); 
+      await rejectLoan(id);
       await fetchLoans();
     } catch (err) {
-      setError(err.message || 'Failed to reject loan');
+      setError(err.message || "Failed to reject loan");
     } finally {
       setSubmitting(false);
     }
   };
-  const handleDisburse = async (id) => { 
+
+  const handleDisburse = async (id) => {
     try {
       setSubmitting(true);
       setError("");
-      await disburseLoan(id); 
+      await disburseLoan(id);
       await fetchLoans();
     } catch (err) {
-      setError(err.message || 'Failed to disburse loan');
+      setError(err.message || "Failed to disburse loan");
     } finally {
       setSubmitting(false);
     }
   };
+
   const handlePayInstallment = async (scheduleId, amountDue, status) => {
     let amount = amountDue;
-    if (status === 'overdue') {
-      amount = amountDue + (amountDue * 0.02);
+    if (status === "overdue") {
+      amount = amountDue + amountDue * 0.02;
     }
-    if (!window.confirm(`Pay installment of ${amount.toFixed(2)}?`)) return;
+    if (!window.confirm(`Pay installment of $${amount.toFixed(2)}?`)) return;
     try {
       setSubmitting(true);
       setError("");
@@ -141,7 +155,7 @@ function Loans() {
       await viewSchedule(scheduleLoanId, { force: true });
       await fetchLoans();
     } catch (err) {
-      setError(err.message || 'Failed to record repayment');
+      setError(err.message || "Failed to record repayment");
     } finally {
       setSubmitting(false);
     }
@@ -156,26 +170,38 @@ function Loans() {
     try {
       setError("");
       const data = await getLoanSchedule(id);
-      if (Array.isArray(data)) { setSchedule(data); setScheduleLoanId(id); }
+      if (Array.isArray(data)) {
+        setSchedule(data);
+        setScheduleLoanId(id);
+      }
     } catch (err) {
-      setError(err.message || 'Failed to load repayment schedule');
+      setError(err.message || "Failed to load repayment schedule");
     }
   };
 
   const exportCSV = () => {
     const header = "ID,Client,Amount,Approved Amount,Interest,Term,Balance,Status,Note\n";
-    const rows = filtered.map(l =>
-      `${l.id},"${l.clientName}",${l.amount},${l.approvedAmount || ''},${l.interestRate}%,${l.termMonths},${l.balance},${l.status},"${(l.approvalReason || l.revisionReason || '').replace(/"/g, '""')}"`
-    ).join("\n");
+    const rows = filtered
+      .map(
+        (l) =>
+          `${l.id},"${l.clientName}",${l.amount},${l.approvedAmount || ""},${l.interestRate}%,${l.termMonths},${l.balance},${l.status},"${(
+            l.approvalReason ||
+            l.revisionReason ||
+            ""
+          ).replace(/"/g, '""')}"`
+      )
+      .join("\n");
     const blob = new Blob([header + rows], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = "loans.csv"; a.click();
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "loans.csv";
+    a.click();
     URL.revokeObjectURL(url);
   };
 
-  const filtered = loans.filter(l => {
-    const matchSearch = (l.clientName || "").toLowerCase().includes(search.toLowerCase()) ||
-      String(l.id).includes(search);
+  const filtered = loans.filter((l) => {
+    const matchSearch = (l.clientName || "").toLowerCase().includes(search.toLowerCase()) || String(l.id).includes(search);
     const matchStatus = statusFilter === "all" || l.status === statusFilter;
     return matchSearch && matchStatus;
   });
@@ -185,56 +211,75 @@ function Loans() {
 
   return (
     <Layout>
-      <h2>Loans</h2>
-      <p style={{ color: '#555', marginTop: 0, marginBottom: 16 }}>
-        {canCreateLoan
-          ? "Click + New Loan to submit a loan application for an existing client."
-          : "Loan applications are handled by loan officers and administrators. Please ask them to create your application from this page."}
-      </p>
+      <div className="page-header">
+        <div className="page-title-group">
+          <h2>Loan Applications & Operations</h2>
+          <p>
+            {canCreateLoan
+              ? "Process loan applications, perform officer approvals, and disburse active loans."
+              : "View loan portfolio, approval history, and repayment installment schedules."}
+          </p>
+        </div>
+        <div className="page-actions">
+          {canCreateLoan && (
+            <button className="btn" onClick={() => setShowForm(!showForm)} disabled={submitting}>
+              <IconPlus size={16} />
+              <span>{showForm ? "Cancel" : "New Loan Application"}</span>
+            </button>
+          )}
+          <button className="btn btn-secondary" onClick={exportCSV}>
+            Export CSV
+          </button>
+        </div>
+      </div>
 
-      {error && <div style={{ padding: '15px', backgroundColor: '#fee', color: '#c33', borderRadius: '4px', marginBottom: '20px' }}>
-        ⚠️ {error}
-      </div>}
+      {error && (
+        <div className="form-error">
+          <IconAlert size={18} />
+          <span>{error}</span>
+        </div>
+      )}
 
-      {loading && <p style={{ color: '#666', textAlign: 'center', padding: '20px' }}>Loading loans...</p>}
+      <div className="toolbar">
+        <div className="search-input-wrapper">
+          <IconSearch className="search-input-icon" size={16} />
+          <input
+            className="search-input"
+            placeholder="Search loans by client name or loan ID..."
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+            disabled={submitting}
+          />
+        </div>
 
-      {!loading && (
+        <select
+          value={statusFilter}
+          onChange={(e) => {
+            setStatusFilter(e.target.value);
+            setPage(1);
+          }}
+          className="filter-select"
+          disabled={submitting}
+        >
+          <option value="all">All Statuses</option>
+          <option value="applied">Applied</option>
+          <option value="revision_requested">Pending Revision</option>
+          <option value="approved">Approved</option>
+          <option value="disbursed">Disbursed</option>
+          <option value="closed">Closed</option>
+          <option value="rejected">Rejected</option>
+        </select>
+      </div>
+
+      {showForm && <LoanForm onSubmit={handleCreate} submitting={submitting} />}
+
+      {loading ? (
+        <div style={{ textAlign: "center", padding: "50px", color: "var(--text-muted)" }}>Loading loan records...</div>
+      ) : (
         <>
-          <div className="toolbar">
-            {(user && (user.role === "loan_officer" || user.role === "admin")) && (
-              <button onClick={() => setShowForm(!showForm)} disabled={submitting}>
-                {showForm ? "Cancel" : "+ New Loan"}
-              </button>
-            )}
-            <input
-              className="search-input"
-              placeholder="Search by client or ID..."
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              disabled={submitting}
-            />
-            <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }} className="filter-select" disabled={submitting}>
-              <option value="all">All Status</option>
-              <option value="applied">Applied</option>
-              <option value="revision_requested">Pending Revision</option>
-              <option value="approved">Approved</option>
-              <option value="disbursed">Disbursed</option>
-              <option value="closed">Closed</option>
-              <option value="rejected">Rejected</option>
-            </select>
-            <button className="btn-secondary" onClick={exportCSV}>Export CSV</button>
-          </div>
-
-          {showForm && (
-            <LoanForm onSubmit={handleCreate} submitting={submitting} />
-          )}
-
-          {!loading && loans.length === 0 && (
-            <div style={{ padding: '20px', backgroundColor: '#f6f8fa', borderRadius: '8px', marginBottom: '20px', color: '#555' }}>
-              No loan applications exist yet. Use + New Loan to create an application for an existing client.
-            </div>
-          )}
-
           <LoanTable
             loans={paginated}
             onViewSchedule={viewSchedule}
@@ -247,76 +292,100 @@ function Loans() {
 
           {totalPages > 1 && (
             <div className="pagination">
-              <button disabled={page <= 1} onClick={() => setPage(page - 1)}>Prev</button>
-              <span>Page {page} of {totalPages}</span>
-              <button disabled={page >= totalPages} onClick={() => setPage(page + 1)}>Next</button>
+              <span>
+                Page {page} of {totalPages} ({filtered.length} loans total)
+              </span>
+              <div className="pagination-buttons">
+                <button className="btn btn-secondary btn-sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>
+                  Previous
+                </button>
+                <button className="btn btn-secondary btn-sm" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
+                  Next
+                </button>
+              </div>
             </div>
           )}
 
           {schedule && (
-            <div style={{ marginTop: 20 }}>
-              <h3>Repayment Schedule - Loan #{scheduleLoanId}</h3>
-              <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
-                <div style={{ padding: '12px', background: '#f4f4f4', borderRadius: '6px' }}>
-                  <strong>Total repayment</strong>
-                  <div>{schedule.reduce((sum, s) => sum + Number(s.payment), 0).toLocaleString()}</div>
-                </div>
-                <div style={{ padding: '12px', background: '#f4f4f4', borderRadius: '6px' }}>
-                  <strong>Total paid</strong>
-                  <div>{schedule.reduce((sum, s) => sum + Number(s.paidAmount || 0), 0).toLocaleString()}</div>
-                </div>
-                <div style={{ padding: '12px', background: '#f4f4f4', borderRadius: '6px' }}>
-                  <strong>Total amount due</strong>
-                  <div>{schedule.reduce((sum, s) => sum + Number(s.amountDue || 0), 0).toLocaleString()}</div>
-                </div>
-                <div style={{ padding: '12px', background: '#f4f4f4', borderRadius: '6px' }}>
-                  <strong>Installments</strong>
-                  <div>{schedule.length}</div>
+            <div style={{ marginTop: "32px" }}>
+              <div className="page-header" style={{ marginBottom: "16px" }}>
+                <div className="page-title-group">
+                  <h3>Repayment Schedule — Loan #{scheduleLoanId}</h3>
                 </div>
               </div>
-              <div className="table-container">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Month</th>
-                      <th>Due Date</th>
-                      <th>Payment</th>
-                      <th>Paid</th>
-                      <th>Amount Due</th>
-                      <th>Principal</th>
-                      <th>Interest</th>
-                      <th>Balance</th>
-                      <th>Status</th>
-                      <th>Days Overdue</th>
-                      <th>Category</th>
-                      <th>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {schedule.map((s) => (
-                      <tr key={s.month}>
-                        <td>{s.month}</td>
-                        <td>{new Date(s.dueDate).toLocaleDateString()}</td>
-                        <td>{Number(s.payment).toLocaleString()}</td>
-                        <td>{Number(s.paidAmount || 0).toLocaleString()}</td>
-                        <td>{Number(s.amountDue || 0).toLocaleString()}</td>
-                        <td>{Number(s.principal).toLocaleString()}</td>
-                        <td>{Number(s.interest).toLocaleString()}</td>
-                        <td>{Number(s.balance).toLocaleString()}</td>
-                        <td>{s.status}</td>
-                        <td>{s.daysOverdue || 0}</td>
-                        <td>{s.arrearsCategory}</td>
-                        <td>
-                          {s.status !== 'paid' && (
-                            <button className="btn-sm btn-primary" onClick={() => handlePayInstallment(s.id, Number(s.amountDue || s.payment), s.status)} disabled={submitting}>
-                              Pay Installment
-                            </button>
-                          )}
-                        </td>
+
+              <div className="detail-cards" style={{ marginBottom: "20px" }}>
+                <div className="detail-card">
+                  <label>Total Repayment</label>
+                  <span>${schedule.reduce((sum, s) => sum + Number(s.payment), 0).toLocaleString()}</span>
+                </div>
+                <div className="detail-card">
+                  <label>Total Paid</label>
+                  <span style={{ color: "var(--status-disbursed)" }}>
+                    ${schedule.reduce((sum, s) => sum + Number(s.paidAmount || 0), 0).toLocaleString()}
+                  </span>
+                </div>
+                <div className="detail-card">
+                  <label>Amount Due</label>
+                  <span style={{ color: "var(--status-approved)" }}>
+                    ${schedule.reduce((sum, s) => sum + Number(s.amountDue || 0), 0).toLocaleString()}
+                  </span>
+                </div>
+                <div className="detail-card">
+                  <label>Installments</label>
+                  <span>{schedule.length} months</span>
+                </div>
+              </div>
+
+              <div className="table-card">
+                <div className="table-container">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Month</th>
+                        <th>Due Date</th>
+                        <th>Payment</th>
+                        <th>Paid</th>
+                        <th>Amount Due</th>
+                        <th>Principal</th>
+                        <th>Interest</th>
+                        <th>Balance</th>
+                        <th>Status</th>
+                        <th>Action</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {schedule.map((s) => (
+                        <tr key={s.month}>
+                          <td>Month {s.month}</td>
+                          <td>{new Date(s.dueDate).toLocaleDateString()}</td>
+                          <td style={{ fontWeight: 600 }}>${Number(s.payment).toLocaleString()}</td>
+                          <td>${Number(s.paidAmount || 0).toLocaleString()}</td>
+                          <td style={{ fontWeight: 600 }}>${Number(s.amountDue || 0).toLocaleString()}</td>
+                          <td>${Number(s.principal).toLocaleString()}</td>
+                          <td>${Number(s.interest).toLocaleString()}</td>
+                          <td>${Number(s.balance).toLocaleString()}</td>
+                          <td>
+                            <span className={`status-badge ${s.status === "paid" ? "disbursed" : s.status === "overdue" ? "rejected" : "applied"}`}>
+                              {s.status}
+                            </span>
+                          </td>
+                          <td>
+                            {s.status !== "paid" && (
+                              <button
+                                className="btn-sm btn-success"
+                                onClick={() => handlePayInstallment(s.id, Number(s.amountDue || s.payment), s.status)}
+                                disabled={submitting}
+                              >
+                                Pay Installment
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}

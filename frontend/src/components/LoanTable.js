@@ -1,67 +1,89 @@
 import React from "react";
 
 const LoanTable = ({ loans, onViewSchedule, onApprove, onRequestRevision, onReject, onDisburse, user }) => {
-  const statusColors = {
-    applied: "#3498db",
-    revision_requested: "#9b59b6",
-    approved: "#f39c12",
-    disbursed: "#27ae60",
-    closed: "#95a5a6",
-    rejected: "#e74c3c"
-  };
-
   return (
-    <div className="table-container">
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Client</th>
-            <th>Amount</th>
-            <th>Interest</th>
-            <th>Term</th>
-            <th>Guarantor</th>
-            <th>Notes</th>
-            <th>Balance</th>
-            <th>Status</th>
-            <th>Approved Amount</th>
-            <th>Decision / Revision Note</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {loans.map((l) => (
-            <tr key={l.id}>
-              <td>{l.id}</td>
-              <td>{l.clientName}</td>
-              <td>{Number(l.amount).toLocaleString()}</td>
-              <td>{l.interestRate}%</td>
-              <td>{l.termMonths}m</td>
-              <td>{l.guarantorName || "N/A"}</td>
-              <td>{l.notes ? l.notes.substring(0, 20) + "..." : "N/A"}</td>
-              <td>{Number(l.balance).toLocaleString()}</td>
-              <td><span className="badge" style={{ background: statusColors[l.status] || "#999" }}>{l.status}</span></td>
-              <td>{l.approvedAmount ? Number(l.approvedAmount).toLocaleString() : "N/A"}</td>
-              <td>{l.approvalReason || l.revisionReason || "N/A"}</td>
-              <td>
-                {['applied', 'revision_requested'].includes(l.status) && user && (user.role === "admin" || user.role === "branch_manager") && (
-                  <>
-                    <button className="btn-sm btn-success" onClick={() => onApprove(l.id)}>Approve</button>{" "}
-                    <button className="btn-sm btn-danger" onClick={() => onReject(l.id)}>Reject</button>{" "}
-                    <button className="btn-sm btn-warning" onClick={() => onRequestRevision(l.id)}>Request Revision</button>{" "}
-                  </>
-                )}
-                {l.status === "approved" && user && (user.role === "admin" || user.role === "cashier") && (
-                  <button className="btn-sm btn-success" onClick={() => onDisburse(l.id)}>Disburse</button>
-                )}{" "}
-                <button className="btn-sm" onClick={() => onViewSchedule(l.id)}>
-                  Schedule
-                </button>
-              </td>
+    <div className="table-card">
+      <div className="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Client</th>
+              <th>Amount</th>
+              <th>Interest</th>
+              <th>Term</th>
+              <th>Balance</th>
+              <th>Status</th>
+              <th>Decision / Notes</th>
+              <th>Actions</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {loans.length === 0 ? (
+              <tr>
+                <td colSpan="9" style={{ textAlign: "center", padding: "30px", color: "var(--text-muted)" }}>
+                  No loans found.
+                </td>
+              </tr>
+            ) : (
+              loans.map((l) => (
+                <tr key={l.id}>
+                  <td>#{l.id}</td>
+                  <td style={{ fontWeight: 600 }}>{l.clientName}</td>
+                  <td style={{ fontWeight: 700 }}>${Number(l.amount).toLocaleString()}</td>
+                  <td>{l.interestRate}%</td>
+                  <td>{l.termMonths} mos</td>
+                  <td style={{ fontWeight: 600, color: "var(--text-main)" }}>
+                    ${Number(l.balance).toLocaleString()}
+                  </td>
+                  <td>
+                    <span className={`status-badge ${l.status}`}>
+                      {l.status ? l.status.replace("_", " ") : "applied"}
+                    </span>
+                  </td>
+                  <td>
+                    <div style={{ fontSize: "0.82rem" }}>
+                      {l.approvedAmount && (
+                        <div style={{ fontWeight: 600, color: "var(--status-approved)" }}>
+                          Appr: ${Number(l.approvedAmount).toLocaleString()}
+                        </div>
+                      )}
+                      <span style={{ color: "var(--text-muted)" }}>
+                        {l.approvalReason || l.revisionReason || l.notes || "—"}
+                      </span>
+                    </div>
+                  </td>
+                  <td>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                      {['applied', 'revision_requested'].includes(l.status) && user && (user.role === "admin" || user.role === "branch_manager") && (
+                        <>
+                          <button className="btn-sm btn-success" onClick={() => onApprove(l.id)}>
+                            Approve
+                          </button>
+                          <button className="btn-sm btn-warn" onClick={() => onRequestRevision(l.id)}>
+                            Revision
+                          </button>
+                          <button className="btn-sm btn-danger" onClick={() => onReject(l.id)}>
+                            Reject
+                          </button>
+                        </>
+                      )}
+                      {l.status === "approved" && user && (user.role === "admin" || user.role === "cashier") && (
+                        <button className="btn-sm btn-success" onClick={() => onDisburse(l.id)}>
+                          Disburse
+                        </button>
+                      )}
+                      <button className="btn-sm btn-secondary" onClick={() => onViewSchedule(l.id)}>
+                        Schedule
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };

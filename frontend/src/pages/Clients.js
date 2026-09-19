@@ -4,6 +4,7 @@ import ClientTable from "../components/ClientTable";
 import { getClients, createClient, updateClient, deleteClient } from "../services/clientService";
 import { getGroups } from "../services/groupService";
 import { getUser } from "../services/authService";
+import { IconSearch, IconPlus, IconAlert } from "../components/Icons";
 import "../styles/table.css";
 
 const PAGE_SIZE = 10;
@@ -13,7 +14,7 @@ const titleCaseName = (value) => {
     .trim()
     .replace(/\s+/g, " ")
     .split(" ")
-    .map((word) => word ? word.charAt(0).toUpperCase() + word.slice(1).toLowerCase() : "")
+    .map((word) => (word ? word.charAt(0).toUpperCase() + word.slice(1).toLowerCase() : ""))
     .join(" ");
 };
 
@@ -68,16 +69,19 @@ function Clients() {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const user = getUser();
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = user?.role === "admin";
 
-  useEffect(() => { fetchClients(); fetchGroups(); }, []);
+  useEffect(() => {
+    fetchClients();
+    fetchGroups();
+  }, []);
 
   const fetchClients = async () => {
     try {
       const data = await getClients();
       if (Array.isArray(data)) setClients(data);
     } catch (err) {
-      setError(err.message || 'Failed to fetch clients');
+      setError(err.message || "Failed to fetch clients");
       setClients([]);
     }
   };
@@ -87,7 +91,7 @@ function Clients() {
       const data = await getGroups();
       if (Array.isArray(data)) setGroups(data);
     } catch (err) {
-      console.error('Failed to fetch groups:', err);
+      console.error("Failed to fetch groups:", err);
     }
   };
 
@@ -152,7 +156,7 @@ function Clients() {
       groupId: c.groupId || "",
       guarantorName: c.guarantorName || "",
       guarantorPhone: c.guarantorPhone || "",
-      guarantorId: c.guarantorId || ""
+      guarantorId: c.guarantorId || "",
     });
     setError("");
     setShowForm(true);
@@ -171,17 +175,28 @@ function Clients() {
 
   const exportCSV = () => {
     const header = "ID,First Name,Last Name,Phone,Guarantor Name,Guarantor Phone,Guarantor ID,Email,Address,Identifier,Group\n";
-    const rows = filtered.map(c => `${c.id},"${c.firstName || ""}","${c.lastName || ""}","${c.phone || ""}","${c.guarantorName || ""}","${c.guarantorPhone || ""}","${c.guarantorId || ""}","${c.email || ""}","${c.address || ""}","${c.identifier || ""}","${groups.find(g => g.id === c.groupId)?.name || ""}"`).join("\n");
+    const rows = filtered
+      .map(
+        (c) =>
+          `${c.id},"${c.firstName || ""}","${c.lastName || ""}","${c.phone || ""}","${c.guarantorName || ""}","${c.guarantorPhone || ""}","${c.guarantorId || ""}","${c.email || ""}","${c.address || ""}","${c.identifier || ""}","${
+            groups.find((g) => g.id === c.groupId)?.name || ""
+          }"`
+      )
+      .join("\n");
     const blob = new Blob([header + rows], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = "clients.csv"; a.click();
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "clients.csv";
+    a.click();
     URL.revokeObjectURL(url);
   };
 
-  const filtered = clients.filter(c => {
+  const filtered = clients.filter((c) => {
     const fullName = `${c.firstName || ""} ${c.lastName || ""}`.toLowerCase();
-    const groupName = groups.find(g => g.id === c.groupId)?.name || "";
-    return fullName.includes(search.toLowerCase()) ||
+    const groupName = groups.find((g) => g.id === c.groupId)?.name || "";
+    return (
+      fullName.includes(search.toLowerCase()) ||
       (c.phone || "").includes(search) ||
       (c.guarantorName || "").toLowerCase().includes(search.toLowerCase()) ||
       (c.guarantorPhone || "").includes(search) ||
@@ -190,6 +205,7 @@ function Clients() {
       (c.address || "").toLowerCase().includes(search.toLowerCase()) ||
       (c.identifier || "").toLowerCase().includes(search.toLowerCase()) ||
       groupName.toLowerCase().includes(search.toLowerCase())
+    );
   });
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
@@ -197,45 +213,77 @@ function Clients() {
 
   return (
     <Layout>
-      <h2>Clients</h2>
+      <div className="page-header">
+        <div className="page-title-group">
+          <h2>Client Directory</h2>
+          <p>Manage borrowers, contact profiles, and guarantor details.</p>
+        </div>
+        <div className="page-actions">
+          <button
+            className="btn"
+            onClick={() => {
+              setShowForm(!showForm);
+              setEditingId(null);
+              setForm({ firstName: "", lastName: "", phone: "", email: "", identifier: "", address: "", groupId: "", guarantorName: "", guarantorPhone: "", guarantorId: "" });
+              setError("");
+            }}
+          >
+            <IconPlus size={16} />
+            <span>{showForm ? "Cancel" : "New Client"}</span>
+          </button>
+          <button className="btn btn-secondary" onClick={exportCSV}>
+            Export CSV
+          </button>
+        </div>
+      </div>
+
       <div className="toolbar">
-        <button onClick={() => { setShowForm(!showForm); setEditingId(null); setForm({ firstName: "", lastName: "", phone: "", email: "", identifier: "", address: "", groupId: "", guarantorName: "", guarantorPhone: "", guarantorId: "" }); setError(""); }}>
-          {showForm ? "Cancel" : "+ New Client"}
-        </button>
-        <input
-          className="search-input"
-          placeholder="Search clients..."
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-        />
-        <button className="btn-secondary" onClick={exportCSV}>Export CSV</button>
+        <div className="search-input-wrapper">
+          <IconSearch className="search-input-icon" size={16} />
+          <input
+            className="search-input"
+            placeholder="Search by name, phone, email, or identifier..."
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+          />
+        </div>
       </div>
 
       {showForm && (
         <form onSubmit={handleSubmit} className="inline-form">
-          {error && <div className="form-error">{error}</div>}
+          {error && (
+            <div className="form-error">
+              <IconAlert size={18} />
+              <span>{error}</span>
+            </div>
+          )}
           <input
-            placeholder="First Name"
+            placeholder="First Name *"
             value={form.firstName}
             onChange={(e) => setForm({ ...form, firstName: e.target.value })}
             required
             readOnly={!isAdmin && !!editingId}
           />
           <input
-            placeholder="Last Name"
+            placeholder="Last Name *"
             value={form.lastName}
             onChange={(e) => setForm({ ...form, lastName: e.target.value })}
             required
             readOnly={!isAdmin && !!editingId}
           />
           <select value={form.groupId} onChange={(e) => setForm({ ...form, groupId: e.target.value })}>
-            <option value="">Select Group</option>
-            {groups.map(g => (
-              <option key={g.id} value={g.id}>{g.name}</option>
+            <option value="">Select Group (Optional)</option>
+            {groups.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.name}
+              </option>
             ))}
           </select>
           <input
-            placeholder="Phone"
+            placeholder="Phone (e.g. 256...)"
             value={form.phone}
             onChange={(e) => setForm({ ...form, phone: sanitizePhoneInput(e.target.value) })}
             maxLength={12}
@@ -258,40 +306,43 @@ function Clients() {
             maxLength={14}
           />
           <input
-            placeholder="Email"
+            placeholder="Email Address"
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
           />
           <input
-            placeholder="Address"
+            placeholder="Residential Address"
             value={form.address}
             onChange={(e) => setForm({ ...form, address: e.target.value })}
           />
           <input
-            placeholder="ID/Identifier"
+            placeholder="National ID / Identifier"
             value={form.identifier}
             onChange={(e) => setForm({ ...form, identifier: sanitizeIdentifierInput(e.target.value) })}
             maxLength={14}
             readOnly={!isAdmin && !!editingId}
           />
-          <button type="submit" disabled={submitting}>
-            {submitting ? "Saving..." : (editingId ? "Update" : "Save Client")}
+          <button className="btn" type="submit" disabled={submitting}>
+            {submitting ? "Saving..." : editingId ? "Update Client" : "Save Client"}
           </button>
         </form>
       )}
 
-      <ClientTable
-        clients={paginated}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-        user={user}
-      />
+      <ClientTable clients={paginated} onEdit={handleEdit} onDelete={handleDelete} user={user} />
 
       {totalPages > 1 && (
         <div className="pagination">
-          <button disabled={page <= 1} onClick={() => setPage(page - 1)}>Prev</button>
-          <span>Page {page} of {totalPages}</span>
-          <button disabled={page >= totalPages} onClick={() => setPage(page + 1)}>Next</button>
+          <span>
+            Page {page} of {totalPages} ({filtered.length} total clients)
+          </span>
+          <div className="pagination-buttons">
+            <button className="btn btn-secondary btn-sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>
+              Previous
+            </button>
+            <button className="btn btn-secondary btn-sm" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
+              Next
+            </button>
+          </div>
         </div>
       )}
     </Layout>
