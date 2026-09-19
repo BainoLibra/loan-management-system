@@ -67,6 +67,12 @@ function Users() {
     }
   };
 
+  const openResetPasswordForm = (user) => {
+    setEditingUser(null);
+    setShowForm(false);
+    setResetPw({ id: user.id, password: "" });
+  };
+
   const handleResetPassword = async (e) => {
     e.preventDefault();
     try {
@@ -75,6 +81,7 @@ function Users() {
       await resetUserPassword(resetPw.id, resetPw.password);
       setResetPw({ id: null, password: "" });
       alert("Password reset successfully");
+      await fetchUsers();
     } catch (err) {
       setError(err.message || "Failed to reset password");
     } finally {
@@ -227,13 +234,13 @@ function Users() {
                     <td>{new Date(u.createdAt).toLocaleDateString()}</td>
                     <td>
                       <div style={{ display: "flex", gap: "6px" }}>
-                        <button className="btn-sm btn-secondary" onClick={() => handleEdit(u)}>
+                        <button type="button" className="btn-sm btn-secondary" onClick={() => handleEdit(u)}>
                           Edit
                         </button>
-                        <button className="btn-sm btn-warn" onClick={() => setResetPw({ id: u.id, password: "" })}>
+                        <button type="button" className="btn-sm btn-warn" onClick={() => openResetPasswordForm(u)}>
                           Reset Pwd
                         </button>
-                        <button className="btn-sm btn-danger" onClick={() => handleDelete(u.id)}>
+                        <button type="button" className="btn-sm btn-danger" onClick={() => handleDelete(u.id)}>
                           Delete
                         </button>
                       </div>
