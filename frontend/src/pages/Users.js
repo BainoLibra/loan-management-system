@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Layout from "../components/Layout";
 import { getUsers, createUser, updateUser, resetUserPassword, deleteUser } from "../services/userService";
+import { IconSearch, IconPlus, IconAlert } from "../components/Icons";
 import "../styles/table.css";
 
 function Users() {
@@ -13,7 +14,9 @@ function Users() {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => { fetchUsers(); }, []);
+  useEffect(() => {
+    fetchUsers();
+  }, []);
 
   const fetchUsers = async () => {
     try {
@@ -79,37 +82,80 @@ function Users() {
     }
   };
 
-  const filtered = users.filter(u =>
-    u.name.toLowerCase().includes(search.toLowerCase()) ||
-    u.email.toLowerCase().includes(search.toLowerCase()) ||
-    u.role.toLowerCase().includes(search.toLowerCase())
+  const filtered = users.filter(
+    (u) =>
+      u.name.toLowerCase().includes(search.toLowerCase()) ||
+      u.email.toLowerCase().includes(search.toLowerCase()) ||
+      u.role.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
     <Layout>
-      <h2>User Management</h2>
-      {error && <div className="form-error">{error}</div>}
+      <div className="page-header">
+        <div className="page-title-group">
+          <h2>System Accounts & Users</h2>
+          <p>Manage system staff roles (Admins, Loan Officers, Cashiers, Branch Managers) and access credentials.</p>
+        </div>
+        <div className="page-actions">
+          <button
+            className="btn"
+            onClick={() => {
+              setShowForm(!showForm);
+              setEditingUser(null);
+              setForm({ name: "", email: "", password: "", role: "loan_officer" });
+            }}
+          >
+            <IconPlus size={16} />
+            <span>{showForm ? "Cancel" : "New System Account"}</span>
+          </button>
+        </div>
+      </div>
+
+      {error && (
+        <div className="form-error">
+          <IconAlert size={18} />
+          <span>{error}</span>
+        </div>
+      )}
+
       <div className="toolbar">
-        <button onClick={() => { setShowForm(!showForm); setEditingUser(null); setForm({ name: "", email: "", password: "", role: "loan_officer" }); }}>
-          {showForm ? "Cancel" : "+ New User"}
-        </button>
-        <input
-          className="search-input"
-          placeholder="Search users..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+        <div className="search-input-wrapper">
+          <IconSearch className="search-input-icon" size={16} />
+          <input
+            className="search-input"
+            placeholder="Search users by name, email, or role..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
       </div>
 
       {showForm && (
         <form onSubmit={handleSubmit} className="inline-form">
-          <input placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-          <input placeholder="Email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
+          <input
+            placeholder="Full Name *"
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            required
+          />
+          <input
+            placeholder="Email Address *"
+            type="email"
+            value={form.email}
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
+            required
+          />
           {!editingUser && (
-            <input placeholder="Password" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required />
+            <input
+              placeholder="Initial Password *"
+              type="password"
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              required
+            />
           )}
           <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
-            <option value="admin">Admin</option>
+            <option value="admin">Administrator</option>
             <option value="loan_officer">Loan Officer</option>
             <option value="branch_manager">Branch Manager</option>
             <option value="cashier">Cashier</option>
@@ -120,52 +166,84 @@ function Users() {
               <option value="inactive">Inactive</option>
             </select>
           )}
-          <button type="submit" disabled={submitting}>
-            {submitting ? "Saving..." : (editingUser ? "Update" : "Create User")}
+          <button className="btn" type="submit" disabled={submitting}>
+            {submitting ? "Saving..." : editingUser ? "Update User" : "Create User"}
           </button>
         </form>
       )}
 
       {resetPw.id && (
-        <form onSubmit={handleResetPassword} className="inline-form">
-          <span>Reset password for user #{resetPw.id}:</span>
-          <input type="password" placeholder="New Password" value={resetPw.password} onChange={(e) => setResetPw({ ...resetPw, password: e.target.value })} required />
-          <button type="submit" disabled={submitting}>{submitting ? "Resetting..." : "Reset"}</button>
-          <button type="button" className="btn-secondary" onClick={() => setResetPw({ id: null, password: "" })}>Cancel</button>
+        <form onSubmit={handleResetPassword} className="inline-form" style={{ background: "var(--primary-light)" }}>
+          <span style={{ fontWeight: 600, color: "var(--text-main)" }}>Reset password for user #{resetPw.id}:</span>
+          <input
+            type="password"
+            placeholder="Enter New Password..."
+            value={resetPw.password}
+            onChange={(e) => setResetPw({ ...resetPw, password: e.target.value })}
+            required
+          />
+          <button className="btn btn-warn" type="submit" disabled={submitting}>
+            {submitting ? "Resetting..." : "Confirm Reset"}
+          </button>
+          <button type="button" className="btn btn-secondary" onClick={() => setResetPw({ id: null, password: "" })}>
+            Cancel
+          </button>
         </form>
       )}
 
-      <div className="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Status</th>
-              <th>Created</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((u) => (
-              <tr key={u.id}>
-                <td>{u.id}</td>
-                <td>{u.name}</td>
-                <td>{u.email}</td>
-                <td><span className={`badge badge-${u.role}`}>{u.role}</span></td>
-                <td><span className={`badge badge-${u.status}`}>{u.status}</span></td>
-                <td>{new Date(u.createdAt).toLocaleDateString()}</td>
-                <td>
-                  <button className="btn-sm" onClick={() => handleEdit(u)}>Edit</button>{" "}
-                  <button className="btn-sm btn-warn" onClick={() => setResetPw({ id: u.id, password: "" })}>Reset Pwd</button>{" "}
-                  <button className="btn-sm btn-danger" onClick={() => handleDelete(u.id)}>Delete</button>
-                </td>
+      <div className="table-card">
+        <div className="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th>Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan="7" style={{ textAlign: "center", padding: "30px", color: "var(--text-muted)" }}>
+                    No system users found.
+                  </td>
+                </tr>
+              ) : (
+                filtered.map((u) => (
+                  <tr key={u.id}>
+                    <td>#{u.id}</td>
+                    <td style={{ fontWeight: 600 }}>{u.name}</td>
+                    <td>{u.email}</td>
+                    <td>
+                      <span className={`badge badge-${u.role}`}>{u.role.replace("_", " ")}</span>
+                    </td>
+                    <td>
+                      <span className={`badge badge-${u.status}`}>{u.status}</span>
+                    </td>
+                    <td>{new Date(u.createdAt).toLocaleDateString()}</td>
+                    <td>
+                      <div style={{ display: "flex", gap: "6px" }}>
+                        <button className="btn-sm btn-secondary" onClick={() => handleEdit(u)}>
+                          Edit
+                        </button>
+                        <button className="btn-sm btn-warn" onClick={() => setResetPw({ id: u.id, password: "" })}>
+                          Reset Pwd
+                        </button>
+                        <button className="btn-sm btn-danger" onClick={() => handleDelete(u.id)}>
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </Layout>
   );
