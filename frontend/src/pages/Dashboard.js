@@ -9,7 +9,6 @@ import { getDashboardSummary } from "../services/reportService";
 import {
   IconClients,
   IconLoans,
-  IconRepayments,
   IconPlus,
   IconAlert,
   IconScale
@@ -192,8 +191,19 @@ function Dashboard() {
             <div className="stat-card">
               <div className="stat-card-header">
                 <p>Outstanding Balance</p>
-                <div className="stat-card-icon amber">
-                  <IconRepayments size={22} />
+                <div
+                  className="stat-card-icon amber"
+                  style={{
+                    fontSize: "1.2rem",
+                    fontWeight: 700,
+                    letterSpacing: "0.04em",
+                    color: "var(--text-dark)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  UGX
                 </div>
               </div>
               <h3>{formatShillings(stats.totalBalance)}</h3>
