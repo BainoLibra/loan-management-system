@@ -95,8 +95,8 @@ if (!runtimeDatasourceUrl) {
       return;
     }
 
-    const userCount = await prisma.user.count();
-    if (userCount === 0) {
+    const adminExists = await prisma.user.findUnique({ where: { email: 'admin@example.com' } });
+    if (!adminExists) {
       const hashedAdminPassword = await bcrypt.hash('admin', 10);
       await prisma.user.create({
         data: {
