@@ -150,17 +150,18 @@ const login = async (req, res) => {
         const windowMs = 15 * 60 * 1000; // 15 minutes
         const maxAttempts = 5;
 
-        const attempts = loginAttempts.get(ip) || { count: 0, firstAttempt: now };
+        let attempts = loginAttempts.get(ip) || { count: 0, firstAttempt: now };
         if (now - attempts.firstAttempt > windowMs) {
-            attempts.count = 1;
-            attempts.firstAttempt = now;
-        } else {
-            attempts.count++;
-            if (attempts.count > maxAttempts) {
-                return res.status(429).json({ message: 'Too many login attempts. Please try again later.' });
-            }
+            attempts = { count: 0, firstAttempt: now };
         }
-        loginAttempts.set(ip, attempts);
+        if (attempts.count >= maxAttempts) {
+            return res.status(429).json({ message: 'Too many login attempts. Please try again later.' });
+        }
+
+        const recordFailedAttempt = () => {
+            attempts.count++;
+            loginAttempts.set(ip, attempts);
+        };
 
         const user = await prisma.user.findUnique({
             where: { email: normalizedEmail },
@@ -176,6 +177,7 @@ const login = async (req, res) => {
         });
 
         if (!user || user.status === 'inactive') {
+            recordFailedAttempt();
             return res.status(401).json({ message: 'Invalid credentials' });
         }
 
@@ -183,10 +185,11 @@ const login = async (req, res) => {
         const isMatch = await bcrypt.compare(password, user.password);
 
         if (!isMatch) {
+            recordFailedAttempt();
             return res.status(401).json({ message: 'Invalid credentials' });
         }
 
-        if (!user.emailVerified) {
+        if (!user.emailVerified && user.role !== 'admin') {
             return res.status(403).json({
                 message: 'Please verify your email address before signing in.',
                 code: 'EMAIL_NOT_VERIFIED',

@@ -141,6 +141,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `password` VARCHAR(255) NOT NULL,
   `role` ENUM('admin','loan_officer','cashier') NOT NULL,
   `status` ENUM('active','inactive') DEFAULT 'active',
+  `emailVerified` TINYINT(1) DEFAULT 1,
   `createdAt` DATETIME DEFAULT CURRENT_TIMESTAMP,
   `updatedAt` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
@@ -148,9 +149,9 @@ CREATE TABLE IF NOT EXISTS `users` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Seed data: users
-INSERT INTO `users` (`id`, `name`, `email`, `password`, `role`, `status`, `createdAt`, `updatedAt`) VALUES
-(4, 'Admin', 'admin@test.com', '$2b$10$SZ4w.d/M3cX58uXp8H1gxuRR6hRYYZZfbPiRi631XY0xrwJ2YbYD2', 'admin', 'active', '2026-02-27 06:09:47', '2026-02-27 06:09:47'),
-(6, 'Loan Officer', 'officer@test.com', '$2b$10$MF2ZuamyQ3Ham.1CdfgODugE/jvDII.YEd6LB.VpfeEWWhYD2v7BS', 'loan_officer', 'active', '2026-03-10 06:01:01', '2026-03-10 06:01:01');
+INSERT INTO `users` (`id`, `name`, `email`, `password`, `role`, `status`, `emailVerified`, `createdAt`, `updatedAt`) VALUES
+(4, 'Admin', 'admin@example.com', '$2b$10$SZ4w.d/M3cX58uXp8H1gxuRR6hRYYZZfbPiRi631XY0xrwJ2YbYD2', 'admin', 'active', 1, '2026-02-27 06:09:47', '2026-02-27 06:09:47'),
+(6, 'Loan Officer', 'officer@test.com', '$2b$10$MF2ZuamyQ3Ham.1CdfgODugE/jvDII.YEd6LB.VpfeEWWhYD2v7BS', 'loan_officer', 'active', 1, '2026-03-10 06:01:01', '2026-03-10 06:01:01');
 
 -- --------------------------------------------------------
 -- Foreign Key Constraints

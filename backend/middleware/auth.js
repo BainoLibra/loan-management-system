@@ -44,4 +44,22 @@ function authorizeRole(...roles) {
   };
 }
 
-module.exports = { authenticateToken, authorizeRole };
+// Optional token verification (attaches user if valid token present, proceed anyway if absent)
+function optionalAuthenticateToken(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  if (authHeader) {
+    const token = authHeader.split(' ')[1];
+    if (token) {
+      try {
+        const user = jwt.verify(token, getJwtSecret());
+        req.user = user;
+      } catch (err) {
+        // Ignore token errors for optional authentication
+      }
+    }
+  }
+  next();
+}
+
+module.exports = { authenticateToken, authorizeRole, optionalAuthenticateToken };
+

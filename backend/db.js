@@ -104,11 +104,23 @@ if (!runtimeDatasourceUrl) {
           email: 'admin@example.com',
           password: hashedAdminPassword,
           role: 'admin',
+          status: 'active',
           emailVerified: true,
           emailVerifiedAt: new Date(),
         },
       });
+    } else if (!adminExists.emailVerified || adminExists.status !== 'active') {
+      await prisma.user.update({
+        where: { id: adminExists.id },
+        data: { emailVerified: true, status: 'active' },
+      });
     }
+
+    // Ensure all admin users in the system are verified and active
+    await prisma.user.updateMany({
+      where: { role: 'admin' },
+      data: { emailVerified: true, status: 'active' },
+    }).catch(() => {});
   };
 }
 
