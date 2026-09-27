@@ -56,3 +56,21 @@ export const updateGroupMembers = async (id, clientIds) => {
   });
   return handleApiResponse(response);
 };
+
+export const getGroupCollectionSheet = async (id) => {
+  const response = await apiFetch(`${API_URL}/${id}/collection-sheet`, {
+    headers: getAuthHeaders(),
+    credentials: "include"
+  });
+  return handleApiResponse(response);
+};
+
+export const batchGroupRepayment = async (groupId, payments, paymentMethod = "cash") => {
+  const response = await apiFetch(`${API_URL}/${groupId}/batch-repay`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    credentials: "include",
+    body: JSON.stringify({ payments, paymentMethod }),
+  });
+  return handleApiResponse(response);
+};
