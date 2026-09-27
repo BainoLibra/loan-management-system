@@ -241,7 +241,7 @@ function Groups() {
     <Layout>
       <div className="page-header">
         <div className="page-title-group">
-          <h2>Client Groups</h2>
+          <h2>Groups</h2>
           <p>Organize microfinance borrowers into lending groups and manage group memberships.</p>
         </div>
         <div className="page-actions">

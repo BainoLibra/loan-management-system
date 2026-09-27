@@ -145,16 +145,14 @@ const deleteGroup = async (req, res) => {
     const groupId = parsePositiveInt(id);
 
     if (!groupId) return res.status(400).json({ error: 'Invalid group id' });
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Only admins can delete groups.' });
+    }
 
     // Check if group has clients
     const clients = await prisma.client.count({ where: { groupId } });
     if (clients > 0) {
       return res.status(400).json({ error: 'Cannot delete group with existing clients' });
-    }
-
-    // Only admins or group creator may delete groups
-    if (!await canManageGroup(req.user, groupId)) {
-      return res.status(403).json({ error: 'Cannot delete a group you do not manage.' });
     }
 
     await prisma.group.delete({ where: { id: groupId } });

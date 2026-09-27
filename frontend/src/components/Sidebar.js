@@ -45,7 +45,7 @@ function Sidebar({ isOpen, onChangePassword }) {
         <li className={isActive("/groups")}>
           <Link to="/groups">
             <IconGroups size={18} />
-            <span>Client Groups</span>
+            <span>Groups</span>
           </Link>
         </li>
         <li className={isActive("/loans")}>
