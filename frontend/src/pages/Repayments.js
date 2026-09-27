@@ -35,7 +35,7 @@ function Repayments() {
     if (isManagerOrCashier) {
       fetchFieldSummary();
     }
-  }, []);
+  }, [isManagerOrCashier]);
 
   const fetchFieldSummary = async () => {
     try {
