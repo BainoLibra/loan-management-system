@@ -126,3 +126,11 @@ export const IconScale = ({ size = 22, color = 'currentColor', style }) => (
     <path d="M16 16l3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1zM2 16l3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1zM7 21h10M12 3v18M3 7h18" />
   </svg>
 );
+
+export const IconOutstandingBalance = ({ size = 22, color = 'currentColor', style }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ ...defaultStyle, ...style }}>
+    <path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z" />
+    <path d="M16 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" />
+    <path d="M4 7V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2" />
+  </svg>
+);

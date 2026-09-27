@@ -148,7 +148,7 @@ function Loans() {
     if (status === "overdue") {
       amount = amountDue + amountDue * 0.02;
     }
-    if (!window.confirm(`Pay installment of $${amount.toFixed(2)}?`)) return;
+    if (!window.confirm(`Pay installment of ${formatShillings(amount)}?`)) return;
     try {
       setSubmitting(true);
       setError("");

@@ -35,7 +35,7 @@ const createLoan = async (req, res) => {
     // Validate amount
     const numAmount = parseFiniteNumber(amount);
     if (numAmount == null || numAmount < 200000 || numAmount > 10000000) {
-      return res.status(400).json({ error: 'Loan amount must be a number between 200,000 Shs and 10,000,000 Shs' });
+      return res.status(400).json({ error: 'Loan amount must be a number between 200,000 UGX and 10,000,000 UGX' });
     }
 
     // Validate interestRate
@@ -137,9 +137,9 @@ const approveLoan = async (req, res) => {
       return res.status(403).json({ error: 'Dual control policy: You cannot approve a loan that you created. Another manager must review it.' });
     }
 
-    // Branch Manager Limit: Maximum 5,000,000 Shs
+    // Branch Manager Limit: Maximum 5,000,000 UGX
     if (req.user.role === 'branch_manager' && Number(loan.amount) > 5000000) {
-      return res.status(403).json({ error: 'Branch Managers can only approve loans up to 5,000,000 Shs. Loans above 5,000,000 Shs require Administrator approval.' });
+      return res.status(403).json({ error: 'Branch Managers can only approve loans up to 5,000,000 UGX. Loans above 5,000,000 UGX require Administrator approval.' });
     }
 
     if (!['applied', 'revision_requested'].includes(loan.status)) {

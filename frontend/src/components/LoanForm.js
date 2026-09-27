@@ -67,11 +67,11 @@ const LoanForm = ({ onSubmit, initialData = {}, submitting = false }) => {
         )}
       </div>
       <div className="form-group">
-        <label>Loan Amount (Shs):</label>
+        <label>Loan Amount (UGX):</label>
         <input
           type="number"
           name="amount"
-          placeholder="Min 200,000 Shs - Max 10,000,000 Shs"
+          placeholder="Min 200,000 UGX - Max 10,000,000 UGX"
           value={form.amount}
           onChange={handleChange}
           min="200000"

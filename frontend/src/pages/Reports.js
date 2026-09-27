@@ -3,6 +3,7 @@ import Layout from "../components/Layout";
 import { getAgingReport } from "../services/reportService";
 import { getUser } from "../services/authService";
 import { IconSearch, IconAlert } from "../components/Icons";
+import { formatShillings } from "../utils/format";
 import "../styles/table.css";
 
 const PAGE_SIZE = 10;
@@ -181,8 +182,8 @@ function Reports() {
                   <tr key={r.id}>
                     <td>#{r.id}</td>
                     <td style={{ fontWeight: 600 }}>{r.clientName}</td>
-                    <td>${Number(r.amount).toLocaleString()}</td>
-                    <td style={{ fontWeight: 700 }}>${Number(r.balance).toLocaleString()}</td>
+                    <td>{formatShillings(r.amount)}</td>
+                    <td style={{ fontWeight: 700 }}>{formatShillings(r.balance)}</td>
                     <td>{r.dueDate ? new Date(r.dueDate).toLocaleDateString() : "—"}</td>
                     <td style={{ fontWeight: 600, color: r.daysOverdue > 0 ? "var(--status-rejected)" : "var(--text-main)" }}>
                       {r.daysOverdue} days

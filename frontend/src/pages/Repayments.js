@@ -252,7 +252,7 @@ function Repayments() {
           <form onSubmit={handleRepay} className="inline-form" style={{ marginBottom: "28px", flexWrap: "wrap", gap: "10px" }}>
             <input
               type="number"
-              placeholder="Amount (Shs)..."
+              placeholder="Amount (UGX)..."
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               required
