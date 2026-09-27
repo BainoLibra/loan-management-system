@@ -200,4 +200,79 @@ const updateGroupMembers = async (req, res) => {
   }
 };
 
-module.exports = { createGroup, getGroups, getGroupById, updateGroup, deleteGroup, updateGroupMembers };
+const getGroupCollectionSheet = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const groupId = parsePositiveInt(id);
+    if (!groupId) return res.status(400).json({ error: 'Invalid group id' });
+
+    const group = await prisma.group.findUnique({
+      where: { id: groupId },
+      include: {
+        clients: {
+          where: { status: 'active' },
+          include: {
+            loans: {
+              where: { status: 'disbursed' },
+              include: {
+                schedules: {
+                  where: { status: { in: ['pending', 'overdue'] } },
+                  orderBy: { dueDate: 'asc' },
+                  take: 1,
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!group) return res.status(404).json({ error: 'Group not found' });
+
+    let groupTotalExpected = 0;
+    let totalActiveLoans = 0;
+
+    const collectionSheet = group.clients.map((client) => {
+      const activeLoan = client.loans[0] || null;
+      let expectedInstallment = 0;
+      let scheduleId = null;
+
+      if (activeLoan) {
+        totalActiveLoans += 1;
+        const currentSchedule = activeLoan.schedules[0] || null;
+        if (currentSchedule) {
+          expectedInstallment = Math.max(0, Number(currentSchedule.payment) - Number(currentSchedule.paidAmount || 0));
+          scheduleId = currentSchedule.id;
+        } else {
+          expectedInstallment = Math.min(Number(activeLoan.balance), Number(activeLoan.amount) / Math.max(1, activeLoan.termMonths));
+        }
+        groupTotalExpected += expectedInstallment;
+      }
+
+      return {
+        clientId: client.id,
+        clientName: `${client.firstName} ${client.lastName}`.trim(),
+        phone: client.phone || '—',
+        hasActiveLoan: !!activeLoan,
+        loanId: activeLoan?.id || null,
+        loanBalance: activeLoan ? Number(activeLoan.balance) : 0,
+        expectedInstallment,
+        scheduleId,
+      };
+    });
+
+    res.json({
+      groupId: group.id,
+      groupName: group.name,
+      description: group.description,
+      totalMembers: group.clients.length,
+      totalActiveLoans,
+      groupTotalExpected,
+      members: collectionSheet,
+    });
+  } catch (err) {
+    return sendServerError(res, err, 'Get group collection sheet error');
+  }
+};
+
+module.exports = { createGroup, getGroups, getGroupById, updateGroup, deleteGroup, updateGroupMembers, getGroupCollectionSheet };
