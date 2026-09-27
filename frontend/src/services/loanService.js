@@ -107,3 +107,21 @@ export const repayLoan = async (loanId, amount, paymentMethod = 'cash', referenc
   });
   return handleApiResponse(response);
 };
+
+export const getFieldCollectionsSummary = async () => {
+  const response = await apiFetch(`${API_URL}/field-summary`, {
+    headers: getAuthHeaders(),
+    credentials: "include",
+  });
+  return handleApiResponse(response);
+};
+
+export const acceptCashHandover = async (officerId, amountHanded) => {
+  const response = await apiFetch(`${API_URL}/handover`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    credentials: "include",
+    body: JSON.stringify({ officerId, amountHanded }),
+  });
+  return handleApiResponse(response);
+};

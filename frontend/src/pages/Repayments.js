@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Layout from "../components/Layout";
-import { getLoans, getRepayments, repayLoan } from "../services/loanService";
+import { getLoans, getRepayments, repayLoan, getFieldCollectionsSummary, acceptCashHandover } from "../services/loanService";
 import { getUser } from "../services/authService";
 import { IconSearch, IconAlert } from "../components/Icons";
 import { formatShillings } from "../utils/format";
@@ -21,12 +21,45 @@ function Repayments() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+
+  const [fieldSummary, setFieldSummary] = useState(null);
+  const [handoverModalOfficer, setHandoverModalOfficer] = useState(null);
+  const [isProcessingHandover, setIsProcessingHandover] = useState(false);
+
   const user = getUser();
-  const canViewRepayments = user && ["admin", "cashier", "loan_officer"].includes(user.role);
+  const canViewRepayments = user && ["admin", "cashier", "loan_officer", "branch_manager"].includes(user.role);
+  const isManagerOrCashier = user && ["admin", "cashier", "branch_manager"].includes(user.role);
 
   useEffect(() => {
     fetchLoans();
+    if (isManagerOrCashier) {
+      fetchFieldSummary();
+    }
   }, []);
+
+  const fetchFieldSummary = async () => {
+    try {
+      const summary = await getFieldCollectionsSummary();
+      if (summary) setFieldSummary(summary);
+    } catch (err) {
+      console.warn("Failed to load field summary:", err);
+    }
+  };
+
+  const handleAcceptHandover = async () => {
+    if (!handoverModalOfficer) return;
+    try {
+      setIsProcessingHandover(true);
+      setError("");
+      await acceptCashHandover(handoverModalOfficer.officerId, handoverModalOfficer.totalCollected);
+      setHandoverModalOfficer(null);
+      await fetchFieldSummary();
+    } catch (err) {
+      setError(err.message || "Failed to record cash handover");
+    } finally {
+      setIsProcessingHandover(false);
+    }
+  };
 
   const fetchLoans = async () => {
     try {
@@ -132,7 +165,7 @@ function Repayments() {
       <div className="page-header">
         <div className="page-title-group">
           <h2>Loan Repayments & Teller Desk</h2>
-          <p>Record installment collections in Shillings, track payment channels, and print official receipts.</p>
+          <p>Record installment collections in Uganda Shillings, track payment channels, and reconcile field cash handovers.</p>
         </div>
       </div>
 
@@ -140,6 +173,52 @@ function Repayments() {
         <div className="form-error">
           <IconAlert size={18} />
           <span>{error}</span>
+        </div>
+      )}
+
+      {/* Field Collections & Cashier Vault Reconciliation Card */}
+      {isManagerOrCashier && fieldSummary && fieldSummary.officers.length > 0 && (
+        <div style={{ background: "#ffffff", padding: "20px 24px", borderRadius: "12px", border: "1px solid #e2e8f0", marginBottom: "24px", boxShadow: "0 2px 4px rgba(0,0,0,0.02)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", borderBottom: "1px solid #f1f5f9", paddingBottom: "12px" }}>
+            <div>
+              <h3 style={{ margin: 0, color: "var(--primary)" }}>Today's Field Cash Collections & Vault Reconciliation</h3>
+              <p style={{ margin: "2px 0 0 0", color: "var(--text-muted)", fontSize: "0.85rem" }}>
+                Track cash collected by Loan Officers in the field today and deposit into the Branch Vault.
+              </p>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>Grand Total Collected Today:</span>
+              <div style={{ fontSize: "1.4rem", fontWeight: 800, color: "var(--status-disbursed)" }}>
+                {formatShillings(fieldSummary.grandTotalToday)}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "16px" }}>
+            {fieldSummary.officers.map((off) => (
+              <div key={off.officerId} style={{ background: "#f8fafc", padding: "16px", borderRadius: "10px", border: "1px solid #e2e8f0" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                  <strong style={{ color: "var(--text-main)", fontSize: "1rem" }}>{off.officerName}</strong>
+                  <span className="status-badge disbursed" style={{ fontSize: "0.75rem" }}>
+                    {off.collectionsCount} collections
+                  </span>
+                </div>
+                <div style={{ fontSize: "1.2rem", fontWeight: 800, color: "var(--primary)", marginBottom: "8px" }}>
+                  {formatShillings(off.totalCollected)}
+                </div>
+                <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "12px" }}>
+                  Groups: {off.groupsBreakdown.map((g) => `${g.groupName} (${formatShillings(g.amount)})`).join(", ")}
+                </div>
+                <button
+                  className="btn btn-sm btn-success"
+                  style={{ width: "100%" }}
+                  onClick={() => setHandoverModalOfficer(off)}
+                >
+                  Accept Cash Vault Handover
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -402,6 +481,42 @@ function Repayments() {
               </button>
               <button className="btn btn-primary" onClick={() => window.print()}>
                 Print Receipt
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Handover Verification Modal */}
+      {handoverModalOfficer && (
+        <div className="modal-overlay" style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000 }}>
+          <div className="modal-card" style={{ background: "#ffffff", padding: "32px", borderRadius: "12px", maxWidth: "460px", width: "90%", boxShadow: "0 10px 25px rgba(0,0,0,0.2)" }}>
+            <h3 style={{ margin: "0 0 8px 0", color: "var(--primary)" }}>Accept Field Cash Handover</h3>
+            <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", margin: "0 0 20px 0" }}>
+              Verify physical cash received from Loan Officer <strong>{handoverModalOfficer.officerName}</strong>.
+            </p>
+
+            <div style={{ background: "#f8fafc", padding: "16px", borderRadius: "8px", border: "1px solid #e2e8f0", marginBottom: "20px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px", fontSize: "0.9rem" }}>
+                <span>Officer Name:</span>
+                <strong>{handoverModalOfficer.officerName}</strong>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px", fontSize: "0.9rem" }}>
+                <span>Total Recorded Collections:</span>
+                <strong>{handoverModalOfficer.collectionsCount} payments</strong>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "1.05rem", fontWeight: 800 }}>
+                <span>Physical Cash Handover Amount:</span>
+                <span style={{ color: "var(--status-disbursed)" }}>{formatShillings(handoverModalOfficer.totalCollected)}</span>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
+              <button className="btn btn-secondary" onClick={() => setHandoverModalOfficer(null)} disabled={isProcessingHandover}>
+                Cancel
+              </button>
+              <button className="btn btn-success" onClick={handleAcceptHandover} disabled={isProcessingHandover}>
+                {isProcessingHandover ? "Processing Handover..." : "Confirm & Deposit to Vault"}
               </button>
             </div>
           </div>
