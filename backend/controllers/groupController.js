@@ -2,11 +2,21 @@ const { prisma } = require('../db');
 const { logAudit } = require('../utils/hash');
 const { optionalTrimmedString, parsePositiveInt, sendServerError } = require('../utils/http');
 
+const meetingDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+
+const normalizeMeetingDay = (value) => {
+  if (value === undefined || value === null || value === '') return 'Monday';
+  const trimmed = String(value).trim();
+  const normalized = trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
+  return normalized;
+};
+
 const createGroup = async (req, res) => {
   try {
-    const { name, description } = req.body;
+    const { name, description, meetingDay } = req.body;
     const groupName = optionalTrimmedString(name, 100);
     const groupDescription = optionalTrimmedString(description, 500);
+    const normalizedMeetingDay = normalizeMeetingDay(meetingDay);
 
     if (!groupName) {
       return res.status(400).json({ error: 'Group name is required.' });
@@ -14,9 +24,12 @@ const createGroup = async (req, res) => {
     if (description && !groupDescription) {
       return res.status(400).json({ error: 'Description must be under 500 characters.' });
     }
+    if (!meetingDays.includes(normalizedMeetingDay)) {
+      return res.status(400).json({ error: 'Meeting day must be one of Monday, Tuesday, Wednesday, Thursday, or Friday.' });
+    }
 
     const group = await prisma.group.create({
-      data: { name: groupName, description: groupDescription },
+      data: { name: groupName, description: groupDescription, meetingDay: normalizedMeetingDay },
     });
 
     await logAudit(req.user.id, 'CREATE_GROUP', 'group', group.id);
@@ -85,10 +98,11 @@ const getGroupById = async (req, res) => {
 const updateGroup = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, description } = req.body;
+    const { name, description, meetingDay } = req.body;
     const groupId = parsePositiveInt(id);
     const groupName = optionalTrimmedString(name, 100);
     const groupDescription = optionalTrimmedString(description, 500);
+    const normalizedMeetingDay = normalizeMeetingDay(meetingDay);
 
     if (!groupId) return res.status(400).json({ error: 'Invalid group id' });
     if (!groupName) {
@@ -96,6 +110,9 @@ const updateGroup = async (req, res) => {
     }
     if (description && !groupDescription) {
       return res.status(400).json({ error: 'Description must be under 500 characters.' });
+    }
+    if (!meetingDays.includes(normalizedMeetingDay)) {
+      return res.status(400).json({ error: 'Meeting day must be one of Monday, Tuesday, Wednesday, Thursday, or Friday.' });
     }
 
     // Only admins may update group details
@@ -105,7 +122,7 @@ const updateGroup = async (req, res) => {
 
     await prisma.group.update({
       where: { id: groupId },
-      data: { name: groupName, description: groupDescription },
+      data: { name: groupName, description: groupDescription, meetingDay: normalizedMeetingDay },
     });
 
     await logAudit(req.user.id, 'UPDATE_GROUP', 'group', groupId);

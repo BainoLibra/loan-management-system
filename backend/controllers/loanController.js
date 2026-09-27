@@ -161,48 +161,73 @@ const approveLoan = async (req, res) => {
 
     const approvedAt = new Date();
     const principal = numApprovedAmount;
-    const monthlyRate = Number(loan.interestRate) / 100; // flat monthly rate
-    const n = loan.termMonths;
-
-    const totalInterest = principal * monthlyRate * n;
-    const totalRepayment = principal + totalInterest;
-    const roundedTotalInterest = Math.round(totalInterest * 100) / 100;
-    const roundedTotalRepayment = Math.round(totalRepayment * 100) / 100;
-    const monthlyPayment = Math.round((roundedTotalRepayment / n) * 100) / 100;
-    const monthlyInterest = Math.round((principal * monthlyRate) * 100) / 100;
-
-    const schedules = [];
-    let remainingBalance = principal;
-    let accumulatedPayment = 0;
-    let accumulatedInterest = 0;
     const startDate = approvedAt;
+    const schedules = [];
 
-    for (let i = 1; i <= n; i++) {
-      let interestPortion = monthlyInterest;
-      let payment = monthlyPayment;
-      if (i === n) {
-        interestPortion = Math.round((roundedTotalInterest - accumulatedInterest) * 100) / 100;
-        payment = Math.round((roundedTotalRepayment - accumulatedPayment) * 100) / 100;
+    if (loan.termMonths === 6) {
+      const weeklyPayment = Math.round((principal * 0.05) * 100) / 100;
+      const totalWeeks = 23;
+      let remainingBalance = principal;
+
+      for (let i = 1; i <= totalWeeks; i++) {
+        const dueDate = new Date(startDate);
+        dueDate.setDate(dueDate.getDate() + (i * 7));
+        remainingBalance = Math.max(0, Math.round((remainingBalance - weeklyPayment) * 100) / 100);
+
+        schedules.push({
+          loanId: id,
+          month: i,
+          dueDate,
+          payment: weeklyPayment,
+          principal: weeklyPayment,
+          interest: 0,
+          balance: remainingBalance,
+          paidAmount: 0,
+          status: 'pending',
+        });
       }
-      const principalPortion = Math.round((payment - interestPortion) * 100) / 100;
-      remainingBalance = Math.max(0, Math.round((remainingBalance - principalPortion) * 100) / 100);
-      accumulatedPayment = Math.round((accumulatedPayment + payment) * 100) / 100;
-      accumulatedInterest = Math.round((accumulatedInterest + interestPortion) * 100) / 100;
+    } else {
+      const monthlyRate = Number(loan.interestRate) / 100; // flat monthly rate
+      const n = loan.termMonths;
 
-      const dueDate = new Date(startDate);
-      dueDate.setMonth(dueDate.getMonth() + i);
+      const totalInterest = principal * monthlyRate * n;
+      const totalRepayment = principal + totalInterest;
+      const roundedTotalInterest = Math.round(totalInterest * 100) / 100;
+      const roundedTotalRepayment = Math.round(totalRepayment * 100) / 100;
+      const monthlyPayment = Math.round((roundedTotalRepayment / n) * 100) / 100;
+      const monthlyInterest = Math.round((principal * monthlyRate) * 100) / 100;
 
-      schedules.push({
-        loanId: id,
-        month: i,
-        dueDate,
-        payment,
-        principal: principalPortion,
-        interest: interestPortion,
-        balance: remainingBalance,
-        paidAmount: 0,
-        status: 'pending',
-      });
+      let remainingBalance = principal;
+      let accumulatedPayment = 0;
+      let accumulatedInterest = 0;
+
+      for (let i = 1; i <= n; i++) {
+        let interestPortion = monthlyInterest;
+        let payment = monthlyPayment;
+        if (i === n) {
+          interestPortion = Math.round((roundedTotalInterest - accumulatedInterest) * 100) / 100;
+          payment = Math.round((roundedTotalRepayment - accumulatedPayment) * 100) / 100;
+        }
+        const principalPortion = Math.round((payment - interestPortion) * 100) / 100;
+        remainingBalance = Math.max(0, Math.round((remainingBalance - principalPortion) * 100) / 100);
+        accumulatedPayment = Math.round((accumulatedPayment + payment) * 100) / 100;
+        accumulatedInterest = Math.round((accumulatedInterest + interestPortion) * 100) / 100;
+
+        const dueDate = new Date(startDate);
+        dueDate.setMonth(dueDate.getMonth() + i);
+
+        schedules.push({
+          loanId: id,
+          month: i,
+          dueDate,
+          payment,
+          principal: principalPortion,
+          interest: interestPortion,
+          balance: remainingBalance,
+          paidAmount: 0,
+          status: 'pending',
+        });
+      }
     }
 
     await prisma.$transaction(async (tx) => {

@@ -21,7 +21,7 @@ const PAGE_SIZE = 10;
 
 function Groups() {
   const [groups, setGroups] = useState([]);
-  const [form, setForm] = useState({ name: "", description: "" });
+  const [form, setForm] = useState({ name: "", description: "", meetingDay: "Monday" });
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [search, setSearch] = useState("");
@@ -143,7 +143,7 @@ function Groups() {
         return;
       }
 
-      setForm({ name: "", description: "" });
+      setForm({ name: "", description: "", meetingDay: "Monday" });
       setShowForm(false);
       setEditingId(null);
       fetchGroups();
@@ -154,7 +154,7 @@ function Groups() {
 
   const handleEdit = (g) => {
     setEditingId(g.id);
-    setForm({ name: g.name, description: g.description || "" });
+    setForm({ name: g.name, description: g.description || "", meetingDay: g.meetingDay || "Monday" });
     setError("");
     setShowForm(true);
   };
@@ -227,9 +227,11 @@ function Groups() {
     }
   };
 
-  const filtered = groups.filter(
-    (g) => g.name.toLowerCase().includes(search.toLowerCase()) || (g.description || "").toLowerCase().includes(search.toLowerCase())
-  );
+  const normalizedSearch = search.trim().toLowerCase();
+  const filtered = groups.filter((g) => {
+    const haystack = `${g.name || ""} ${g.description || ""} ${g.meetingDay || ""}`.toLowerCase();
+    return haystack.includes(normalizedSearch);
+  });
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -248,7 +250,7 @@ function Groups() {
               onClick={() => {
                 setShowForm(!showForm);
                 setEditingId(null);
-                setForm({ name: "", description: "" });
+                setForm({ name: "", description: "", meetingDay: "Monday" });
                 setError("");
               }}
             >
@@ -271,7 +273,7 @@ function Groups() {
           <IconSearch className="search-input-icon" size={16} />
           <input
             className="search-input"
-            placeholder="Search group name or description..."
+            placeholder="Search group name, day, or description..."
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -288,13 +290,22 @@ function Groups() {
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
             required
-            style={{ minWidth: "240px" }}
+            style={{ minWidth: "220px" }}
           />
+          <select
+            value={form.meetingDay || "Monday"}
+            onChange={(e) => setForm({ ...form, meetingDay: e.target.value })}
+            style={{ minWidth: "150px", padding: "10px 12px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
+          >
+            {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map((day) => (
+              <option key={day} value={day}>{day}</option>
+            ))}
+          </select>
           <input
             placeholder="Description (optional)"
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
-            style={{ minWidth: "300px" }}
+            style={{ minWidth: "280px" }}
           />
           <button className="btn" type="submit">
             {editingId ? "Update Group" : "Save Group"}
@@ -309,6 +320,7 @@ function Groups() {
               <tr>
                 <th>No.</th>
                 <th>Group Name</th>
+                <th>Meeting Day</th>
                 <th>Description</th>
                 <th>Actions</th>
               </tr>
@@ -316,7 +328,7 @@ function Groups() {
             <tbody>
               {paginated.length === 0 ? (
                 <tr>
-                  <td colSpan="4" style={{ textAlign: "center", padding: "30px", color: "var(--text-muted)" }}>
+                  <td colSpan="5" style={{ textAlign: "center", padding: "30px", color: "var(--text-muted)" }}>
                     No client groups found.
                   </td>
                 </tr>
@@ -332,6 +344,7 @@ function Groups() {
                         {g.name}
                       </span>
                     </td>
+                    <td>{g.meetingDay || "Monday"}</td>
                     <td>{g.description || "—"}</td>
                     <td>
                       <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
