@@ -45,7 +45,8 @@ function Groups() {
 
   const currentUser = getUser();
   const isAdmin = currentUser?.role === "admin";
-  const canCreateGroup = isAdmin || currentUser?.role === "loan_officer";
+  const canManageGroupActions = isAdmin || currentUser?.role === "loan_officer";
+  const canCreateGroup = canManageGroupActions;
 
   const handleOpenCollectionSheet = async (g) => {
     try {
@@ -351,7 +352,7 @@ function Groups() {
                         <button className="btn-sm btn-primary" onClick={() => handleOpenCollectionSheet(g)}>
                           Collect Group Cash
                         </button>
-                        {isAdmin && (
+                        {canManageGroupActions && (
                           <>
                             <button className="btn-sm btn-secondary" onClick={() => handleManageMembers(g)}>
                               Members

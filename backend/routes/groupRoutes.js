@@ -9,8 +9,8 @@ router.get('/', authenticateToken, getGroups);
 router.get('/:id', authenticateToken, getGroupById);
 router.get('/:id/collection-sheet', authenticateToken, authorizeRole('admin', 'loan_officer', 'cashier', 'branch_manager'), getGroupCollectionSheet);
 router.post('/:id/batch-repay', authenticateToken, authorizeRole('admin', 'loan_officer', 'cashier'), batchGroupRepayment);
-router.put('/:id', authenticateToken, authorizeRole('admin'), updateGroup);
-router.put('/:id/members', authenticateToken, authorizeRole('admin'), updateGroupMembers);
-router.delete('/:id', authenticateToken, authorizeRole('admin'), deleteGroup);
+router.put('/:id', authenticateToken, authorizeRole('admin', 'loan_officer'), updateGroup);
+router.put('/:id/members', authenticateToken, authorizeRole('admin', 'loan_officer'), updateGroupMembers);
+router.delete('/:id', authenticateToken, authorizeRole('admin', 'loan_officer'), deleteGroup);
 
 module.exports = router;
