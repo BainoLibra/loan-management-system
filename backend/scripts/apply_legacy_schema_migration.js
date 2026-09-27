@@ -1,7 +1,7 @@
 const { Client } = require('pg');
 require('dotenv').config();
 
-const connectionString = process.env.DATABASE_URL;
+const connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL;
 
 if (!connectionString) {
   throw new Error('DATABASE_URL is required to apply the legacy schema migration.');
@@ -20,8 +20,32 @@ const hasColumn = async (client, tableName, columnName) => {
   return result.rowCount > 0;
 };
 
+const getPgConnectionOptions = (connectionString) => {
+  const requiresSsl = /supabase\.com|pooler\.supabase\.com/.test(connectionString);
+  if (!requiresSsl) return { connectionString, ssl: undefined };
+
+  try {
+    const url = new URL(connectionString);
+    url.searchParams.delete('sslmode');
+    url.searchParams.delete('sslcert');
+    url.searchParams.delete('sslkey');
+    url.searchParams.delete('sslrootcert');
+
+    return {
+      connectionString: url.toString(),
+      ssl: { rejectUnauthorized: false },
+    };
+  } catch (_error) {
+    return {
+      connectionString,
+      ssl: { rejectUnauthorized: false },
+    };
+  }
+};
+
 async function main() {
-  const client = new Client({ connectionString });
+  const connectionOptions = getPgConnectionOptions(connectionString);
+  const client = new Client(connectionOptions);
   await client.connect();
 
   try {
@@ -34,6 +58,9 @@ async function main() {
       "createdAt" timestamp(3) without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" timestamp(3) without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP
     )`);
+
+    await client.query(`ALTER TABLE "groups"
+      ADD COLUMN IF NOT EXISTS "meetingDay" text NOT NULL DEFAULT 'Monday'`);
 
     await client.query(`ALTER TABLE "clients"
       ADD COLUMN IF NOT EXISTS "firstName" text,

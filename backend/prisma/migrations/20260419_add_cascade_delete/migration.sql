@@ -8,6 +8,9 @@ CREATE TABLE IF NOT EXISTS "groups" (
   "updatedAt" timestamp(3) without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+ALTER TABLE "groups"
+  ADD COLUMN IF NOT EXISTS "meetingDay" text NOT NULL DEFAULT 'Monday';
+
 ALTER TABLE "clients"
   ADD COLUMN IF NOT EXISTS "firstName" text,
   ADD COLUMN IF NOT EXISTS "lastName" text,

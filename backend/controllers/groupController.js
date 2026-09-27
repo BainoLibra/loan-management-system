@@ -1,5 +1,6 @@
 const { prisma } = require('../db');
 const { logAudit } = require('../utils/hash');
+const { canManageGroup } = require('../utils/accessControl');
 const { optionalTrimmedString, parsePositiveInt, sendServerError } = require('../utils/http');
 
 const meetingDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
@@ -115,9 +116,9 @@ const updateGroup = async (req, res) => {
       return res.status(400).json({ error: 'Meeting day must be one of Monday, Tuesday, Wednesday, Thursday, or Friday.' });
     }
 
-    // Only admins may update group details
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'Only admins can update groups.' });
+    // Only admins or group creator may update group details
+    if (!await canManageGroup(req.user, groupId)) {
+      return res.status(403).json({ error: 'Cannot update a group you do not manage.' });
     }
 
     await prisma.group.update({
@@ -151,9 +152,9 @@ const deleteGroup = async (req, res) => {
       return res.status(400).json({ error: 'Cannot delete group with existing clients' });
     }
 
-    // Only admins may delete groups
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'Only admins can delete groups.' });
+    // Only admins or group creator may delete groups
+    if (!await canManageGroup(req.user, groupId)) {
+      return res.status(403).json({ error: 'Cannot delete a group you do not manage.' });
     }
 
     await prisma.group.delete({ where: { id: groupId } });
@@ -186,10 +187,9 @@ const updateGroupMembers = async (req, res) => {
     const group = await prisma.group.findUnique({ where: { id: groupId } });
     if (!group) return res.status(404).json({ error: 'Group not found' });
 
-    // Only the user who created the group (owner) may modify membership, except admins.
-    // Only admins may modify group membership via this endpoint
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'Only admins can modify group membership.' });
+    // Only admins or group creator may modify membership
+    if (!await canManageGroup(req.user, groupId)) {
+      return res.status(403).json({ error: 'Cannot modify members of a group you do not manage.' });
     }
 
     // Ensure all client ids exist
