@@ -197,12 +197,16 @@ const updateGroupMembers = async (req, res) => {
     }
 
     // Update membership by setting groupId on the provided clients and clearing it for others
-    await prisma.$transaction([
-      // Clear groupId for clients currently in this group but not in the new list
-      prisma.client.updateMany({ where: { groupId, id: { notIn: parsedClientIds } }, data: { groupId: null } }),
-      // Assign this groupId to the provided clients
-      prisma.client.updateMany({ where: { id: { in: parsedClientIds } }, data: { groupId } }),
-    ]);
+    if (parsedClientIds.length === 0) {
+      await prisma.client.updateMany({ where: { groupId }, data: { groupId: null } });
+    } else {
+      await prisma.$transaction([
+        // Clear groupId for clients currently in this group but not in the new list
+        prisma.client.updateMany({ where: { groupId, id: { notIn: parsedClientIds } }, data: { groupId: null } }),
+        // Assign this groupId to the provided clients
+        prisma.client.updateMany({ where: { id: { in: parsedClientIds } }, data: { groupId } }),
+      ]);
+    }
 
     const updated = await prisma.group.findUnique({ where: { id: groupId }, include: { clients: true } });
     await logAudit(req.user.id, 'UPDATE_GROUP_MEMBERS', 'group', groupId);
