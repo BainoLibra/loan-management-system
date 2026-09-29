@@ -6,12 +6,18 @@ let server;
 
 (async () => {
   try {
-    await ready;
     server = app.listen(port, '0.0.0.0', () => {
       console.log(`Backend listening on port ${port}`);
     });
+
+    try {
+      await ready;
+      console.log('Database initialized successfully.');
+    } catch (err) {
+      console.error('Database initialization failed. Server is running in degraded mode.', err);
+    }
   } catch (err) {
-    console.error('Failed to initialize database. Server not started.', err);
+    console.error('Failed to start server.', err);
     process.exit(1);
   }
 })();

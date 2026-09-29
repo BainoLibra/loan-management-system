@@ -3,6 +3,65 @@ const { Pool } = require('pg');
 const { PrismaPg } = require('@prisma/adapter-pg');
 const { PrismaClient } = require('@prisma/client');
 
+const isSupabasePoolerHost = (hostname = '') => /(?:^|\.)pooler\.supabase\.com$/i.test(hostname);
+
+const getSupabaseProjectRef = (connectionString) => {
+  try {
+    const url = new URL(connectionString);
+    const host = url.hostname;
+    const username = decodeURIComponent(url.username || '');
+    const dbHostMatch = host.match(/^db\.([^.]+)\.supabase\.co(?:\.in)?$/i)?.[1];
+    if (dbHostMatch) return dbHostMatch;
+
+    if (isSupabasePoolerHost(host)) {
+      const poolerUserMatch = username.match(/^postgres\.(.+)$/i)?.[1];
+      if (poolerUserMatch) return poolerUserMatch;
+    }
+
+    return username.startsWith('postgres.') ? username.split('.')[1] : null;
+  } catch (_error) {
+    return null;
+  }
+};
+
+const deriveSupabaseDirectUrl = (connectionString) => {
+  if (!connectionString) return '';
+
+  try {
+    const url = new URL(connectionString);
+    if (!isSupabasePoolerHost(url.hostname)) return '';
+
+    const projectRef = getSupabaseProjectRef(connectionString);
+    if (!projectRef) return '';
+
+    const directUrl = new URL(connectionString);
+    directUrl.hostname = `db.${projectRef}.supabase.co`;
+    directUrl.port = '5432';
+    return directUrl.toString();
+  } catch (_error) {
+    return '';
+  }
+};
+
+const normalizeSupabaseDatasource = (connectionString) => {
+  if (!connectionString) return connectionString;
+
+  try {
+    const url = new URL(connectionString);
+    if (isSupabasePoolerHost(url.hostname)) {
+      const derivedDirectUrl = deriveSupabaseDirectUrl(connectionString);
+      if (derivedDirectUrl) {
+        console.warn('Detected a Supabase pooler URL in a direct-connection setting. Using derived direct URL for Prisma.');
+        return derivedDirectUrl;
+      }
+    }
+  } catch (_error) {
+    // Ignore parsing issues and use the original value.
+  }
+
+  return connectionString;
+};
+
 const datasourceCandidates = [
   ['DIRECT_URL', process.env.DIRECT_URL],
   ['POSTGRES_PRISMA_URL', process.env.POSTGRES_PRISMA_URL],
@@ -12,7 +71,7 @@ const datasourceCandidates = [
 ];
 const selectedDatasource = datasourceCandidates.find(([_name, value]) => Boolean(value));
 const runtimeDatasourceName = selectedDatasource?.[0];
-const runtimeDatasourceUrl = selectedDatasource?.[1];
+const runtimeDatasourceUrl = normalizeSupabaseDatasource(selectedDatasource?.[1]);
 const getConnectionFailureMessage = (error) => {
   const base = runtimeDatasourceName
     ? `Database connection failed using ${runtimeDatasourceName}.`
