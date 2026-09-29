@@ -4,15 +4,25 @@ const { PrismaPg } = require('@prisma/adapter-pg');
 const { PrismaClient } = require('@prisma/client');
 
 const datasourceCandidates = [
+  ['DIRECT_URL', process.env.DIRECT_URL],
   ['POSTGRES_PRISMA_URL', process.env.POSTGRES_PRISMA_URL],
   ['POSTGRES_URL', process.env.POSTGRES_URL],
   ['DATABASE_URL', process.env.DATABASE_URL],
-  ['DIRECT_URL', process.env.DIRECT_URL],
   ['POSTGRES_URL_NON_POOLING', process.env.POSTGRES_URL_NON_POOLING],
 ];
 const selectedDatasource = datasourceCandidates.find(([_name, value]) => Boolean(value));
 const runtimeDatasourceName = selectedDatasource?.[0];
 const runtimeDatasourceUrl = selectedDatasource?.[1];
+const getConnectionFailureMessage = (error) => {
+  const base = runtimeDatasourceName
+    ? `Database connection failed using ${runtimeDatasourceName}.`
+    : 'Database connection failed.';
+
+  const sanitizedSource = getSafeConnectionInfo(runtimeDatasourceUrl || '');
+  const hostInfo = `${sanitizedSource.host}:${sanitizedSource.port}/${sanitizedSource.database}`;
+  const detail = error?.message || 'Unknown database error';
+  return `${base} Check the Supabase connection string in backend/.env or your deployment environment. Active source: ${hostInfo}. Prisma reported: ${detail}`;
+};
 let prisma;
 let init;
 let pgPool;
@@ -89,7 +99,13 @@ if (!runtimeDatasourceUrl) {
 
   init = async () => {
     console.log('Initializing database connection:', getSafeConnectionInfo(runtimeDatasourceUrl));
-    await prisma.$connect();
+    try {
+      await prisma.$connect();
+    } catch (error) {
+      const message = getConnectionFailureMessage(error);
+      console.error(message);
+      throw new Error(message);
+    }
 
     if (process.env.SEED_DEFAULT_ADMIN === 'false') {
       return;

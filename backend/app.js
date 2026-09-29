@@ -65,6 +65,15 @@ app.use((req, res, next) => cors(createCorsOptions(req))(req, res, next));
 app.options('*', (req, res, next) => cors(createCorsOptions(req))(req, res, next)); // Handle preflight requests
 app.use(bodyParser.json());
 
+app.use((err, _req, res, _next) => {
+  if (err && err.status === 503 && /Database connection failed/i.test(err.message || '')) {
+    return res.status(503).json({
+      error: err.message,
+    });
+  }
+  return _next(err);
+});
+
 let ready = init();
 ready.catch(() => {});
 
