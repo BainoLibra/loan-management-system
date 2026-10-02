@@ -125,8 +125,8 @@ if (!runtimeDatasourceUrl) {
   const pgConnectionOptions = getPgConnectionOptions(runtimeDatasourceUrl);
   pgPool = global.__prismaPgPool || new Pool({
     ...pgConnectionOptions,
-    max: 2,
-    idleTimeoutMillis: 30000,
+    max: 1,
+    idleTimeoutMillis: 10000,
     connectionTimeoutMillis: 10000,
   });
   const pgAdapter = new PrismaPg(pgPool);
