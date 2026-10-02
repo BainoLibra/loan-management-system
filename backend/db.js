@@ -44,21 +44,6 @@ const deriveSupabaseDirectUrl = (connectionString) => {
 };
 
 const normalizeSupabaseDatasource = (connectionString) => {
-  if (!connectionString) return connectionString;
-
-  try {
-    const url = new URL(connectionString);
-    if (isSupabasePoolerHost(url.hostname)) {
-      const derivedDirectUrl = deriveSupabaseDirectUrl(connectionString);
-      if (derivedDirectUrl) {
-        console.warn('Detected a Supabase pooler URL in a direct-connection setting. Using derived direct URL for Prisma.');
-        return derivedDirectUrl;
-      }
-    }
-  } catch (_error) {
-    // Ignore parsing issues and use the original value.
-  }
-
   return connectionString;
 };
 
