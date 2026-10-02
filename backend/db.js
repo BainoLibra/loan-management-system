@@ -125,21 +125,19 @@ if (!runtimeDatasourceUrl) {
   const pgConnectionOptions = getPgConnectionOptions(runtimeDatasourceUrl);
   pgPool = global.__prismaPgPool || new Pool({
     ...pgConnectionOptions,
-    max: 20,
+    max: 2,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 10000,
   });
   const pgAdapter = new PrismaPg(pgPool);
 
-  if (process.env.NODE_ENV !== 'production') {
-    global.__prismaPgPool = pgPool;
-  }
+  // Always cache globally — in serverless each Lambda container is isolated,
+  // so this only reuses connections within the same warm instance, not across them.
+  global.__prismaPgPool = pgPool;
 
   prisma = global.__prismaClient || new PrismaClient({ adapter: pgAdapter });
 
-  if (process.env.NODE_ENV !== 'production') {
-    global.__prismaClient = prisma;
-  }
+  global.__prismaClient = prisma;
 
   init = async () => {
     console.log('Initializing database connection:', getSafeConnectionInfo(runtimeDatasourceUrl));
