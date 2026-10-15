@@ -285,6 +285,37 @@ tbody tr:hover {
   min-width: 180px;
 }
 
+.inline-form .password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.inline-form .password-input-wrapper input {
+  padding-right: 38px;
+  min-width: 180px;
+}
+
+.inline-form .password-toggle-btn {
+  position: absolute;
+  right: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted, #718096);
+  padding: 4px;
+  border-radius: 4px;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.inline-form .password-toggle-btn:hover {
+  color: var(--primary, #3b82f6);
+  background: rgba(59, 130, 246, 0.08);
+}
+
 .form-error {
   width: 100%;
   margin-bottom: 12px;

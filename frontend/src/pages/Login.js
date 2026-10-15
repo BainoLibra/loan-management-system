@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { loginUser } from "../services/authService";
 import { Link, useNavigate } from "react-router-dom";
+import { IconEye, IconEyeOff } from "../components/Icons";
 import "../styles/login.css";
 
 function Login() {
@@ -84,9 +85,10 @@ function Login() {
                 className="password-toggle-btn"
                 onClick={() => setShowPassword(!showPassword)}
                 title={showPassword ? "Hide password" : "Show password"}
+                aria-label={showPassword ? "Hide password" : "Show password"}
                 disabled={loading}
               >
-                {showPassword ? "🙈" : "👁️"}
+                {showPassword ? <IconEyeOff size={18} /> : <IconEye size={18} />}
               </button>
             </div>
           </div>

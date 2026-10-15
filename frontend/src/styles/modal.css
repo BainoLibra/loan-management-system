@@ -78,6 +78,36 @@
   box-sizing: border-box;
 }
 
+.modal-content .password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.modal-content .password-input-wrapper input {
+  padding-right: 40px;
+}
+
+.modal-content .password-toggle-btn {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted, #718096);
+  padding: 4px;
+  border-radius: 4px;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.modal-content .password-toggle-btn:hover {
+  color: var(--primary, #3b82f6);
+  background: rgba(59, 130, 246, 0.08);
+}
+
 .error {
   color: #dc2626;
   background: #fef2f2;

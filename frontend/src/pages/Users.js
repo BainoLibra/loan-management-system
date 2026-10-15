@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Layout from "../components/Layout";
 import { getUsers, createUser, updateUser, resetUserPassword, deleteUser } from "../services/userService";
-import { IconSearch, IconPlus, IconAlert } from "../components/Icons";
+import { IconSearch, IconPlus, IconAlert, IconEye, IconEyeOff } from "../components/Icons";
 import "../styles/table.css";
 
 function Users() {
@@ -10,6 +10,8 @@ function Users() {
   const [editingUser, setEditingUser] = useState(null);
   const [form, setForm] = useState({ name: "", email: "", password: "", role: "loan_officer" });
   const [resetPw, setResetPw] = useState({ id: null, password: "" });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
   const [search, setSearch] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -153,13 +155,24 @@ function Users() {
             required
           />
           {!editingUser && (
-            <input
-              placeholder="Initial Password *"
-              type="password"
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-              required
-            />
+            <div className="password-input-wrapper">
+              <input
+                placeholder="Initial Password *"
+                type={showPassword ? "text" : "password"}
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                required
+              />
+              <button
+                type="button"
+                className="password-toggle-btn"
+                onClick={() => setShowPassword((prev) => !prev)}
+                title={showPassword ? "Hide password" : "Show password"}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <IconEyeOff size={16} /> : <IconEye size={16} />}
+              </button>
+            </div>
           )}
           <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
             <option value="admin">Administrator</option>
@@ -182,17 +195,28 @@ function Users() {
       {resetPw.id && (
         <form onSubmit={handleResetPassword} className="inline-form" style={{ background: "var(--primary-light)" }}>
           <span style={{ fontWeight: 600, color: "var(--text-main)" }}>Reset password for user #{resetPw.id}:</span>
-          <input
-            type="password"
-            placeholder="Enter New Password..."
-            value={resetPw.password}
-            onChange={(e) => setResetPw({ ...resetPw, password: e.target.value })}
-            required
-          />
+          <div className="password-input-wrapper">
+            <input
+              type={showResetPassword ? "text" : "password"}
+              placeholder="Enter New Password..."
+              value={resetPw.password}
+              onChange={(e) => setResetPw({ ...resetPw, password: e.target.value })}
+              required
+            />
+            <button
+              type="button"
+              className="password-toggle-btn"
+              onClick={() => setShowResetPassword((prev) => !prev)}
+              title={showResetPassword ? "Hide password" : "Show password"}
+              aria-label={showResetPassword ? "Hide password" : "Show password"}
+            >
+              {showResetPassword ? <IconEyeOff size={16} /> : <IconEye size={16} />}
+            </button>
+          </div>
           <button className="btn btn-warn" type="submit" disabled={submitting}>
             {submitting ? "Resetting..." : "Confirm Reset"}
           </button>
-          <button type="button" className="btn btn-secondary" onClick={() => setResetPw({ id: null, password: "" })}>
+          <button type="button" className="btn btn-secondary" onClick={() => { setResetPw({ id: null, password: "" }); setShowResetPassword(false); }}>
             Cancel
           </button>
         </form>
