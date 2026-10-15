@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const sendEmail = require('../utils/sendEmail');
 const { isValidEmail, normalizeEmail, sendServerError } = require('../utils/http');
+const { logAudit } = require('../utils/hash');
 
 const getJwtSecret = () => {
   const secret = process.env.JWT_SECRET;
@@ -12,7 +13,7 @@ const getJwtSecret = () => {
   }
   return secret;
 };
-const allowedRoles = ['admin', 'loan_officer', 'cashier', 'branch_manager'];
+const allowedRoles = ['admin', 'loan_officer', 'cashier', 'branch_manager', 'client'];
 
 const loginAttempts = new Map();
 
@@ -41,9 +42,13 @@ const sendVerificationEmail = async (req, user, token) => {
     });
 };
 
-// REGISTER USER
+// REGISTER USER - Restricted to Administrators only
 const register = async (req, res) => {
     try {
+        if (!req.user || req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'Access denied. Only administrators can create new user accounts.' });
+        }
+
         const { name, email, password, role } = req.body;
         const normalizedEmail = normalizeEmail(email);
         
@@ -67,24 +72,14 @@ const register = async (req, res) => {
             return res.status(400).json({ error: 'Password must be at least 8 characters long' });
         }
 
-        // Determine allowed roles
-        // Self-signup (no req.user): can register as loan_officer, branch_manager, or cashier
-        // Admin-created (req.user.role === 'admin'): can assign any role
-        const assignableRoles = req.user?.role === 'admin'
-            ? allowedRoles
-            : allowedRoles.filter((allowedRole) => allowedRole !== 'admin');
         const selectedRole = role || 'loan_officer';
 
-        if (!assignableRoles.includes(selectedRole)) {
-            return res.status(403).json({ error: 'You are not allowed to assign that role' });
+        if (!allowedRoles.includes(selectedRole)) {
+            return res.status(400).json({ error: 'Invalid role specified' });
         }
 
         // hash password
         const hashedPassword = await bcrypt.hash(password, 10);
-        const isAdminCreated = req.user?.role === 'admin';
-        const verificationToken = crypto.randomBytes(32).toString('hex');
-        const emailVerificationToken = isAdminCreated ? null : hashToken(verificationToken);
-        const emailVerificationExpires = isAdminCreated ? null : new Date(Date.now() + 24 * 60 * 60 * 1000);
 
         const user = await prisma.user.create({
             data: {
@@ -92,33 +87,27 @@ const register = async (req, res) => {
                 email: normalizedEmail,
                 password: hashedPassword,
                 role: selectedRole,
-                emailVerified: isAdminCreated,
-                emailVerifiedAt: isAdminCreated ? new Date() : null,
-                emailVerificationToken,
-                emailVerificationExpires,
+                status: 'active',
+                emailVerified: true,
+                emailVerifiedAt: new Date(),
+                emailVerificationToken: null,
+                emailVerificationExpires: null,
             },
             select: {
                 id: true,
                 name: true,
                 email: true,
+                role: true,
+                status: true,
+                createdAt: true,
             },
         });
 
-        if (!isAdminCreated) {
-            try {
-                await sendVerificationEmail(req, user, verificationToken);
-            } catch (error) {
-                console.error('Verification email error:', error);
-                await prisma.user.delete({ where: { id: user.id } }).catch(() => {});
-                return res.status(500).json({ error: 'Verification email could not be sent' });
-            }
-        }
+        await logAudit(req.user.id, 'CREATE_USER', 'user', user.id);
 
-        res.json({
-            message: isAdminCreated
-                ? 'User registered successfully'
-                : 'Account created. Please check your email to verify your account before signing in.',
-            requiresEmailVerification: !isAdminCreated,
+        res.status(201).json({
+            message: 'User registered successfully',
+            user,
         });
 
     } catch (error) {
@@ -130,6 +119,7 @@ const register = async (req, res) => {
         return sendServerError(res, error, 'Registration error');
     }
 };
+
 
 // LOGIN USER
 const login = async (req, res) => {
@@ -176,7 +166,7 @@ const login = async (req, res) => {
             },
         });
 
-        if (!user || user.status === 'inactive') {
+        if (!user) {
             recordFailedAttempt();
             return res.status(401).json({ message: 'Invalid credentials' });
         }
@@ -186,7 +176,16 @@ const login = async (req, res) => {
 
         if (!isMatch) {
             recordFailedAttempt();
+            await logAudit(user.id, 'LOGIN_FAILED', 'user', user.id);
             return res.status(401).json({ message: 'Invalid credentials' });
+        }
+
+        if (user.status !== 'active') {
+            await logAudit(user.id, 'LOGIN_BLOCKED_INACTIVE', 'user', user.id);
+            return res.status(403).json({
+                message: 'Your account has been deactivated. Please contact your system administrator.',
+                code: 'ACCOUNT_DEACTIVATED'
+            });
         }
 
         if (!user.emailVerified && user.role !== 'admin') {
@@ -210,6 +209,8 @@ const login = async (req, res) => {
 
         // Reset rate limits on success
         loginAttempts.delete(ip);
+
+        await logAudit(user.id, 'LOGIN_SUCCESS', 'user', user.id);
 
         res.json({
             message: 'Login successful',

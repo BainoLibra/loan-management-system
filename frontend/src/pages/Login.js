@@ -110,8 +110,9 @@ function Login() {
         </form>
 
         <div className="auth-switch">
-          <span>Don’t have an account?</span>
-          <Link to="/signup">Sign Up</Link>
+          <span style={{ fontSize: "12px", color: "var(--text-secondary, #718096)" }}>
+            Staff portal. User accounts are provisioned by an administrator.
+          </span>
         </div>
 
         <p className="login-footer">Powered by Libra &copy; 2026</p>

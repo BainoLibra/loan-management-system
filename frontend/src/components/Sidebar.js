@@ -36,12 +36,14 @@ function Sidebar({ isOpen, onChangePassword }) {
             <span>Dashboard</span>
           </Link>
         </li>
-        <li className={isActive("/clients")}>
-          <Link to="/clients">
-            <IconClients size={18} />
-            <span>Clients</span>
-          </Link>
-        </li>
+        {user && ["admin", "loan_officer"].includes(user.role) && (
+          <li className={isActive("/clients")}>
+            <Link to="/clients">
+              <IconClients size={18} />
+              <span>Clients</span>
+            </Link>
+          </li>
+        )}
         <li className={isActive("/groups")}>
           <Link to="/groups">
             <IconGroups size={18} />

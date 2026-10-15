@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const { prisma } = require('../db');
 
 const getJwtSecret = () => {
   const secret = process.env.JWT_SECRET;
@@ -8,8 +9,8 @@ const getJwtSecret = () => {
   return secret;
 };
 
-// Verify token
-function authenticateToken(req, res, next) {
+// Verify token and enforce active user status in database
+async function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
 
   if (!authHeader) {
@@ -22,12 +23,44 @@ function authenticateToken(req, res, next) {
     return res.status(401).json({ error: 'Invalid token format' });
   }
 
+  let decoded;
   try {
-    const user = jwt.verify(token, getJwtSecret());
-    req.user = user; // attach user to request
-    next();
+    decoded = jwt.verify(token, getJwtSecret());
   } catch (err) {
     return res.status(403).json({ error: 'Invalid token' });
+  }
+
+  try {
+    const dbUser = await prisma.user.findUnique({
+      where: { id: decoded.id },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        status: true,
+      },
+    });
+
+    if (!dbUser) {
+      return res.status(401).json({ error: 'User account no longer exists' });
+    }
+
+    if (dbUser.status !== 'active') {
+      return res.status(403).json({ error: 'Account has been deactivated. Please contact an administrator.' });
+    }
+
+    req.user = {
+      id: dbUser.id,
+      name: dbUser.name,
+      email: dbUser.email,
+      role: dbUser.role,
+      status: dbUser.status,
+    };
+    next();
+  } catch (err) {
+    console.error('User validation error in authenticateToken:', err);
+    return res.status(500).json({ error: 'Failed to authenticate user state' });
   }
 }
 
@@ -45,14 +78,32 @@ function authorizeRole(...roles) {
 }
 
 // Optional token verification (attaches user if valid token present, proceed anyway if absent)
-function optionalAuthenticateToken(req, res, next) {
+async function optionalAuthenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
   if (authHeader) {
     const token = authHeader.split(' ')[1];
     if (token) {
       try {
-        const user = jwt.verify(token, getJwtSecret());
-        req.user = user;
+        const decoded = jwt.verify(token, getJwtSecret());
+        const dbUser = await prisma.user.findUnique({
+          where: { id: decoded.id },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            status: true,
+          },
+        });
+        if (dbUser && dbUser.status === 'active') {
+          req.user = {
+            id: dbUser.id,
+            name: dbUser.name,
+            email: dbUser.email,
+            role: dbUser.role,
+            status: dbUser.status,
+          };
+        }
       } catch (err) {
         // Ignore token errors for optional authentication
       }
@@ -62,4 +113,5 @@ function optionalAuthenticateToken(req, res, next) {
 }
 
 module.exports = { authenticateToken, authorizeRole, optionalAuthenticateToken };
+
 
