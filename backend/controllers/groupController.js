@@ -30,7 +30,7 @@ const createGroup = async (req, res) => {
     }
 
     const group = await prisma.group.create({
-      data: { name: groupName, description: groupDescription, meetingDay: normalizedMeetingDay },
+      data: { organizationId: req.organization.id, name: groupName, description: groupDescription, meetingDay: normalizedMeetingDay },
     });
 
     await logAudit(req.user.id, 'CREATE_GROUP', 'group', group.id);
@@ -47,7 +47,7 @@ const createGroup = async (req, res) => {
 const getGroups = async (req, res) => {
   try {
     if (req.user.role === 'admin') {
-      const rows = await prisma.group.findMany({ orderBy: { createdAt: 'desc' } });
+      const rows = await prisma.group.findMany({ where: { organizationId: req.organization.id }, orderBy: { createdAt: 'desc' } });
       return res.json(rows);
     }
 
@@ -75,7 +75,7 @@ const getGroupById = async (req, res) => {
     if (!groupId) return res.status(400).json({ error: 'Invalid group id' });
 
     const group = await prisma.group.findUnique({
-      where: { id: groupId },
+      where: { id: groupId, organizationId: req.organization.id },
       include: { clients: true },
     });
 
@@ -182,7 +182,7 @@ const updateGroupMembers = async (req, res) => {
       return res.status(400).json({ error: 'clientIds must contain valid client ids' });
     }
     // Verify group exists first
-    const group = await prisma.group.findUnique({ where: { id: groupId } });
+    const group = await prisma.group.findFirst({ where: { id: groupId, organizationId: req.organization.id } });
     if (!group) return res.status(404).json({ error: 'Group not found' });
 
     // Only admins or group creator may modify membership
@@ -208,7 +208,7 @@ const updateGroupMembers = async (req, res) => {
       ]);
     }
 
-    const updated = await prisma.group.findUnique({ where: { id: groupId }, include: { clients: true } });
+    const updated = await prisma.group.findFirst({ where: { id: groupId, organizationId: req.organization.id }, include: { clients: true } });
     await logAudit(req.user.id, 'UPDATE_GROUP_MEMBERS', 'group', groupId);
     res.json(updated);
   } catch (err) {
@@ -225,8 +225,8 @@ const getGroupCollectionSheet = async (req, res) => {
     const groupId = parsePositiveInt(id);
     if (!groupId) return res.status(400).json({ error: 'Invalid group id' });
 
-    const group = await prisma.group.findUnique({
-      where: { id: groupId },
+    const group = await prisma.group.findFirst({
+      where: { id: groupId, organizationId: req.organization.id },
       include: {
         clients: {
           where: { status: 'active' },

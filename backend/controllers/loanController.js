@@ -9,6 +9,10 @@ const getLoanById = async (id) => {
   });
 };
 
+const getOrganizationLoanById = async (id, organizationId) => prisma.loan.findFirst({
+  where: { id, organizationId },
+});
+
 const formatClientName = (client) => {
   if (!client) return null;
   return [client.firstName, client.lastName].filter(Boolean).join(' ') || null;
@@ -58,8 +62,8 @@ const createLoan = async (req, res) => {
     }
 
     // Validate client exists
-    const client = await prisma.client.findUnique({
-      where: { id: parsedClientId },
+    const client = await prisma.client.findFirst({
+      where: { id: parsedClientId, organizationId: req.organization.id },
     });
     if (!client) {
       return res.status(404).json({ error: 'Client not found' });
@@ -75,6 +79,7 @@ const createLoan = async (req, res) => {
 
     const loan = await prisma.loan.create({
       data: {
+        organizationId: req.organization.id,
         clientId: parsedClientId,
         amount: numAmount,
         interestRate: numInterestRate,
@@ -100,8 +105,8 @@ const createLoan = async (req, res) => {
 const getLoans = async (req, res) => {
   try {
     const where = req.user.role === 'client'
-      ? { client: { email: req.user.email || '__no_client_email__' } }
-      : {};
+      ? { organizationId: req.organization.id, client: { email: req.user.email || '__no_client_email__' } }
+      : { organizationId: req.organization.id };
 
     const rows = await prisma.loan.findMany({
       where,
@@ -128,7 +133,7 @@ const approveLoan = async (req, res) => {
 
     if (!id) return res.status(400).json({ error: 'Invalid loan id' });
 
-    const loan = await getLoanById(id);
+    const loan = await getOrganizationLoanById(id, req.organization.id);
 
     if (!loan) return res.status(404).json({ error: 'Loan not found' });
 
@@ -269,7 +274,7 @@ const rejectLoan = async (req, res) => {
 
     if (!id) return res.status(400).json({ error: 'Invalid loan id' });
 
-    const loan = await getLoanById(id);
+    const loan = await getOrganizationLoanById(id, req.organization.id);
     if (!loan) return res.status(404).json({ error: 'Loan not found' });
 
     if (loan.createdBy === req.user.id && req.user.role !== 'admin') {
@@ -299,7 +304,7 @@ const disburseLoan = async (req, res) => {
 
     if (!id) return res.status(400).json({ error: 'Invalid loan id' });
 
-    const loan = await getLoanById(id);
+    const loan = await getOrganizationLoanById(id, req.organization.id);
 
     if (!loan) return res.status(404).json({ error: 'Loan not found' });
 
@@ -341,7 +346,7 @@ const requestRevisionLoan = async (req, res) => {
 
     if (!id) return res.status(400).json({ error: 'Invalid loan id' });
 
-    const loan = await getLoanById(id);
+    const loan = await getOrganizationLoanById(id, req.organization.id);
     if (!loan) return res.status(404).json({ error: 'Loan not found' });
 
     if (loan.createdBy === req.user.id && req.user.role !== 'admin') {
@@ -375,7 +380,7 @@ const getLoanSchedule = async (req, res) => {
     const id = parsePositiveInt(req.params.id);
     if (!id) return res.status(400).json({ error: 'Invalid loan id' });
 
-    const loan = await getLoanById(id);
+    const loan = await getOrganizationLoanById(id, req.organization.id);
     if (!loan) return res.status(404).json({ error: 'Loan not found' });
 
     const today = new Date();

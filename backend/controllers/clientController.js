@@ -61,7 +61,7 @@ const createClient = async (req, res) => {
     if (validationError) return res.status(400).json({ error: validationError });
 
     if (parsedGroupId) {
-      const group = await prisma.group.findUnique({ where: { id: parsedGroupId } });
+      const group = await prisma.group.findFirst({ where: { id: parsedGroupId, organizationId: req.organization.id } });
       if (!group) return res.status(404).json({ error: 'Group not found' });
       if (!await canManageGroup(req.user, parsedGroupId)) {
         return res.status(403).json({ error: 'Cannot assign client to a group you do not manage.' });
@@ -70,6 +70,7 @@ const createClient = async (req, res) => {
 
     const client = await prisma.client.create({
       data: {
+      organizationId: req.organization.id,
         firstName: formattedFirstName,
         lastName: formattedLastName,
         phone: normalizedPhone || null,
@@ -93,7 +94,7 @@ const createClient = async (req, res) => {
 
 const getClients = async (req, res) => {
   try {
-    const where = await getClientAccessWhere(req.user);
+    const where = { ...(await getClientAccessWhere(req.user)), organizationId: req.organization.id };
     const rows = await prisma.client.findMany({ where, orderBy: { createdAt: 'desc' } });
     res.json(rows);
   } catch (err) {
@@ -107,8 +108,8 @@ const getClientById = async (req, res) => {
     const clientId = parsePositiveInt(id);
     if (!clientId) return res.status(400).json({ error: 'Invalid client id' });
 
-    const client = await prisma.client.findUnique({
-      where: { id: clientId },
+    const client = await prisma.client.findFirst({
+      where: { id: clientId, organizationId: req.organization.id },
       include: {
         loans: {
           orderBy: { createdAt: 'desc' },
@@ -156,7 +157,7 @@ const updateClient = async (req, res) => {
     });
     if (validationError) return res.status(400).json({ error: validationError });
 
-    const existingClient = await prisma.client.findUnique({ where: { id: clientId } });
+    const existingClient = await prisma.client.findFirst({ where: { id: clientId, organizationId: req.organization.id } });
     if (!existingClient) return res.status(404).json({ error: 'Client not found' });
     if (!await canAccessClient(req.user, clientId)) {
       return res.status(403).json({ error: 'You do not have access to this client' });
@@ -174,7 +175,7 @@ const updateClient = async (req, res) => {
     }
 
     if (parsedGroupId) {
-      const group = await prisma.group.findUnique({ where: { id: parsedGroupId } });
+      const group = await prisma.group.findFirst({ where: { id: parsedGroupId, organizationId: req.organization.id } });
       if (!group) return res.status(404).json({ error: 'Group not found' });
       if (!await canManageGroup(req.user, parsedGroupId)) {
         return res.status(403).json({ error: 'Cannot assign client to a group you do not manage.' });
@@ -182,7 +183,7 @@ const updateClient = async (req, res) => {
     }
 
     await prisma.client.update({
-      where: { id: clientId },
+      where: { id: clientId, organizationId: req.organization.id },
       data: {
         firstName: formattedFirstName,
         lastName: formattedLastName,
@@ -215,12 +216,12 @@ const deleteClient = async (req, res) => {
     if (!clientId) return res.status(400).json({ error: 'Invalid client id' });
 
     // Check if client has loans
-    const loans = await prisma.loan.count({ where: { clientId } });
+    const loans = await prisma.loan.count({ where: { clientId, organizationId: req.organization.id } });
     if (loans > 0) {
       return res.status(400).json({ error: 'Cannot delete client with existing loans' });
     }
 
-    await prisma.client.delete({ where: { id: clientId } });
+    await prisma.client.delete({ where: { id: clientId, organizationId: req.organization.id } });
     await logAudit(req.user.id, 'DELETE_CLIENT', 'client', clientId);
     res.json({ deleted: 1 });
   } catch (err) {

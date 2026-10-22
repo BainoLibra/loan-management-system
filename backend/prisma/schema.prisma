@@ -33,15 +33,84 @@ enum LoanStatus {
   rejected
 }
 
+enum OrganizationType {
+  BANK
+  SACCO
+  MICROFINANCE
+  PRIVATE_LENDER
+}
+
+enum OrganizationStatus {
+  active
+  inactive
+}
+
+enum MembershipStatus {
+  active
+  inactive
+}
+
+model Organization {
+  id           Int                       @id @default(autoincrement())
+  name         String                    @unique
+  type         OrganizationType
+  status       OrganizationStatus       @default(active)
+  currency     String                    @default("UGX")
+  timeZone     String                    @default("Africa/Kampala")
+  createdAt    DateTime                  @default(now())
+  updatedAt    DateTime                  @updatedAt
+  memberships  OrganizationMembership[]
+  branches     Branch[]
+  groups       Group[]
+  clients      Client[]
+  loans        Loan[]
+
+  @@map("organizations")
+}
+
+model OrganizationMembership {
+  id             Int              @id @default(autoincrement())
+  organizationId Int
+  userId         Int
+  role           String
+  status         MembershipStatus @default(active)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@index([userId, status])
+  @@map("organization_memberships")
+}
+
+model Branch {
+  id             Int          @id @default(autoincrement())
+  organizationId Int
+  name           String
+  code           String?
+  status         String       @default("active")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, name])
+  @@index([organizationId, status])
+  @@map("branches")
+}
+
 model Group {
   id          Int       @id @default(autoincrement())
+  organizationId Int
   name        String    @unique
   description String?
   meetingDay  String?   @default("Monday")
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   clients     Client[]
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
 
+  @@index([organizationId])
   @@map("groups")
 }
 
@@ -64,6 +133,7 @@ model User {
   approvedLoans      Loan[]     @relation("LoanApprovedBy")
   repayments         Repayment[]
   auditLogs          AuditLog[]
+  memberships        OrganizationMembership[]
 
   @@index([email])
   @@map("users")
@@ -71,6 +141,7 @@ model User {
 
 model Client {
   id         Int           @id @default(autoincrement())
+  organizationId Int
   firstName     String
   lastName      String
   phone         String?
@@ -86,13 +157,16 @@ model Client {
   updatedAt  DateTime      @updatedAt
   group      Group?        @relation(fields: [groupId], references: [id], onDelete: SetNull)
   loans      Loan[]
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
 
+  @@index([organizationId])
   @@index([groupId])
   @@map("clients")
 }
 
 model Loan {
   id           Int         @id @default(autoincrement())
+  organizationId Int
   clientId     Int
   amount       Decimal     @db.Decimal(15, 2)
   interestRate Decimal     @db.Decimal(5, 2)
@@ -117,7 +191,9 @@ model Loan {
   approvedByUser User?     @relation("LoanApprovedBy", fields: [approvedBy], references: [id], onDelete: SetNull)
   repayments   Repayment[]
   schedules    Schedule[]
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
 
+  @@index([organizationId])
   @@index([clientId])
   @@index([approvedBy])
   @@index([createdBy])
@@ -131,6 +207,7 @@ model Repayment {
   paidBy        Int
   paymentMethod String   @default("cash")
   reference     String?
+  idempotencyKey String? @unique
   date          DateTime
   createdAt     DateTime @default(now())
   loan          Loan     @relation(fields: [loanId], references: [id], onDelete: Cascade)

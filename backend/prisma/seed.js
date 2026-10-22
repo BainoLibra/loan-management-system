@@ -7,6 +7,12 @@ async function main() {
   await init();
   console.log('Seeding massive amount of data...');
 
+  const organization = await prisma.organization.upsert({
+    where: { name: 'Default Organization' },
+    update: {},
+    create: { name: 'Default Organization', type: 'PRIVATE_LENDER' },
+  });
+
   const password = await bcrypt.hash('password123', 10);
 
   // 1. Create Staff Users
@@ -43,6 +49,16 @@ async function main() {
     cashiers.push(user);
   }
 
+  const allUsers = await prisma.user.findMany({ select: { id: true, role: true } });
+  await prisma.organizationMembership.createMany({
+    data: allUsers.map((user) => ({
+      organizationId: organization.id,
+      userId: user.id,
+      role: user.role,
+    })),
+    skipDuplicates: true,
+  });
+
   // 2. Create Groups
   console.log('Creating groups...');
   const groups = [];
@@ -53,6 +69,7 @@ async function main() {
       update: {},
       create: {
         name: groupName,
+        organizationId: organization.id,
         description: faker.lorem.sentence(),
       },
     });
@@ -65,6 +82,7 @@ async function main() {
   for (let i = 0; i < 50; i++) {
     const client = await prisma.client.create({
       data: {
+        organizationId: organization.id,
         firstName: faker.person.firstName(),
         lastName: faker.person.lastName(),
         phone: faker.phone.number(),
@@ -108,6 +126,7 @@ async function main() {
 
     const loan = await prisma.loan.create({
       data: {
+        organizationId: organization.id,
         clientId: client.id,
         amount,
         interestRate,

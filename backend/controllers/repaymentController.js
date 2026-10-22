@@ -2,16 +2,18 @@ const { prisma } = require('../db');
 const { logAudit } = require('../utils/hash');
 const { parseFiniteNumber, parsePositiveInt, sendServerError } = require('../utils/http');
 
-const getLoanById = async (id) => {
-  return prisma.loan.findUnique({
-    where: { id },
-  });
+const getLoanById = async (id, organizationId) => {
+  return prisma.loan.findFirst({ where: { id, organizationId } });
 };
 
 const repayLoan = async (req, res) => {
   try {
     const loanId = parsePositiveInt(req.params.loanId);
     const { amount, scheduleId, paymentMethod, reference } = req.body;
+    const requestedIdempotencyKey = req.get('Idempotency-Key') || req.body.idempotencyKey;
+    const idempotencyKey = typeof requestedIdempotencyKey === 'string'
+      ? requestedIdempotencyKey.trim().slice(0, 128)
+      : null;
 
     const paidBy = req.user.id;
     const repaymentAmount = parseFiniteNumber(amount);
@@ -25,47 +27,83 @@ const repayLoan = async (req, res) => {
     const selectedMethod = validMethods.includes(paymentMethod) ? paymentMethod : 'cash';
     const sanitizedReference = typeof reference === 'string' ? reference.trim().slice(0, 100) : null;
 
-    const loan = await getLoanById(loanId);
-
-    if (!loan) return res.status(404).json({ error: 'Loan not found' });
-
-    if (loan.status !== 'disbursed') return res.status(400).json({ error: 'Loan must be disbursed before repayment' });
-
-    if (repaymentAmount > Number(loan.balance)) return res.status(400).json({ error: 'Repayment exceeds remaining balance' });
-
     const date = new Date();
-
-    let schedule = null;
-    if (scheduleId) {
-      const parsedScheduleId = parsePositiveInt(scheduleId);
-      if (!parsedScheduleId) return res.status(400).json({ error: 'Invalid schedule id' });
-
-      schedule = await prisma.schedule.findUnique({
-        where: { id: parsedScheduleId },
-      });
-      if (!schedule || schedule.loanId !== loanId) return res.status(404).json({ error: 'Schedule not found' });
-      if (schedule.status === 'paid') return res.status(400).json({ error: 'Installment already paid' });
-    }
-
     const repayment = await prisma.$transaction(async (tx) => {
+      if (idempotencyKey) {
+        const existingRepayment = await tx.repayment.findUnique({ where: { idempotencyKey } });
+        if (existingRepayment) {
+          if (existingRepayment.loanId !== loanId) {
+            const error = new Error('Idempotency key belongs to another loan');
+            error.statusCode = 409;
+            throw error;
+          }
+          return { repayment: existingRepayment, alreadyProcessed: true };
+        }
+      }
+
+      const loan = await tx.loan.findFirst({ where: { id: loanId, organizationId: req.organization.id } });
+      if (!loan) {
+        const error = new Error('Loan not found');
+        error.statusCode = 404;
+        throw error;
+      }
+      if (loan.status !== 'disbursed') {
+        const error = new Error('Loan must be disbursed before repayment');
+        error.statusCode = 400;
+        throw error;
+      }
+
+      let schedule = null;
+      if (scheduleId) {
+        const parsedScheduleId = parsePositiveInt(scheduleId);
+        if (!parsedScheduleId) {
+          const error = new Error('Invalid schedule id');
+          error.statusCode = 400;
+          throw error;
+        }
+        schedule = await tx.schedule.findUnique({ where: { id: parsedScheduleId } });
+        if (!schedule || schedule.loanId !== loanId) {
+          const error = new Error('Schedule not found');
+          error.statusCode = 404;
+          throw error;
+        }
+        if (schedule.status === 'paid') {
+          const error = new Error('Installment already paid');
+          error.statusCode = 400;
+          throw error;
+        }
+      }
+
+      const updatedLoanCount = await tx.loan.updateMany({
+        where: {
+          id: loanId,
+          organizationId: req.organization.id,
+          status: 'disbursed',
+          balance: { gte: repaymentAmount },
+        },
+        data: { balance: { decrement: repaymentAmount } },
+      });
+      if (updatedLoanCount.count !== 1) {
+        const error = new Error('Repayment exceeds remaining balance');
+        error.statusCode = 400;
+        throw error;
+      }
+
+      const updatedLoan = await tx.loan.findFirst({ where: { id: loanId, organizationId: req.organization.id }, select: { balance: true } });
+      await tx.loan.update({
+        where: { id: loanId },
+        data: { status: Number(updatedLoan.balance) <= 0 ? 'closed' : 'disbursed' },
+      });
+
       const createdRepayment = await tx.repayment.create({
         data: {
           loanId,
           amount: repaymentAmount,
           paymentMethod: selectedMethod,
           reference: sanitizedReference,
+          idempotencyKey,
           date,
           paidBy,
-        },
-      });
-
-      const updatedBalance = Math.max(0, Number(loan.balance) - repaymentAmount);
-
-      await tx.loan.update({
-        where: { id: loanId },
-        data: {
-          balance: updatedBalance,
-          status: updatedBalance <= 0 ? 'closed' : loan.status,
         },
       });
 
@@ -86,13 +124,16 @@ const repayLoan = async (req, res) => {
         });
       }
 
-      return createdRepayment;
+      return { repayment: createdRepayment, alreadyProcessed: false };
     });
 
-    await logAudit(req.user.id, 'REPAY_LOAN', 'loan', loanId);
+    if (!repayment.alreadyProcessed) {
+      await logAudit(req.user.id, 'REPAY_LOAN', 'loan', loanId);
+    }
 
-    res.json({ repaymentId: repayment.id });
+    res.json({ repaymentId: repayment.repayment.id, alreadyProcessed: repayment.alreadyProcessed });
   } catch (err) {
+    if (err.statusCode) return res.status(err.statusCode).json({ error: err.message });
     return sendServerError(res, err, 'Record repayment error');
   }
 };
@@ -104,7 +145,7 @@ const getRepayments = async (req, res) => {
     if (!loanId) return res.status(400).json({ error: 'Invalid loan id' });
 
     const rows = await prisma.repayment.findMany({
-      where: { loanId },
+      where: { loanId, loan: { organizationId: req.organization.id } },
       orderBy: { date: 'desc' },
       include: {
         paidByUser: { select: { name: true } },

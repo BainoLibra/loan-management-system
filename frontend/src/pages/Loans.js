@@ -152,7 +152,7 @@ function Loans() {
     try {
       setSubmitting(true);
       setError("");
-      await repayLoan(scheduleLoanId, amount, scheduleId);
+      await repayLoan(scheduleLoanId, amount, 'cash', '', scheduleId);
       await viewSchedule(scheduleLoanId, { force: true });
       await fetchLoans();
     } catch (err) {

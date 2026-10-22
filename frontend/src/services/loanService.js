@@ -98,10 +98,20 @@ export const getRepayments = async (loanId) => {
   return handleApiResponse(response);
 };
 
-export const repayLoan = async (loanId, amount, paymentMethod = 'cash', reference = '', scheduleId = null) => {
+const createIdempotencyKey = () => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+};
+
+export const repayLoan = async (loanId, amount, paymentMethod = 'cash', reference = '', scheduleId = null, idempotencyKey = createIdempotencyKey()) => {
   const response = await apiFetch(`${API_URL}/${loanId}/repay`, {
     method: "POST",
-    headers: getAuthHeaders(),
+    headers: {
+      ...getAuthHeaders(),
+      "Idempotency-Key": idempotencyKey,
+    },
     credentials: "include",
     body: JSON.stringify({ amount, paymentMethod, reference, scheduleId }),
   });
