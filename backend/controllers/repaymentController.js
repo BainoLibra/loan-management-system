@@ -1,6 +1,8 @@
 const { prisma } = require('../db');
 const { logAudit } = require('../utils/hash');
 const { parseFiniteNumber, parsePositiveInt, sendServerError } = require('../utils/http');
+const { postJournalEntry } = require('../utils/accounting');
+const { queueNotification } = require('../utils/notifications');
 
 const getLoanById = async (id, organizationId) => {
   return prisma.loan.findFirst({ where: { id, organizationId } });
@@ -107,20 +109,61 @@ const repayLoan = async (req, res) => {
         },
       });
 
-      if (schedule) {
-        const currentPaidAmount = Number(schedule.paidAmount || 0);
-        const paymentAmount = Number(schedule.payment || 0);
-        const updatedPaidAmount = Math.min(paymentAmount, currentPaidAmount + repaymentAmount);
-        const nextStatus = updatedPaidAmount >= paymentAmount
-          ? 'paid'
-          : (new Date(schedule.dueDate) < date ? 'overdue' : 'pending');
+      const schedules = schedule
+        ? [schedule]
+        : await tx.schedule.findMany({
+          where: { loanId, status: { not: 'paid' } },
+          orderBy: { dueDate: 'asc' },
+        });
+      let remainingAmount = repaymentAmount;
+      const allocations = [];
+      const scheduleUpdates = [];
 
+      for (const installment of schedules) {
+        if (remainingAmount <= 0) break;
+        const dueAmount = Math.max(0, Number(installment.payment) - Number(installment.paidAmount || 0));
+        let installmentRemaining = Math.min(remainingAmount, dueAmount);
+        if (installmentRemaining <= 0) continue;
+
+        const penalty = Math.min(installmentRemaining, Number(installment.penalty || 0));
+        installmentRemaining -= penalty;
+        const interest = Math.min(installmentRemaining, Number(installment.interest || 0));
+        installmentRemaining -= interest;
+        const principal = installmentRemaining;
+        const applied = penalty + interest + principal;
+
+        if (penalty > 0) allocations.push({ repaymentId: createdRepayment.id, scheduleId: installment.id, component: 'PENALTY', amount: penalty });
+        if (interest > 0) allocations.push({ repaymentId: createdRepayment.id, scheduleId: installment.id, component: 'INTEREST', amount: interest });
+        if (principal > 0) allocations.push({ repaymentId: createdRepayment.id, scheduleId: installment.id, component: 'PRINCIPAL', amount: principal });
+
+        const paidAmount = Number(installment.paidAmount || 0) + applied;
+        scheduleUpdates.push({
+          schedule: installment,
+          paidAmount,
+          status: paidAmount >= Number(installment.payment) ? 'paid' : (new Date(installment.dueDate) < date ? 'overdue' : 'pending'),
+        });
+        remainingAmount -= applied;
+      }
+
+      if (remainingAmount > 0) {
+        allocations.push({ repaymentId: createdRepayment.id, scheduleId: null, component: 'UNAPPLIED', amount: remainingAmount });
+      }
+      await tx.repaymentAllocation.createMany({ data: allocations });
+      await postJournalEntry(tx, {
+        organizationId: req.organization.id,
+        createdBy: paidBy,
+        entryType: 'LOAN_REPAYMENT',
+        referenceType: 'repayment',
+        referenceId: createdRepayment.id,
+        debitAccount: 'CASH',
+        creditAccount: 'LOAN_RECEIVABLE',
+        amount: repaymentAmount,
+        description: `Repayment for loan ${loanId}`,
+      });
+      for (const update of scheduleUpdates) {
         await tx.schedule.update({
-          where: { id: schedule.id },
-          data: {
-            paidAmount: updatedPaidAmount,
-            status: nextStatus,
-          },
+          where: { id: update.schedule.id },
+          data: { paidAmount: update.paidAmount, status: update.status },
         });
       }
 
@@ -129,12 +172,102 @@ const repayLoan = async (req, res) => {
 
     if (!repayment.alreadyProcessed) {
       await logAudit(req.user.id, 'REPAY_LOAN', 'loan', loanId);
+      const client = await prisma.client.findFirst({ where: { loans: { some: { id: loanId, organizationId: req.organization.id } }, organizationId: req.organization.id }, select: { id: true, email: true } });
+      if (client?.email) await queueNotification({
+        prisma,
+        organizationId: req.organization.id,
+        clientId: client.id,
+        recipientEmail: client.email,
+        eventType: 'REPAYMENT_RECEIVED',
+        subject: `Payment received for loan ${loanId}`,
+        body: `A payment of ${repaymentAmount} was recorded for loan ${loanId}.`,
+      });
     }
 
     res.json({ repaymentId: repayment.repayment.id, alreadyProcessed: repayment.alreadyProcessed });
   } catch (err) {
     if (err.statusCode) return res.status(err.statusCode).json({ error: err.message });
     return sendServerError(res, err, 'Record repayment error');
+  }
+};
+
+const reverseRepayment = async (req, res) => {
+  try {
+    const loanId = parsePositiveInt(req.params.loanId);
+    const repaymentId = parsePositiveInt(req.params.repaymentId);
+    const reason = typeof req.body?.reason === 'string' ? req.body.reason.trim().slice(0, 500) : '';
+    if (!loanId || !repaymentId) return res.status(400).json({ error: 'Invalid loan or repayment id' });
+    if (!reason) return res.status(400).json({ error: 'Reversal reason is required' });
+
+    await prisma.$transaction(async (tx) => {
+      const repayment = await tx.repayment.findFirst({
+        where: { id: repaymentId, loanId, loan: { organizationId: req.organization.id } },
+        include: { allocations: true },
+      });
+      if (!repayment) {
+        const error = new Error('Repayment not found');
+        error.statusCode = 404;
+        throw error;
+      }
+      if (repayment.status !== 'ACTIVE') {
+        const error = new Error('Repayment has already been reversed');
+        error.statusCode = 409;
+        throw error;
+      }
+
+      await tx.repaymentReversal.create({ data: { repaymentId, reversedBy: req.user.id, reason } });
+      await tx.repayment.update({ where: { id: repaymentId }, data: { status: 'REVERSED' } });
+      await postJournalEntry(tx, {
+        organizationId: req.organization.id,
+        createdBy: req.user.id,
+        entryType: 'REPAYMENT_REVERSAL',
+        referenceType: 'repayment_reversal',
+        referenceId: repaymentId,
+        debitAccount: 'LOAN_RECEIVABLE',
+        creditAccount: 'CASH',
+        amount: repayment.amount,
+        description: reason,
+      });
+
+      const loan = await tx.loan.findFirst({ where: { id: loanId, organizationId: req.organization.id } });
+      await tx.loan.update({
+        where: { id: loanId },
+        data: { balance: { increment: repayment.amount }, status: loan.status === 'closed' ? 'disbursed' : loan.status },
+      });
+
+      const scheduleAmounts = new Map();
+      repayment.allocations.forEach((allocation) => {
+        if (allocation.scheduleId) {
+          scheduleAmounts.set(allocation.scheduleId, (scheduleAmounts.get(allocation.scheduleId) || 0) + Number(allocation.amount));
+        }
+      });
+      for (const [scheduleId, amount] of scheduleAmounts) {
+        const schedule = await tx.schedule.findUnique({ where: { id: scheduleId } });
+        if (!schedule) continue;
+        const paidAmount = Math.max(0, Number(schedule.paidAmount) - amount);
+        await tx.schedule.update({
+          where: { id: scheduleId },
+          data: { paidAmount, status: paidAmount >= Number(schedule.payment) ? 'paid' : (new Date(schedule.dueDate) < new Date() ? 'overdue' : 'pending') },
+        });
+      }
+    });
+
+    await logAudit(req.user.id, 'REVERSE_REPAYMENT', 'repayment', repaymentId);
+    const reversedClient = await prisma.client.findFirst({ where: { loans: { some: { id: loanId, organizationId: req.organization.id } }, organizationId: req.organization.id }, select: { id: true, email: true } });
+    if (reversedClient?.email) await queueNotification({
+      prisma,
+      organizationId: req.organization.id,
+      clientId: reversedClient.id,
+      recipientEmail: reversedClient.email,
+      eventType: 'REPAYMENT_REVERSED',
+      subject: `Payment reversal for loan ${loanId}`,
+      body: `A payment for loan ${loanId} was reversed. Reason: ${reason}`,
+    });
+    res.json({ reversed: 1, repaymentId });
+  } catch (err) {
+    if (err.statusCode) return res.status(err.statusCode).json({ error: err.message });
+    if (err.code === 'P2002') return res.status(409).json({ error: 'Repayment has already been reversed' });
+    return sendServerError(res, err, 'Reverse repayment error');
   }
 };
 
@@ -337,4 +470,4 @@ const acceptCashHandover = async (req, res) => {
   }
 };
 
-module.exports = { repayLoan, getRepayments, batchGroupRepayment, getFieldCollectionsSummary, acceptCashHandover };
+module.exports = { repayLoan, getRepayments, reverseRepayment, batchGroupRepayment, getFieldCollectionsSummary, acceptCashHandover };

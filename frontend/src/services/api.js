@@ -17,10 +17,12 @@ export const getActiveToken = () => {
 
 export const getAuthHeaders = ({ json = true } = {}) => {
   const token = getActiveToken();
+  const organizationId = localStorage.getItem("activeOrganizationId");
 
   return {
     ...(json ? { "Content-Type": "application/json" } : {}),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(organizationId ? { "X-Organization-Id": organizationId } : {}),
   };
 };
 

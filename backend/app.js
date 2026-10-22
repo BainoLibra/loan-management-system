@@ -13,6 +13,9 @@ const repaymentRoutes = require('./routes/repaymentRoutes');
 const auditRoutes = require('./routes/auditRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const userRoutes = require('./routes/userRoutes');
+const loanProductRoutes = require('./routes/loanProductRoutes');
+const collectionsRoutes = require('./routes/collectionsRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 
 const app = express();
 
@@ -57,7 +60,7 @@ const createCorsOptions = (req) => ({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Idempotency-Key', 'X-Organization-Id'],
   maxAge: 86400, // 24 hours
 });
 
@@ -105,6 +108,9 @@ app.use('/api/loans', repaymentRoutes);
 app.use('/api/audit-logs', auditRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/loan-products', loanProductRoutes);
+app.use('/api/collections', collectionsRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 app.get('/', (_req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });

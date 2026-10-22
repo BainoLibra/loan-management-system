@@ -11,7 +11,8 @@ import {
   IconAudit,
   IconUsers,
   IconLock,
-  IconScale
+  IconScale,
+  IconBell
 } from "./Icons";
 import "../styles/sidebar.css";
 
@@ -66,6 +67,12 @@ function Sidebar({ isOpen, onChangePassword }) {
           <Link to="/reports">
             <IconReports size={18} />
             <span>Reports</span>
+          </Link>
+        </li>
+        <li className={isActive("/notifications")}>
+          <Link to="/notifications">
+            <IconBell size={18} />
+            <span>Notifications</span>
           </Link>
         </li>
         

@@ -50,6 +50,34 @@ enum MembershipStatus {
   inactive
 }
 
+enum RepaymentFrequency {
+  WEEKLY
+  MONTHLY
+}
+
+enum ApprovalDecision {
+  APPROVED
+  REJECTED
+  REVISION_REQUESTED
+}
+
+enum DisbursementStatus {
+  PENDING
+  SUCCESSFUL
+  FAILED
+}
+
+enum RepaymentStatus {
+  ACTIVE
+  REVERSED
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
 model Organization {
   id           Int                       @id @default(autoincrement())
   name         String                    @unique
@@ -64,6 +92,11 @@ model Organization {
   groups       Group[]
   clients      Client[]
   loans        Loan[]
+  loanProducts LoanProduct[]
+  disbursements LoanDisbursement[]
+  collectionActivities CollectionActivity[]
+  journalEntries JournalEntry[]
+  notifications Notification[]
 
   @@map("organizations")
 }
@@ -97,6 +130,29 @@ model Branch {
   @@unique([organizationId, name])
   @@index([organizationId, status])
   @@map("branches")
+}
+
+model LoanProduct {
+  id                 Int                @id @default(autoincrement())
+  organizationId     Int
+  name               String
+  code               String
+  minAmount          Decimal            @db.Decimal(15, 2)
+  maxAmount          Decimal            @db.Decimal(15, 2)
+  interestRate       Decimal            @db.Decimal(5, 2)
+  minTermMonths      Int
+  maxTermMonths      Int
+  repaymentFrequency RepaymentFrequency @default(MONTHLY)
+  approvalLimit      Decimal            @db.Decimal(15, 2)
+  active             Boolean            @default(true)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  organization       Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  loans              Loan[]
+
+  @@unique([organizationId, code])
+  @@index([organizationId, active])
+  @@map("loan_products")
 }
 
 model Group {
@@ -134,6 +190,13 @@ model User {
   repayments         Repayment[]
   auditLogs          AuditLog[]
   memberships        OrganizationMembership[]
+  loanApprovals      LoanApproval[]
+  disbursements       LoanDisbursement[]
+  repaymentReversals  RepaymentReversal[]
+  collectionActivitiesCreated CollectionActivity[] @relation("CollectionActivityCreatedBy")
+  collectionAssignments CollectionActivity[] @relation("CollectionActivityAssignedTo")
+  journalEntries JournalEntry[]
+  notifications Notification[]
 
   @@index([email])
   @@map("users")
@@ -158,6 +221,7 @@ model Client {
   group      Group?        @relation(fields: [groupId], references: [id], onDelete: SetNull)
   loans      Loan[]
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  notifications Notification[]
 
   @@index([organizationId])
   @@index([groupId])
@@ -167,6 +231,7 @@ model Client {
 model Loan {
   id           Int         @id @default(autoincrement())
   organizationId Int
+  productId    Int?
   clientId     Int
   amount       Decimal     @db.Decimal(15, 2)
   interestRate Decimal     @db.Decimal(5, 2)
@@ -191,13 +256,123 @@ model Loan {
   approvedByUser User?     @relation("LoanApprovedBy", fields: [approvedBy], references: [id], onDelete: SetNull)
   repayments   Repayment[]
   schedules    Schedule[]
+  approvals    LoanApproval[]
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  product      LoanProduct? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  disbursements LoanDisbursement[]
+  collectionActivities CollectionActivity[]
 
   @@index([organizationId])
+  @@index([productId])
   @@index([clientId])
   @@index([approvedBy])
   @@index([createdBy])
   @@map("loans")
+}
+
+model LoanApproval {
+  id             Int              @id @default(autoincrement())
+  loanId         Int
+  approverId     Int
+  decision       ApprovalDecision
+  approvedAmount Decimal?         @db.Decimal(15, 2)
+  comments       String?
+  createdAt      DateTime         @default(now())
+  loan           Loan             @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  approver       User             @relation(fields: [approverId], references: [id], onDelete: Restrict)
+
+  @@index([loanId, createdAt])
+  @@index([approverId, createdAt])
+  @@map("loan_approvals")
+}
+
+model LoanDisbursement {
+  id              Int                @id @default(autoincrement())
+  organizationId  Int
+  loanId          Int
+  disbursedBy     Int
+  amount          Decimal            @db.Decimal(15, 2)
+  paymentMethod   String
+  reference       String?
+  destination     String?
+  idempotencyKey  String             @unique
+  status          DisbursementStatus @default(PENDING)
+  failureReason   String?
+  createdAt       DateTime           @default(now())
+  completedAt     DateTime?
+  organization    Organization       @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  loan            Loan               @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  disbursedByUser User               @relation(fields: [disbursedBy], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, status])
+  @@index([loanId, createdAt])
+  @@map("loan_disbursements")
+}
+
+model CollectionActivity {
+  id             Int      @id @default(autoincrement())
+  organizationId Int
+  loanId         Int
+  createdBy      Int
+  assignedTo     Int?
+  activityType   String
+  outcome        String?
+  notes          String?
+  promiseDate    DateTime?
+  createdAt      DateTime @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  loan           Loan @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  createdByUser  User @relation("CollectionActivityCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+  assignedToUser User? @relation("CollectionActivityAssignedTo", fields: [assignedTo], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, createdAt])
+  @@index([loanId, createdAt])
+  @@index([assignedTo, createdAt])
+  @@map("collection_activities")
+}
+
+model JournalEntry {
+  id             Int      @id @default(autoincrement())
+  organizationId Int
+  createdBy      Int?
+  entryType      String
+  referenceType  String
+  referenceId    Int
+  debitAccount   String
+  creditAccount  String
+  amount         Decimal  @db.Decimal(15, 2)
+  description    String?
+  createdAt      DateTime @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  createdByUser  User? @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, createdAt])
+  @@index([referenceType, referenceId])
+  @@map("journal_entries")
+}
+
+model Notification {
+  id             Int                @id @default(autoincrement())
+  organizationId Int
+  userId         Int?
+  clientId       Int?
+  channel        String             @default("EMAIL")
+  eventType      String
+  subject        String
+  body           String
+  recipientEmail String?
+  status         NotificationStatus @default(PENDING)
+  attempts       Int                @default(0)
+  lastError      String?
+  createdAt      DateTime           @default(now())
+  sentAt         DateTime?
+  organization   Organization       @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  user           User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
+  client         Client?            @relation(fields: [clientId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, status, createdAt])
+  @@index([userId, status, createdAt])
+  @@map("notifications")
 }
 
 model Repayment {
@@ -208,14 +383,45 @@ model Repayment {
   paymentMethod String   @default("cash")
   reference     String?
   idempotencyKey String? @unique
+  status        RepaymentStatus @default(ACTIVE)
   date          DateTime
   createdAt     DateTime @default(now())
   loan          Loan     @relation(fields: [loanId], references: [id], onDelete: Cascade)
   paidByUser    User     @relation(fields: [paidBy], references: [id], onDelete: Restrict)
+  allocations   RepaymentAllocation[]
+  reversal      RepaymentReversal?
 
   @@index([loanId])
   @@index([paidBy])
   @@map("repayments")
+}
+
+model RepaymentAllocation {
+  id          Int      @id @default(autoincrement())
+  repaymentId Int
+  scheduleId  Int?
+  component   String
+  amount      Decimal  @db.Decimal(15, 2)
+  createdAt   DateTime @default(now())
+  repayment   Repayment @relation(fields: [repaymentId], references: [id], onDelete: Cascade)
+  schedule    Schedule? @relation(fields: [scheduleId], references: [id], onDelete: Restrict)
+
+  @@index([repaymentId])
+  @@index([scheduleId])
+  @@map("repayment_allocations")
+}
+
+model RepaymentReversal {
+  id           Int      @id @default(autoincrement())
+  repaymentId  Int      @unique
+  reversedBy   Int
+  reason       String
+  createdAt    DateTime @default(now())
+  repayment    Repayment @relation(fields: [repaymentId], references: [id], onDelete: Restrict)
+  reversedByUser User   @relation(fields: [reversedBy], references: [id], onDelete: Restrict)
+
+  @@index([reversedBy, createdAt])
+  @@map("repayment_reversals")
 }
 
 model Schedule {
@@ -232,6 +438,7 @@ model Schedule {
   penalty    Decimal  @db.Decimal(15, 2) @default(0)
   createdAt  DateTime @default(now())
   loan       Loan     @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  allocations RepaymentAllocation[]
 
   @@index([loanId])
   @@map("schedules")

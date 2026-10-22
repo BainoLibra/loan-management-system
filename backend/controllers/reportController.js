@@ -14,28 +14,31 @@ const getDashboardSummary = async (req, res) => {
     tomorrow.setDate(tomorrow.getDate() + 1);
 
     const [activeLoanCount, portfolioResult, dueTodaySchedules, overdueSchedules, overdue30Schedules, collectionsResult] = await Promise.all([
-      prisma.loan.count({ where: { status: 'disbursed' } }),
-      prisma.loan.aggregate({ where: { status: 'disbursed' }, _sum: { balance: true } }),
+      prisma.loan.count({ where: { organizationId: req.organization.id, status: 'disbursed' } }),
+      prisma.loan.aggregate({ where: { organizationId: req.organization.id, status: 'disbursed' }, _sum: { balance: true } }),
       prisma.schedule.findMany({
         where: {
           dueDate: { gte: today, lt: tomorrow },
           status: { in: ['pending', 'overdue'] },
+          loan: { organizationId: req.organization.id },
         },
       }),
       prisma.schedule.findMany({
         where: {
           dueDate: { lt: today },
           status: { in: ['pending', 'overdue'] },
+          loan: { organizationId: req.organization.id },
         },
       }),
       prisma.schedule.findMany({
         where: {
           dueDate: { lt: new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000) },
           status: { in: ['pending', 'overdue'] },
+          loan: { organizationId: req.organization.id },
         },
       }),
       prisma.repayment.aggregate({
-        where: { date: { gte: today, lt: tomorrow } },
+        where: { date: { gte: today, lt: tomorrow }, loan: { organizationId: req.organization.id } },
         _sum: { amount: true },
       }),
     ]);
@@ -72,7 +75,7 @@ const getDashboardSummary = async (req, res) => {
 const getAgingReport = async (req, res) => {
   try {
     const rows = await prisma.loan.findMany({
-      where: { status: 'disbursed' },
+      where: { organizationId: req.organization.id, status: 'disbursed' },
       include: { client: { select: { firstName: true, lastName: true } } },
       orderBy: { disbursedAt: 'desc' },
     });
@@ -118,4 +121,28 @@ const getAgingReport = async (req, res) => {
   }
 };
 
-module.exports = { getAgingReport, getDashboardSummary };
+const getAccountingSummary = async (req, res) => {
+  try {
+    const entries = await prisma.journalEntry.findMany({
+      where: { organizationId: req.organization.id },
+      orderBy: { createdAt: 'desc' },
+    });
+    const accounts = {};
+    for (const entry of entries) {
+      const amount = Number(entry.amount);
+      accounts[entry.debitAccount] = (accounts[entry.debitAccount] || 0) + amount;
+      accounts[entry.creditAccount] = (accounts[entry.creditAccount] || 0) - amount;
+    }
+    res.json({
+      entryCount: entries.length,
+      accounts,
+      totalDebits: entries.reduce((sum, entry) => sum + Number(entry.amount), 0),
+      totalCredits: entries.reduce((sum, entry) => sum + Number(entry.amount), 0),
+      entries,
+    });
+  } catch (err) {
+    return sendServerError(res, err, 'Accounting summary error');
+  }
+};
+
+module.exports = { getAgingReport, getDashboardSummary, getAccountingSummary };
